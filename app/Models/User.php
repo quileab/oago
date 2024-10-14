@@ -46,4 +46,13 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    // create tokens for the user
+    // public function createToken(string $name, array $abilities = []): Token
+    // {
+    //     return $this->tokens()->create([
+    //         'name' => $name,
+    //         'abilities' => $abilities,
+    //     ]);
+    // }
 }

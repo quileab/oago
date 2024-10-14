@@ -39,6 +39,7 @@ class extends Component {
         $data['password'] = Hash::make($data['password']);
  
         $user = User::create($data);
+        $token = $user->createToken('auth_token')->plainTextToken;
  
         auth()->login($user);
  

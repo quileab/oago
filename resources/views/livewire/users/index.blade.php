@@ -24,7 +24,9 @@ new class extends Component {
     // Delete action
     public function delete($id): void
     {
-        $this->warning("Will delete #$id", 'It is fake.', position: 'toast-bottom');
+        User::destroy($id);
+        $this->success('User deleted.', position: 'toast-bottom');
+        //$this->warning("Will delete #$id", 'It is fake.', position: 'toast-bottom');
     }
 
     // Table headers
@@ -33,8 +35,8 @@ new class extends Component {
         return [
             ['key' => 'id', 'label' => '#', 'class' => 'w-1'],
             ['key' => 'name', 'label' => 'Name', 'class' => 'w-64'],
-            ['key' => 'age', 'label' => 'Age', 'class' => 'w-20'],
             ['key' => 'email', 'label' => 'E-mail', 'sortable' => false],
+            ['key' => 'role', 'label' => 'Role', 'class' => 'w-20'],
         ];
     }
 
@@ -46,11 +48,7 @@ new class extends Component {
      */
     public function users(): Collection
     {
-        return collect([
-            ['id' => 1, 'name' => 'Mary', 'email' => 'mary@mary-ui.com', 'age' => 23],
-            ['id' => 2, 'name' => 'Giovanna', 'email' => 'giovanna@mary-ui.com', 'age' => 7],
-            ['id' => 3, 'name' => 'Marina', 'email' => 'marina@mary-ui.com', 'age' => 5],
-        ])
+        return User::all()
             ->sortBy([[...array_values($this->sortBy)]])
             ->when($this->search, function (Collection $collection) {
                 return $collection->filter(fn(array $item) => str($item['name'])->contains($this->search, true));
@@ -68,7 +66,7 @@ new class extends Component {
 
 <div>
     <!-- HEADER -->
-    <x-header title="Hello" separator progress-indicator>
+    <x-header title="Users" separator progress-indicator>
         <x-slot:middle class="!justify-end">
             <x-input placeholder="Search..." wire:model.live.debounce="search" clearable icon="o-magnifying-glass" />
         </x-slot:middle>

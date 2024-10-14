@@ -1,8 +1,6 @@
 <?php
 
 use Livewire\Volt\Volt;
-
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Artisan;
 
 Volt::route('/', 'users.index');
@@ -10,7 +8,10 @@ Volt::route('/', 'users.index');
 Volt::route('/login', 'login')->name('login');
 Volt::route('/register', 'register'); 
 
-// Define the logout
+// Route::get('/artisan/{command}', function ($command) {
+//     return Artisan::call($command);
+// });
+
 Route::get('/logout', function () {
     auth()->logout();
     request()->session()->invalidate();
@@ -18,22 +19,21 @@ Route::get('/logout', function () {
     return redirect('/');
 });
 
-Route::get('/cache', function () {
-    return Cache::flush();
-    //return redirect('/');
-});
-
-Route::get('/clear', function () {
+Route::get('/clear/{option?}', function ($option = null) {
+    
     $logs = [];
-    $maintenance=[
+    $maintenance = ($option == "cache") ? [
+        'Flush' => 'cache:flush',
+    ] : [
         //'DebugBar'=>'debugbar:clear',
         //'Storage Link'=>'storage:link',
-        'Config'=>'config:clear',
-        'Optimize Clear'=>'optimize:clear',
+        'Config' => 'config:clear',
+        'Optimize Clear' => 'optimize:clear',
         //'Optimize'=>'optimize',
-        'Route Clear'=>'route:clear',
-        'Cache'=>'cache:clear',
+        'Route Clear' => 'route:clear',
+        'Cache' => 'cache:clear',
     ];
+
     foreach ($maintenance as $key => $value) {
         try {
             Artisan::call($value);
@@ -46,8 +46,3 @@ Route::get('/clear', function () {
     //    return var_dump($maintenance,true);
     //.Artisan::output();
 });
-
-Route::get('/artisan/{command}', function ($command) {
-    return Artisan::call($command);
-});
-
