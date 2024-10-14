@@ -2,8 +2,12 @@
 
 use Livewire\Volt\Volt;
 use Illuminate\Support\Facades\Artisan;
+// route to web /
+Route::get('/', function () {
+  return view('index');
+});
 
-Volt::route('/', 'users.index');
+Volt::route('/users', 'users.index');
 // Users will be redirected to this route if not logged in
 Volt::route('/login', 'login')->name('login');
 Volt::route('/register', 'register'); 

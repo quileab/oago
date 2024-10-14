@@ -11,7 +11,9 @@
     <x-main>
         <x-slot:content>
             <div class="mx-auto w-72 bg-slate-900 bg-opacity-40 backdrop-blur-xl rounded-lg shadow-sm shadow-black p-4">
+            @if(isset($slot))
                 {{ $slot }}
+            @endif
             </div>
         </x-slot:content>
     </x-main>
