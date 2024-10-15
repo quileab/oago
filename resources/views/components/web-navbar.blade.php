@@ -5,5 +5,6 @@
     <a href="#">About</a>
     <a href="#">Contact</a>
     <x-button icon="o-shopping-cart" class="btn-circle btn-outline" />
+    <x-loading class="loading-bars" />
   </div>
 </div>

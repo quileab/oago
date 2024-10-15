@@ -1,4 +1,6 @@
 <!DOCTYPE html>
+<!-- CARLOS -->
+
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
     <meta charset="utf-8">
@@ -11,5 +13,6 @@
     <!--livewire:web-navbar /-->
     <livewire:web-search-filter />
     <livewire:web-product title="Productos Destacados" :filter="['featured' => true]" />
+    <livewire:web-product title="Productos Publicados" :filter="['published' => true]" />
 </body>
 </html>
