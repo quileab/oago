@@ -8,7 +8,15 @@
             </div>
         </div>
         <div class="p-2 bg-slate-100 grid grid-cols-2">
-            <h3 class="text-2xl text-center font-bold text-green-700">$ {{ number_format($product->price, 2, ',', '.') }}</h3>
+            <div>
+                <h3 @class([
+                    "text-2xl text-center font-bold text-green-700",
+                    "text-xl line-through" => $product->offer_price>0
+                ])>$ {{ number_format($product->price, 2, ',', '.') }}</h3>
+                @if($product->offer_price>0)
+                    <h3 class="text-2xl text-center font-bold text-green-700">$ {{number_format($product->offer_price, 2, ',', '.')}}</h3>
+                @endif
+            </div>
             <div><p>{!! $product->description_html !!}</p></div>
         </div>
         <div class="p-2 bg-slate-100">
