@@ -12,9 +12,7 @@ class WebProduct extends Component
     public function mount($filter = [])
     {
         $this->filter = $filter;
-
-        $this->products = \App\Models\Products::where($this->filter['featured'])->orWhere($this->filter)->limit(10)->get();
-        dd($this->products);
+        $this->products = \App\Models\Products::where($this->filter)->limit(10)->get();
     }
 
     public function render()

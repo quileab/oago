@@ -6,10 +6,9 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body>
+<body class="min-h-screen font-sans antialiased bg-gray-200 text-gray-900">
     <livewire:web-navbar />
+    <livewire:web-search-filter />
     <livewire:web-product :filter="['featured' => true]" />
-    <livewire:web-product-card />
-    </livewire:web-product>
 </body>
 </html>
