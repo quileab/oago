@@ -11,13 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('list__products', function (Blueprint $table) {
+        Schema::create('list_prices', function (Blueprint $table) {
             $table->id();
-            $table->foreignIdFor(\App\Models\Products::class)->constrained();
+            $table->unsignedBigInteger('product_id');
             $table->string('list_id',15);
-            // price decima 12,2
-            $table->decimal('price',12,2)->default(0);
-
+            $table->decimal('price',12,2);
+            // create composite key
+            $table->unique(['product_id', 'list_id']);
             $table->timestamps();
         });
     }
@@ -27,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('list__products');
+        Schema::dropIfExists('list_prices');
     }
 };

@@ -1,3 +1,0 @@
-<div>
-    NavBar Component
-</div>

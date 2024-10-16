@@ -7,6 +7,12 @@
             <p>{{ $product->description }}</p>
             </div>
         </div>
+        @if(Auth::guest())
+        <div class="p-2 bg-slate-100 text-center text-sm">
+            Regístrese para ver precios o realizar compras
+        </div>
+
+        @else
         <div class="p-2 bg-slate-100 grid grid-cols-2">
             <div>
                 <h3 @class([
@@ -19,11 +25,10 @@
             </div>
             <div><p>{!! $product->description_html !!}</p></div>
         </div>
-        <div class="p-2 bg-slate-100">
-            
-           <x-icon name="o-shopping-cart" class="w-10 h-10 bg-orange-500 text-white p-2 rounded-full" /> Comprar x Unidad
-           <x-icon name="o-cube" class="w-10 h-10 bg-orange-500 text-white p-2 rounded-full" /> Comprar! x Pack ({{ $product->qtty_package}})
-
+        <div class="p-2 bg-slate-100 grid grid-cols-2"> 
+           <p><x-icon name="o-shopping-cart" class="w-10 h-10 bg-orange-500 text-white p-2 rounded-full" /> Comprar</p>
+           <p><x-icon name="o-cube" class="w-10 h-10 bg-orange-500 text-white p-2 rounded-full" /> Comprar Pack ({{ $product->qtty_package}})</p>
         </div>
+        @endif
     </div>
 </div>
