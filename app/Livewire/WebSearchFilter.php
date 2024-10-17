@@ -4,9 +4,11 @@ namespace App\Livewire;
 
 use Livewire\Component;
 use Illuminate\Support\Facades\DB;
+use Mary\Traits\Toast;
 
 class WebSearchFilter extends Component
 {
+    use Toast;
     public $categories = [];
     public $category;
     public $search;
@@ -28,6 +30,11 @@ class WebSearchFilter extends Component
     }
 
     public function goSearch(){
+        // check if this->category or this->search is set
+        if(!$this->category && !$this->search){
+            return;
+        }
+
         session()->put('category', $this->category);
         session()->put('search', $this->search);
         // page reload
@@ -38,6 +45,7 @@ class WebSearchFilter extends Component
         $this->category = '';
         session()->forget('search');
         $this->search = '';
+        $this->info('Se ha limpiado la búsqueda');
         // page reload
         return redirect()->to('/');
     }

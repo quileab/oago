@@ -23,7 +23,9 @@
                     <h3 class="text-2xl text-center font-bold text-green-700">$ {{number_format($product->offer_price, 2, ',', '.')}}</h3>
                 @endif
             </div>
-            <div><p>{!! $product->description_html !!}</p></div>
+            <div><p>{!! $product->description_html !!}</p>
+            <p class="text-xs text-right">Cod. {{ $product->id }}</p>
+            </div>
         </div>
         <div class="p-2 bg-slate-100 grid grid-cols-2"> 
            <p><x-icon name="o-shopping-cart" class="w-10 h-10 bg-orange-500 text-white p-2 rounded-full" /> Comprar</p>

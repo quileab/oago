@@ -51,7 +51,12 @@ class extends Component {
 
 <div>
     <x-form wire:submit="register">
-        <x-input label="Name" wire:model="name" icon="o-user" inline />
+        <x-input label="Apellido" wire:model="lastname" icon="o-user" inline />
+        <x-input label="Nombre/s" wire:model="name" icon="o-user" inline />
+        <x-input label="Dirección" wire:model="address" icon="o-map-pin" inline />
+        <x-input label="Ciudad" wire:model="city" icon="o-map-pin" inline />
+        <x-input label="Código Postal" wire:model="postal_code" icon="o-hashtag" inline />
+        <x-input label="Teléfono" wire:model="phone" icon="o-phone" inline />
         <x-input label="E-mail" wire:model="email" icon="o-envelope" inline />
         <x-input label="Password" wire:model="password" type="password" icon="o-key" inline />
         <x-input label="Confirm Password" wire:model="password_confirmation" type="password" icon="o-key" inline />

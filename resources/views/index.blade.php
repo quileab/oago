@@ -13,10 +13,16 @@
     <livewire:web-search-filter />
 
     <div class="my-4">
-        <livewire:web-product title="Productos Destacados" :items=3 :filter="['featured' => true]" />
+        @if(session()->has('search')||session()->has('category'))
+        <livewire:web-product title="Productos Encontrados" :items=30 :filter="['published' => true]" />
+        @else
+        <livewire:web-product title="Productos Destacados" :items=3 :filter="['featured' => true, 'published' => true]" />
         <livewire:web-product title="Productos Publicados" :items=9 :filter="['published' => true]" />
+        @endif
     </div>
     <x-web-footer />
+    {{--  TOAST area --}}
+    <x-toast />
 </body>
 
 </html>

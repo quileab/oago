@@ -15,7 +15,9 @@
         </x-slot:append>
     </x-input>
     @if(session()->has('search')||session()->has('category'))
-    {{ session()->get('search') }} {{ session()->get('category') }}
+    <p class="text-xs">
+    » {{ session()->get('category') }} » {{ session()->get('search') }}
     <x-button wire:click="goReset()" label="Limpiar" icon="o-backspace" class="btn-sm btn-outline" />
+    </p>
     @endif
 </div>
