@@ -12,7 +12,7 @@ Route::middleware('auth:sanctum')->group(function () {
     
     //return users list
     Route::get('/users', function (Request $request) {
-        return response()->json($request->user());
+        //return response()->json($request->user());
         return \App\Models\User::all();
     });
 

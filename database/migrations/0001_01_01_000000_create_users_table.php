@@ -22,10 +22,14 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
-            $table->string('role',8)->default('user');
+            $table->string('role',8)->default('none');
             $table->string('list_id',15)->nullable();
             $table->rememberToken();
             $table->timestamps();
+            // create key for list_id that can be null or used for another user
+            $table->unique('list_id');
+            // create relationship between user and list
+            //$table->foreign('list_id')->references('list_id')->on('list_prices');//->onDelete('set null');
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {

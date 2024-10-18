@@ -35,8 +35,16 @@ class WebSearchFilter extends Component
             return;
         }
 
-        session()->put('category', $this->category);
-        session()->put('search', $this->search);
+        if($this->category){
+            session()->put('category', $this->category);
+        }else{
+            session()->forget('category');
+        }
+        if($this->search){
+            session()->put('search', $this->search);
+        }else{
+            session()->forget('search');
+        }
         // page reload
         return redirect()->to('/');
     }

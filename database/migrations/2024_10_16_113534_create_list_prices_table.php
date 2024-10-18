@@ -17,8 +17,11 @@ return new class extends Migration
             $table->string('list_id',15);
             $table->decimal('price',12,2);
             // create composite key
-            $table->unique(['product_id', 'list_id']);
+            // $table->unique(['product_id', 'list_id']);
             $table->timestamps();
+
+            $table->foreign('product_id')->references('id')->on('products');//->onDelete('set null');
+            $table->foreign('list_id')->references('list_id')->on('users');//->onDelete('set null');
         });
     }
 

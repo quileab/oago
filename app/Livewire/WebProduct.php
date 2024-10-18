@@ -14,7 +14,8 @@ class WebProduct extends Component
     public function mount($filter = [])
     {
         $this->filter = $filter;
-        $this->products = \App\Models\Products::where($this->filter)
+        $this->products = \App\Models\Products::with('list_price')
+            ->where($this->filter)
             ->limit($this->items)
             // filter when session category is set
             ->when(session()->has('category'), function ($query) {
