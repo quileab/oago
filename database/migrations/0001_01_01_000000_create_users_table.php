@@ -23,13 +23,13 @@ return new class extends Migration
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->string('role',8)->default('none');
-            $table->string('list_id',15)->nullable();
+            // Cambiamos el tipo de 'list_id' a un campo relacional
+            $table->foreignId('list_id')->nullable()
+                ->constrained('list_names') // Referencia a la tabla de listas de precios
+                ->onDelete('set null'); // En caso de eliminar la lista, deja el campo como null
+
             $table->rememberToken();
             $table->timestamps();
-            // create key for list_id that can be null or used for another user
-            $table->unique('list_id');
-            // create relationship between user and list
-            //$table->foreign('list_id')->references('list_id')->on('list_prices');//->onDelete('set null');
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {

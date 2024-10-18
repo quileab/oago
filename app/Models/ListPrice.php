@@ -9,11 +9,15 @@ class ListPrice extends Model
 {
     use HasFactory;
 
-    // create relationships
+    protected $fillable = ['product_id', 'list_id', 'price'];
+
     public function product()
     {
-        return $this->belongsTo(\App\Models\Product::class);
+        return $this->belongsTo(Product::class); // Este precio pertenece a un producto específico
     }
 
-
+    public function list()
+    {
+        return $this->belongsTo(ListName::class); // Este precio pertenece a una lista de precios específica
+    }
 }

@@ -62,4 +62,14 @@ class User extends Authenticatable
     //         'abilities' => $abilities,
     //     ]);
     // }
+
+    public function list()
+    {
+        return $this->belongsTo(ListName::class); // Un usuario pertenece a una lista de precios
+    }   
+    
+    public function getProductPrice(Product $product)
+    {
+        return $this->list->listPrices()->where('product_id', $product->id)->first()->price ?? null;
+    }
 }

@@ -13,15 +13,16 @@ return new class extends Migration
     {
         Schema::create('list_prices', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('product_id');
-            $table->string('list_id',15);
-            $table->decimal('price',12,2);
-            // create composite key
-            // $table->unique(['product_id', 'list_id']);
+            $table->foreignId('product_id')
+                  ->constrained('products')
+                  ->onDelete('cascade'); // Eliminar precios si se elimina el producto
+        
+            $table->foreignId('list_id')
+                  ->constrained('list_names') // Asegúrate de que exista una tabla `lists` o ajustar el nombre
+                  ->onDelete('cascade'); // Eliminar precios si se elimina la lista de precios
+        
+            $table->decimal('price', 12, 2);
             $table->timestamps();
-
-            $table->foreign('product_id')->references('id')->on('products');//->onDelete('set null');
-            $table->foreign('list_id')->references('list_id')->on('users');//->onDelete('set null');
         });
     }
 

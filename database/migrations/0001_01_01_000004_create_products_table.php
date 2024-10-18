@@ -23,7 +23,6 @@ return new class extends Migration
             $table->boolean('published')->default(1);
             $table->boolean('featured')->default(0);
             $table->string('visibility', 10);
-            //offer date start and end
             $table->date('offer_start')->nullable();
             $table->date('offer_end')->nullable();
             $table->string('tax_status', 10);
@@ -41,8 +40,6 @@ return new class extends Migration
             $table->string('tags', 50)->nullable();
             $table->string('image_url', 250)->nullable();
             $table->timestamps();
-            // relationships between product and list
-            // $table->foreign('id')->references('product_id')->on('list_prices');//->onDelete('set null');
         });
     }
 
