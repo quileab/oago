@@ -29,11 +29,12 @@
     </div>
     <div class="p-2 bg-slate-100 grid grid-cols-2">
         <p>
-            <x-icon name="o-shopping-cart" wire:click="Livewire.emit('addToCart',{{ $product->id }}, false)" class="w-10 h-10 bg-orange-500 text-white p-2 rounded-full" /> Comprar
+            <x-button label="Comprar" icon="o-shopping-cart" class="btn-outline text-orange-600 btn-sm"
+                wire:click="buy({{$product}},false)" />
         </p>
         <p>
-            <x-icon name="o-cube" wire:click="Livewire.emit('addToCart',{{ $product->id }}, true)" class="w-10 h-10 bg-orange-500 text-white p-2 rounded-full" /> Comprar Pack ({{
-            $product->qtty_package}})
+            <x-button label="Comprar Pack x {{ $product->qtty_package}}" icon="o-shopping-cart" class="btn-outline text-orange-600 btn-sm"
+                wire:click="buy({{$product}},true)" />
         </p>
     </div>
     @endif

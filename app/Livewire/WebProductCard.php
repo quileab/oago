@@ -16,4 +16,8 @@ class WebProductCard extends Component
     {
         return view('livewire.web-product-card');
     }
+
+    public function buy($product,$byBulk = false){
+        $this->dispatch('addToCart', $product, $byBulk);
+    }
 }

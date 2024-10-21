@@ -11,8 +11,13 @@
     @if(Auth::guest())
       <x-button icon="o-user" class="btn-circle btn-outline" link="/login" />  
     @else
-    <x-button icon-right="o-arrow-right-start-on-rectangle" label="{{ Auth::user()->name }}" link="/logout" class="btn-ghost" />
-      <x-button icon="o-shopping-cart" class="btn-circle btn-outline" />
+    <x-dropdown label="{{ Auth::user()->name }}" class="btn-ghost">
+      <x-menu-item title="Option 1" icon="o-archive-box" />
+      <x-menu-item title="Option 2" icon="o-trash" />
+      <x-menu-item title="Option 3" icon="o-arrow-path" />
+      <x-button icon="o-arrow-right-start-on-rectangle" label="LOGOUT" link="/logout" class="btn-ghost btn-sm" />
+    </x-dropdown>
+      <livewire:cart />
     @endif
   </div>
 </div>

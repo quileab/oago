@@ -2,16 +2,17 @@
 
 namespace App\Livewire;
 
-use Livewire\Component;
-use Illuminate\Support\Facades\Session;
-use Illuminate\Support\Facades\Auth;
-use App\Models\Product;
 use App\Models\Order;
+use App\Models\Product;
+use Livewire\Component;
 use App\Models\OrderItem;
+use Livewire\Attributes\On;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Session;
 
 class Cart extends Component
 {
-    protected $listeners = ['addToCart'];
+    public bool $showCart = false;
     public $cart = [];
     public $total = 0;
 
@@ -22,9 +23,17 @@ class Cart extends Component
         $this->calculateTotal();
     }
 
-    public function addToCart($productId)
+    #[On('addToCart')]
+    public function onAddToCart($product, $byBulk = false) {
+        $this->addToCart($product, $byBulk); 
+    }
+        
+
+    public function addToCart($product, $byBulk = false)
     {
-        $product = Product::find($productId, $byBulk = false);
+        //$product = Product::find($product);
+
+        $productId = $product['id'];
 
         // Si el producto ya está en el carrito, aumentar la cantidad
         if (isset($this->cart[$productId])) {
@@ -32,10 +41,10 @@ class Cart extends Component
         } else {
             // Si no, agregar el producto al carrito
             $this->cart[$productId] = [
-                'product_id' => $product->id,
-                'name' => $product->description,
-                'price' => $product->offer_price,
-                'quantity' => $byBulk ? $product->qtty_package : 1,
+                'product_id' => $product['id'],
+                'name' => $product['description'],
+                'price' => $product['user_price'],
+                'quantity' => $byBulk ? $product['qtty_package'] * $product['qtty_package'] : 1,
                 'byBulk' => $byBulk,
             ];
         }
