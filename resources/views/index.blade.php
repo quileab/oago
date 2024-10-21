@@ -11,9 +11,16 @@
 <body class="min-h-screen font-sans antialiased bg-gray-200 text-gray-900">
     <x-web-navbar />
     <livewire:web-search-filter />
-
     <div class="my-4">
         @if(session()->has('search')||session()->has('category'))
+        <x-collapse>
+            <x-slot:heading>
+                Contenido del Carrito
+            </x-slot:heading>
+            <x-slot:content>
+                @livewire('cart') 
+            </x-slot:content>
+        </x-collapse>
         <livewire:web-product title="Productos Encontrados" :items=30 :filter="['published' => true]" />
         @else
         <livewire:web-product title="Productos Destacados" :items=3 :filter="['featured' => true, 'published' => true]" />

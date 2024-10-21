@@ -14,8 +14,9 @@ class WebProduct extends Component
     public function mount($filter = [])
     {
         $this->filter = $filter;
-        $this->products = \App\Models\Products::with('list_price')
-            ->where($this->filter)
+        $user = auth()->user();
+        if (!$user) {
+            $this->products = \App\Models\Product::where($this->filter)
             ->limit($this->items)
             // filter when session category is set
             ->when(session()->has('category'), function ($query) {
@@ -26,6 +27,29 @@ class WebProduct extends Component
                 return $query->where('description', 'like', '%' . session()->get('search') . '%');
             })
             ->get();
+            return;            
+        }
+
+        // Dump the filter and session data
+        $this->products=\App\Models\Product::where($this->filter)
+            ->limit($this->items)
+            // filter when session category is set
+            ->when(session()->has('category'), function ($query) {
+                return $query->where('category', session()->get('category'));
+            })
+            // filter when session search is set
+            ->when(session()->has('search'), function ($query) {
+                return $query->where('description', 'like', '%' . session()->get('search') . '%');
+            })
+            ->leftJoin('list_prices', function ($join) use ($user) {
+                $join->on('products.id', '=', 'list_prices.product_id')
+                     ->where('list_prices.list_id', $user->list_id); // Asociar precios de la lista del usuario
+            })
+            ->select('products.*', 'list_prices.price as user_price') // Seleccionar columnas de productos y el precio del usuario
+            ->get();
+
+            //dd($this->products->toSql(), $this->products->getBindings());
+            //dd($user->list_id,$this->products);
     }
 
     public function render()

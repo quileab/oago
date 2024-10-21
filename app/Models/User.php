@@ -72,4 +72,8 @@ class User extends Authenticatable
     {
         return $this->list->listPrices()->where('product_id', $product->id)->first()->price ?? null;
     }
+    public function orders()
+    {
+        return $this->hasMany(Order::class);
+    }
 }
