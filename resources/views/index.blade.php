@@ -10,6 +10,7 @@
 
 <body class="min-h-screen font-sans antialiased bg-gray-200 text-gray-900">
     <x-web-navbar />
+    <livewire:cart />
     <livewire:web-search-filter />
     <div class="my-4">
         @if(session()->has('search')||session()->has('category'))

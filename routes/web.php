@@ -7,7 +7,13 @@ Route::get('/', function () {
   return view('index');
 });
 
+Route::get('/ordersuccess', function () {
+  return view('ordersuccess');
+})->name('ordersuccess');
+
+
 Volt::route('/users', 'users.index');
+Volt::route('/orders', 'orders');
 // Users will be redirected to this route if not logged in
 Volt::route('/login', 'login')->name('login');
 Volt::route('/register', 'register'); 

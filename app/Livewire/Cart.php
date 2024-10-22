@@ -3,21 +3,21 @@
 namespace App\Livewire;
 
 use App\Models\Order;
-use App\Models\Product;
 use Livewire\Component;
 use App\Models\OrderItem;
 use Livewire\Attributes\On;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
+use Mary\Traits\Toast;
 
 class Cart extends Component
 {
+    use Toast;
     public bool $showCart = false;
     public $cart = [];
     public $total = 0;
 
-    public function mount()
-    {
+    public function mount() {
         // Inicializar el carrito si ya existe en la sesión
         $this->cart = Session::get('cart', []);
         $this->calculateTotal();
@@ -25,26 +25,24 @@ class Cart extends Component
 
     #[On('addToCart')]
     public function onAddToCart($product, $byBulk = false) {
-        $this->addToCart($product, $byBulk); 
+        $this->addToCart($product, $byBulk);
+        $this->info('Producto añadido');
     }
-        
 
     public function addToCart($product, $byBulk = false)
     {
-        //$product = Product::find($product);
-
         $productId = $product['id'];
 
         // Si el producto ya está en el carrito, aumentar la cantidad
         if (isset($this->cart[$productId])) {
-            $this->cart[$productId]['quantity'] += $byBulk ? $product->qtty_package : 1;
+            $this->cart[$productId]['quantity'] += $byBulk ? $product['qtty_package'] : 1;
         } else {
             // Si no, agregar el producto al carrito
             $this->cart[$productId] = [
                 'product_id' => $product['id'],
                 'name' => $product['description'],
                 'price' => $product['user_price'],
-                'quantity' => $byBulk ? $product['qtty_package'] * $product['qtty_package'] : 1,
+                'quantity' => $byBulk ? $product['qtty_package'] : 1,
                 'byBulk' => $byBulk,
             ];
         }
@@ -110,7 +108,7 @@ class Cart extends Component
         $this->total = 0;
 
         // Redireccionar a una página de éxito
-        return redirect()->route('order.success', ['order' => $order->id]);
+        return redirect()->route('ordersuccess', ['order' => $order->id]);
     }
 
     public function render()

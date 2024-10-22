@@ -7,7 +7,7 @@ use Livewire\Component;
 class WebProduct extends Component
 {
     public $filter=[];
-    public $products;
+    public $component_products;
     public $title="Default Title";
     public $items = 6;
 
@@ -16,7 +16,7 @@ class WebProduct extends Component
         $this->filter = $filter;
         $user = auth()->user();
         if (!$user) {
-            $this->products = \App\Models\Product::where($this->filter)
+            $this->component_products = \App\Models\Product::where($this->filter)
             ->limit($this->items)
             // filter when session category is set
             ->when(session()->has('category'), function ($query) {
@@ -31,7 +31,7 @@ class WebProduct extends Component
         }
 
         // Dump the filter and session data
-        $this->products=\App\Models\Product::where($this->filter)
+        $this->component_products=\App\Models\Product::where($this->filter)
             ->limit($this->items)
             // filter when session category is set
             ->when(session()->has('category'), function ($query) {
@@ -54,6 +54,6 @@ class WebProduct extends Component
 
     public function render()
     {
-        return view('livewire.web-product');
+        return view('livewire.web-product', ['products' => $this->component_products]);
     }
 }

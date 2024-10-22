@@ -1,4 +1,4 @@
-<div class="card bg-white shadow-xl overflow-hidden">
+<div class="card bg-white shadow-xl overflow-hidden" wire:key="product-{{ $product->id }}">
     <div class="grid grid-cols-2">
         <img class="h-32 w-auto mx-auto aspect-square" src="{{ $product->image_url }}" alt="{{ $product->category }}" />
         <div class="p-2 bg-slate-100">

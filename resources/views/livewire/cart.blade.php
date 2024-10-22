@@ -6,7 +6,7 @@
         @endif
     </x-button>
 
-    <x-drawer wire:model="showCart" class="w-11/12 lg:w-2/3" right
+    <x-drawer wire:model="showCart" class="w-11/12 lg:w-2/3 text-gray-50" right
         title="Compra"
         separator
         with-close-button
@@ -29,7 +29,7 @@
             @foreach ($cart as $item)
                 <tr>
                     <td>{{ $item['name'] }}</td>
-                    <td>${{ number_format($item['price'], 2) }}</td>
+                    <td class="text-right">${{ number_format($item['price'], 2) }}</td>
                     <td>
                         <x-input type="number" min="1" wire:change="updateQuantity({{ $item['product_id'] }}, $event.target.value)" value="{{ $item['quantity'] }}"
                             class="w-16" />
@@ -44,10 +44,11 @@
         </tbody>
     </table>
 
-    <div class="p-2 grid grid-cols-3">
-        <x-button wire:click="placeOrder" label="Confirmar Pedido" />
+    <div class="p-2 grid grid-cols-3 gap-3">
+        <x-button wire:click="placeOrder" label="Confirmar Pedido" icon="o-check" class="btn-success" />
         <div></div>
-        <h3 class="text-2xl">Total: ${{ number_format($total, 2, ',', '.') }}</h3>
+    
+        <h3 class="text-2xl"><small class="text-primary">Total:</small> ${{ number_format($total, 2, ',', '.') }}</h3>
     </div>
     @else
         <p>El carrito está vacío.</p>

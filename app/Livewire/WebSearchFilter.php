@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use Illuminate\Support\Facades\Cache;
 use Livewire\Component;
 use Illuminate\Support\Facades\DB;
 use Mary\Traits\Toast;
@@ -14,12 +15,14 @@ class WebSearchFilter extends Component
     public $search;
     public function mount(){
         // categories take unique values from products category attribute as id and name
-        $this->categories = DB::table('products')->select('category')
-            ->where('published', 1)
-            ->where('category', '!=', '')
-            ->distinct()
-            ->orderBy('category')
-            ->get(['id', 'category']);
+        //$this->categories = Cache::remember('categories', 60*60, function () {
+            DB::table('products')->select('category')
+                ->where('published', 1)
+                ->where('category', '!=', '')
+                ->distinct()
+                ->orderBy('category')
+                ->get(['id', 'category']);            
+        //});
 
         $this->category = session()->get('category');
         $this->search = session()->get('search');
