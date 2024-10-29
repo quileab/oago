@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Order extends Model
 {
+    //protected $fillable = ['status'];
     protected $guarded = [];
     public function user()
     {
@@ -20,5 +21,6 @@ class Order extends Model
     public function shipping()
     {
         return $this->hasOne(ShippingDetail::class);
-    }    
+    } 
+ 
 }

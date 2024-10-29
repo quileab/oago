@@ -14,14 +14,6 @@ new class extends Component {
 
     public array $sortBy = ['column' => 'id', 'direction' => 'asc'];
 
-    public array $status_class = [
-        'pending'=>'primary',
-        'completed'=>'secondary',
-        'cancelled'=>'danger',
-        'processing'=>'info',
-        'on-hold'=>'warning',
-    ];
-
     // Clear filters
     public function clear(): void
     {
@@ -79,16 +71,21 @@ new class extends Component {
 
     <!-- TABLE  -->
     <x-card>
-        <x-table :headers="$headers" :rows="$orders" :sort-by="$sortBy">
+        <x-table :headers="$headers" :rows="$orders" :sort-by="$sortBy" :cell-decoration="
+            ['status' =>  [
+                'bg-red-500/25' => fn(Order $order) => $order->status === 'cancelled',
+                'bg-green-500/25' => fn(Order $order) => $order->status === 'completed',
+                'bg-yellow-500/25' => fn(Order $order) => $order->status === 'on-hold',
+                'bg-blue-500/25' => fn(Order $order) => $order->status === 'pending',
+                'bg-purple-500/25' => fn(Order $order) => $order->status === 'processing',
+            ]]">
             @scope('cell_name', $user)
-            ({{  $user->lastname }}), {{ $user->name }}
+            ({{ $user->lastname }}), {{ $user->name }}
             @endscope
             @scope('cell_total_price', $order)
             $ {{ number_format($order->total_price, 2,',', '.') }}
             @endscope
-            @scope('cell_status', $order, $status_class)
-            <x-badge :value="$order->status" class="badge-{{ $status_class[$order->status] }}" />        
-            @endscope
+
             @scope('actions', $order)
             <x-button icon="o-trash" wire:click="delete({{ $order['id'] }})" wire:confirm="Está seguro?" spinner class="btn-ghost btn-sm text-red-500" />
             @endscope
