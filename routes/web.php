@@ -18,6 +18,8 @@ Volt::route('/orders', 'orders');
 Volt::route('/login', 'login')->name('login');
 Volt::route('/register', 'register'); 
 
+Volt::route('/order/{orderId}/edit', 'orderitems');
+
 // Route::get('/artisan/{command}', function ($command) {
 //     return Artisan::call($command);
 // });
