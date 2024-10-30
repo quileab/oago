@@ -12,7 +12,7 @@
       <x-button icon="o-user" class="btn-circle btn-outline" link="/login" />  
     @else
     <x-dropdown label="{{ Auth::user()->name }}" class="btn-ghost">
-      <x-menu-item title="Option 1" icon="o-archive-box" />
+      <x-menu-item title="Ordenes de Compra" icon="o-archive-box" link="/orders" />
       <x-menu-item title="Option 2" icon="o-trash" />
       <x-menu-item title="Option 3" icon="o-arrow-path" />
       <x-button icon="o-arrow-right-start-on-rectangle" label="LOGOUT" link="/logout" class="btn-ghost btn-sm" />

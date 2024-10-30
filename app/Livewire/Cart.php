@@ -84,15 +84,21 @@ class Cart extends Component
             return redirect()->route('login');
         }
 
-        // Crear la orden
-        $order = Order::create([
-            'user_id' => Auth::id(),
-            'status' => 'pending',
-            'total_price' => $this->total,
-            'order_date' => now(),
-        ]);
+        // Verificar si se está actualizando la orden
+        if (Session::has('updateOrder')) {
+            $orderId = Session::get('updateOrder');
+            $order = Order::findOrFail($orderId);
+        }else{  
+            // Crear la orden
+            $order = Order::create([
+                'user_id' => Auth::id(),
+                'status' => 'pending',
+                'total_price' => $this->total,
+                'order_date' => now(),
+            ]);
+        }
 
-        // Agregar los productos a la orden
+        // Agregar o modificar los productos a la orden
         foreach ($this->cart as $item) {
             OrderItem::create([
                 'order_id' => $order->id,
@@ -104,6 +110,7 @@ class Cart extends Component
 
         // Limpiar el carrito
         Session::forget('cart');
+        Session::forget('updateOrder');
         $this->cart = [];
         $this->total = 0;
 

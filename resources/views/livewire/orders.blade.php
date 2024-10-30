@@ -71,7 +71,9 @@ new class extends Component {
 
     <!-- TABLE  -->
     <x-card>
-        <x-table :headers="$headers" :rows="$orders" :sort-by="$sortBy" :cell-decoration="
+        <x-table :headers="$headers" :rows="$orders" :sort-by="$sortBy" 
+            link="/order/{id}/edit"
+            :cell-decoration="
             ['status' =>  [
                 'bg-red-500/25' => fn(Order $order) => $order->status === 'cancelled',
                 'bg-green-500/25' => fn(Order $order) => $order->status === 'completed',

@@ -7,35 +7,31 @@
     </x-button>
 
     <x-drawer wire:model="showCart" class="w-11/12 lg:w-2/3 text-gray-50" right
-        title="Compra"
-        separator
+        title="Compra {{ Session::get('updateOrder')?'Actualizando #'.Session::get('updateOrder'):'Nueva' }}"
         with-close-button
         close-on-escape>
 
     @if (count($cart) > 0)
-    
     <table class="w-full">
-        <thead>
-            <tr class="text-sm font-bold">
+        <thead class="font-bold bg-slate-200/25 text-center">
+            <tr>
                 <th>Producto</th>
                 <th>Precio</th>
                 <th>Cantidad</th>
                 <th>Total</th>
-                <th>Por Bulto</th>
                 <th><x-icon name="o-cog-8-tooth" /></th>
             </tr>
         </thead>
         <tbody>
             @foreach ($cart as $item)
-                <tr>
+                <tr class="even:bg-slate-100/5 odd:bg-slate-100/10">
                     <td>{{ $item['name'] }}</td>
                     <td class="text-right">${{ number_format($item['price'], 2) }}</td>
-                    <td>
+                    <td class="px-4">
                         <x-input type="number" min="1" wire:change="updateQuantity({{ $item['product_id'] }}, $event.target.value)" value="{{ $item['quantity'] }}"
                             class="w-16" />
                     </td>
                     <td class="text-right">${{ number_format($item['price'] * $item['quantity'], 2) }}</td>
-                    <td class="text-center">{{ $item['byBulk'] ? 'SI' : 'NO' }}</td>
                     <td class="text-center">
                         <x-button icon="o-trash" wire:click="removeFromCart({{ $item['product_id'] }})" class="btn-ghost btn-sm text-red-500" />
                     </td>
@@ -46,8 +42,7 @@
 
     <div class="p-2 grid grid-cols-3 gap-3">
         <x-button wire:click="placeOrder" label="Confirmar Pedido" icon="o-check" class="btn-success" />
-        <div></div>
-    
+        <div></div>  
         <h3 class="text-2xl"><small class="text-primary">Total:</small> ${{ number_format($total, 2, ',', '.') }}</h3>
     </div>
     @else
