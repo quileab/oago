@@ -3,15 +3,14 @@
 use Livewire\Volt\Component;
 
 new class extends Component {
-    public $orderId;
+    public $order;
     public $items = [];
 
     // Recibir el pedido y cargar los items al iniciar
     public function mount($orderId)
     {
-        $this->orderId = (int)$orderId;
-        $order = \App\Models\Order::with('items.product')->findOrFail($orderId);
-        $this->items = $order->items->toArray();
+        $this->order = \App\Models\Order::with('items.product')->findOrFail($orderId);
+        $this->items = $this->order->items->toArray();
     }
 
     // Actualizar el carrito y redirigir a la tienda
@@ -29,7 +28,7 @@ new class extends Component {
             ];
         }
         // guardar los datos del la orden para actualizarlo luego
-        Session::put('updateOrder', $this->orderId);
+        Session::put('updateOrder', $this->order->id);
 
         // Guardar los datos del carrito en la sesión
         Session::put('cart', $cartItems);
@@ -41,11 +40,15 @@ new class extends Component {
 }; ?>
 
 <div>
-    <x-header title="Items del Pedido #{{ $orderId }}" size="text-xl" />
+    <div class="grid grid-cols-2 gap-4">
+        <h3 class="text-2xl"><small class="text-primary">Pedido #</small> {{ $order->id }}</h3>
+        <h3 class="text-2xl"><small class="text-primary">Estado:</small> {{ $order->status }}</h3>
+    </div>
 
     <table class="table w-full rounded-sm overflow-hidden">
         <thead class="text-sm font-bold bg-slate-200/25 text-center">
             <tr>
+                <th>Prod. ID</th>
                 <th>Producto</th>
                 <th>Cantidad</th>
                 <th>Precio</th>
@@ -54,6 +57,7 @@ new class extends Component {
         <tbody>
             @foreach ($items as $index => $item)
                 <tr class="even:bg-slate-100/5 odd:bg-slate-100/10">
+                    <td class="text-center">{{ $item['product_id'] }}</td>
                     <td>{{ $item['product']['description'] }}</td>
                     <td class="text-center">
                         {{ $item['quantity'] }}
@@ -66,6 +70,6 @@ new class extends Component {
         </tbody>
     </table>
 
-    <x-button wire:click="editOrder" class="mt-2 btn-primary" label="Actualizar y Volver a la Tienda" />
+    <x-button wire:click="editOrder" icon="o-shopping-cart" class="mt-2 btn-primary" label="Retomar Pedido" />
 
 </div>

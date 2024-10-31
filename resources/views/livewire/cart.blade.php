@@ -12,9 +12,10 @@
         close-on-escape>
 
     @if (count($cart) > 0)
-    <table class="w-full">
+    <table class="w-full cellspacing-x-2 table-compact table">
         <thead class="font-bold bg-slate-200/25 text-center">
             <tr>
+                <th>Prod. ID</th>
                 <th>Producto</th>
                 <th>Precio</th>
                 <th>Cantidad</th>
@@ -25,6 +26,7 @@
         <tbody>
             @foreach ($cart as $item)
                 <tr class="even:bg-slate-100/5 odd:bg-slate-100/10">
+                    <td class="text-center">{{ $item['product_id'] }}</td>
                     <td>{{ $item['name'] }}</td>
                     <td class="text-right">${{ number_format($item['price'], 2) }}</td>
                     <td class="px-4">
@@ -41,7 +43,17 @@
     </table>
 
     <div class="p-2 grid grid-cols-3 gap-3">
-        <x-button wire:click="placeOrder" label="Confirmar Pedido" icon="o-check" class="btn-success" />
+        <div>
+            <x-button wire:click="placeOrder" label="Confirmar Pedido" icon="o-check" class="btn-success w-full" />
+            <x-dropdown>
+                <x-slot:trigger>
+                    <x-button icon="o-trash" label="Vaciar Carrito" class="btn-error w-full" />
+                </x-slot:trigger>
+             
+                <x-menu-item title="Confirmar" icon="o-check" wire:click="emptyCart" />
+                <x-menu-item title="Cancelar" icon="o-x-mark" />
+            </x-dropdown>
+        </div>
         <div></div>  
         <h3 class="text-2xl"><small class="text-primary">Total:</small> ${{ number_format($total, 2, ',', '.') }}</h3>
     </div>

@@ -15,7 +15,7 @@ class WebSearchFilter extends Component
     public $search;
     public function mount(){
         // categories take unique values from products category attribute as id and name
-        //$this->categories = Cache::remember('categories', 60*60, function () {
+        $this->categories = //Cache::remember('categories', 60*60, function () {
             DB::table('products')->select('category')
                 ->where('published', 1)
                 ->where('category', '!=', '')

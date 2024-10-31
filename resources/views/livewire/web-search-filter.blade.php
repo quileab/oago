@@ -1,5 +1,8 @@
 <div class="w-full bg-gray-600 text-gray-100 px-4 py-1">
-    <x-input type="search" placeholder="Descripción" wire:model="search" class="w-full">
+    <x-input type="search" placeholder="Descripción" 
+        wire:model="search"
+        wire:keydown.enter="goSearch()" 
+        class="w-full">
         <x-slot:prepend>
             <x-select wire:model="category"
             placeholder="Categoría" icon="o-user" class="rounded-e-none" 

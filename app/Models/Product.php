@@ -9,12 +9,7 @@ class Product extends Model
 {
     use HasFactory;
 
-    protected $fillable = [
-        'name',
-        'description',
-        'category',
-        'price'
-    ];
+    protected $guarded = [];
 
     public function listPrices()
     {

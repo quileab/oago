@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Api\ProductController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -31,3 +32,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/orders/{order}/products', [OrderController::class, 'updateOrderProducts']);
 //});
 
+Route::apiResource('products', ProductController::class);
+Route::post('products/{product}/upload-image', [ProductController::class, 'uploadImage']);

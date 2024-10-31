@@ -98,14 +98,24 @@ class Cart extends Component
             ]);
         }
 
-        // Agregar o modificar los productos a la orden
+        // TODO: Improve this Update, Delete and Create
+
+        $items = OrderItem::where('order_id', $order->id)->get();
+        foreach ($items as $item) {
+            $item->delete();
+        }
+
+        // Agregar, modificar o eliminar los productos de la orden 
         foreach ($this->cart as $item) {
-            OrderItem::create([
+            // update or create
+            OrderItem::updateOrCreate([
                 'order_id' => $order->id,
                 'product_id' => $item['product_id'],
+            ], [
                 'quantity' => $item['quantity'],
                 'price' => $item['price'],
             ]);
+
         }
 
         // Limpiar el carrito
@@ -121,6 +131,15 @@ class Cart extends Component
     public function render()
     {
         return view('livewire.cart');
+    }
+
+    public function emptyCart() {    
+        Session::forget('cart');
+        Session::forget('updateOrder');
+        $this->cart = [];
+        $this->total = 0;
+        $this->showCart = false;
+        $this->info('Carrito vaciado');
     }
 
 }
