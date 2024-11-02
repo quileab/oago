@@ -9,7 +9,7 @@ class ListPrice extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['product_id', 'list_id', 'price'];
+    protected $fillable = ['product_id', 'list_id', 'price', 'unit_price'];
 
     public function product()
     {
