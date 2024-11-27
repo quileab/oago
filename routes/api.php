@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ListPriceController;
@@ -41,3 +42,9 @@ Route::post('list-prices', [ListPriceController::class, 'store']);
 Route::get('list-prices/{product_id}/{list_id}', [ListPriceController::class, 'show']);
 Route::put('list-prices/{product_id}/{list_id}', [ListPriceController::class, 'update']);
 Route::delete('list-prices/{product_id}/{list_id}', [ListPriceController::class, 'destroy']);
+// users resource routes
+Route::get('users', [UserController::class, 'index']);
+Route::post('users', [UserController::class, 'store']);
+Route::get('users/{id}', [UserController::class, 'show']);
+Route::put('users/{id}', [UserController::class, 'update']);
+Route::delete('users/{id}', [UserController::class, 'destroy']);
