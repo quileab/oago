@@ -12,6 +12,7 @@ class UserController extends Controller
 {
     /**
      * Display a listing of the resource.
+     * @response array{data: Users[]}
      */
     public function index(Request $request)
     {
@@ -32,7 +33,7 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'id' => 'nullable|exists:users,id',
+            'id' => 'nullable',
             'name' => 'required|string|max:30',
             'lastname' => 'required|string|max:30',
             'address' => 'nullable|string|max:50',
