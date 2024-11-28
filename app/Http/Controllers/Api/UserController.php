@@ -32,6 +32,7 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
+            'id' => 'nullable|exists:users,id',
             'name' => 'required|string|max:30',
             'lastname' => 'required|string|max:30',
             'address' => 'nullable|string|max:50',
@@ -49,6 +50,7 @@ class UserController extends Controller
         }
 
         $user = User::create([
+            'id' => $request->id,
             'name' => $request->name,
             'lastname' => $request->lastname,
             'address' => $request->address,
@@ -81,6 +83,7 @@ class UserController extends Controller
         $user = User::findOrFail($id);
 
         $validator = Validator::make($request->all(), [
+            'id' => 'exists:users,id',
             'name' => 'string|max:30',
             'lastname' => 'string|max:30',
             'address' => 'nullable|string|max:50',

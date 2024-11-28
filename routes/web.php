@@ -1,6 +1,7 @@
 <?php
 
 use Livewire\Volt\Volt;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Artisan;
 // route to web /
 Route::get('/', function () {
