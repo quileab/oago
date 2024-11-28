@@ -32,6 +32,13 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
+        // check if the user already exists
+        $user_exists=User::find($request->id);
+        if($user_exists){
+            // update the user
+            return $this->update($request, $user_exists->id);
+        }
+
         $validator = Validator::make($request->all(), [
             'id' => 'nullable',
             'name' => 'required|string|max:30',

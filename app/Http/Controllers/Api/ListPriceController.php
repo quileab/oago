@@ -23,6 +23,11 @@ class ListPriceController extends Controller
      */
     public function store(Request $request)
     {
+        // check if product exists where product_id and list_id
+        $listPrice_exists=ListPrice::where('product_id', $request->product_id)->where('list_id', $request->list_id)->first();
+        if($listPrice_exists){
+            return $this->update($request, $listPrice_exists->product_id, $listPrice_exists->list_id);
+        }
         $validator = Validator::make($request->all(), [
             'product_id' => 'required|exists:products,id',
             'list_id' => 'required|exists:list_names,id',

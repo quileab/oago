@@ -24,6 +24,12 @@ class ProductController extends Controller
      */
     public function store(Request $request)
     {
+        //check if product exists
+        $product_exists=Product::find($request->id);
+        if($product_exists){
+            return $this->update($request, $product_exists->id);
+        }
+        
         $validator = Validator::make($request->all(), [
             'description' => 'required|string|max:100',
             'price' => 'required|numeric|min:0',
