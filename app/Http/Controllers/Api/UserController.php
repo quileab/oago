@@ -46,7 +46,7 @@ class UserController extends Controller
             'address' => 'nullable|string|max:50',
             'city' => 'nullable|string|max:30',
             'postal_code' => 'nullable|string|max:10',
-            'phone' => 'nullable|string|max:15',
+            'phone' => 'nullable|string|max:50',
             'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:8',
             'role' => 'required|string|in:admin,customer,other', // Ajustar según los roles permitidos
@@ -97,7 +97,7 @@ class UserController extends Controller
             'address' => 'nullable|string|max:50',
             'city' => 'nullable|string|max:30',
             'postal_code' => 'nullable|string|max:10',
-            'phone' => 'nullable|string|max:15',
+            'phone' => 'nullable|string|max:50',
             'email' => 'email|unique:users,email,' . $user->id,
             'password' => 'nullable|string|min:8',
             'role' => 'string|in:admin,customer,other',

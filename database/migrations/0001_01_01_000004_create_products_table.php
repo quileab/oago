@@ -30,10 +30,10 @@ return new class extends Migration
             $table->integer('stock')->default(0);
             $table->boolean('allow_reservation')->default(0);
             $table->integer('qtty_package')->default(1);
-            $table->decimal('weight',12,3)->default(1);
-            $table->decimal('lenght',12,3)->default(1);
-            $table->decimal('width',12,3)->default(1);
-            $table->decimal('height',12,3)->default(1);
+            $table->decimal('weight',12,3)->nullable();
+            $table->decimal('lenght',12,3)->nullable();
+            $table->decimal('width',12,3)->nullable();
+            $table->decimal('height',12,3)->nullable();
             $table->decimal('price',12,2)->default(0);
             $table->decimal('offer_price',12,2)->default(0);
             $table->string('category', 50)->nullable();

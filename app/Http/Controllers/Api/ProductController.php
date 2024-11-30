@@ -27,17 +27,37 @@ class ProductController extends Controller
         //check if product exists
         $product_exists=Product::find($request->id);
         if($product_exists){
-            return $this->update($request, $product_exists->id);
+            return $this->update($request, $product_exists);
         }
         
         $validator = Validator::make($request->all(), [
+            'id'=> 'nullable',
+            'barcode' => 'nullable|string|max:50|unique:products,barcode',
+            'sku' => 'nullable|string|max:50|unique:products,sku',
+            'product_type' => 'nullable|string|max:30',
+            'brand' => 'nullable|string|max:30',
+            'model' => 'nullable|string|max:30',
             'description' => 'required|string|max:100',
+            'description_html' => 'nullable|string|max:250',
+            'published' => 'required|boolean',
+            'featured' => 'required|boolean',
+            'visibility' => 'required|string|max:10',
+            'offer_start' => 'nullable|date',
+            'offer_end' => 'nullable|date',
+            'tax_status' => 'required|string|max:10',
+            'in_stock' => 'required|boolean',
+            'stock' => 'required|integer|min:0',
+            'allow_reservation' => 'required|boolean',
+            'qtty_package' => 'required|integer|min:1',
+            'weight' => 'nullable|numeric|min:0',
+            'lenght' => 'nullable|numeric|min:0',
+            'width' => 'nullable|numeric|min:0',
+            'height' => 'nullable|numeric|min:0',
             'price' => 'required|numeric|min:0',
             'offer_price' => 'nullable|numeric|min:0',
-            'stock' => 'required|integer|min:0',
-            'visibility' => 'required|string|max:10',
-            'tax_status' => 'required|string|max:10',
-            // otras validaciones según la estructura de la tabla
+            'category' => 'nullable|string|max:50',
+            'tags' => 'nullable|string|max:50',
+            'image_url' => 'nullable|string|max:250'
         ]);
 
         if ($validator->fails()) {
@@ -60,13 +80,33 @@ class ProductController extends Controller
     public function update(Request $request, Product $product)
     {
         $validator = Validator::make($request->all(), [
-            'description' => 'string|max:100',
-            'price' => 'numeric|min:0',
+            'id'=> 'nullable',
+            'barcode' => 'nullable|string|max:50|unique:products,barcode',
+            'sku' => 'nullable|string|max:50|unique:products,sku',
+            'product_type' => 'nullable|string|max:30',
+            'brand' => 'nullable|string|max:30',
+            'model' => 'nullable|string|max:30',
+            'description' => 'required|string|max:100',
+            'description_html' => 'nullable|string|max:250',
+            'published' => 'required|boolean',
+            'featured' => 'required|boolean',
+            'visibility' => 'required|string|max:10',
+            'offer_start' => 'nullable|date',
+            'offer_end' => 'nullable|date',
+            'tax_status' => 'required|string|max:10',
+            'in_stock' => 'required|boolean',
+            'stock' => 'required|integer|min:0',
+            'allow_reservation' => 'required|boolean',
+            'qtty_package' => 'required|integer|min:1',
+            'weight' => 'nullable|numeric|min:0',
+            'lenght' => 'nullable|numeric|min:0',
+            'width' => 'nullable|numeric|min:0',
+            'height' => 'nullable|numeric|min:0',
+            'price' => 'required|numeric|min:0',
             'offer_price' => 'nullable|numeric|min:0',
-            'stock' => 'integer|min:0',
-            'visibility' => 'string|max:10',
-            'tax_status' => 'string|max:10',
-            // otras validaciones
+            'category' => 'nullable|string|max:50',
+            'tags' => 'nullable|string|max:50',
+            'image_url' => 'nullable|string|max:250'
         ]);
 
         if ($validator->fails()) {
