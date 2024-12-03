@@ -39,6 +39,9 @@ class UserController extends Controller
             return $this->update($request, $user_exists->id);
         }
 
+        // create default password with phone number
+        $request->merge(['password' => $request->phone]);
+
         $validator = Validator::make($request->all(), [
             'id' => 'nullable',
             'name' => 'required|string|max:30',
@@ -99,7 +102,6 @@ class UserController extends Controller
             'postal_code' => 'nullable|string|max:10',
             'phone' => 'nullable|string|max:50',
             'email' => 'email|unique:users,email,' . $user->id,
-            'password' => 'nullable|string|min:8',
             'role' => 'string|in:admin,customer,other',
             'list_id' => 'nullable|exists:list_names,id',
         ]);

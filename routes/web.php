@@ -14,6 +14,7 @@ Route::get('/ordersuccess', function () {
 
 
 Volt::route('/users', 'users.index');
+Volt::route('/products', 'products.index');
 Volt::route('/orders', 'orders');
 // Users will be redirected to this route if not logged in
 Volt::route('/login', 'login')->name('login');

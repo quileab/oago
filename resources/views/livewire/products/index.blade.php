@@ -1,10 +1,10 @@
 <?php
-use App\Models\User;
+use App\Models\Product;
 use Illuminate\Support\Collection;
 use Livewire\Volt\Component;
+use Mary\Traits\Toast;
 use Livewire\WithPagination; 
 use Illuminate\Pagination\LengthAwarePaginator; 
-use Mary\Traits\Toast;
 
 new class extends Component {
     use Toast;
@@ -14,7 +14,7 @@ new class extends Component {
 
     public bool $drawer = false;
 
-    public array $sortBy = ['column' => 'name', 'direction' => 'asc'];
+    public array $sortBy = ['column' => 'id', 'direction' => 'asc'];
 
     // Clear filters
     public function clear(): void
@@ -27,8 +27,8 @@ new class extends Component {
     // Delete action
     public function delete($id): void
     {
-        User::destroy($id);
-        $this->success('User deleted.', position: 'toast-bottom');
+        Product::destroy($id);
+        $this->success('Product deleted.', position: 'toast-bottom');
         //$this->warning("Will delete #$id", 'It is fake.', position: 'toast-bottom');
     }
 
@@ -37,25 +37,25 @@ new class extends Component {
     {
         return [
             ['key' => 'id', 'label' => '#', 'class' => 'w-1'],
-            ['key' => 'name', 'label' => 'Name', 'class' => 'w-64'],
-            ['key' => 'email', 'label' => 'E-mail', 'sortable' => false],
-            ['key' => 'role', 'label' => 'Role', 'class' => 'w-20'],
+            ['key' => 'brand', 'label' => 'Marca'],
+            ['key' => 'model', 'label' => 'Modelo', 'sortable' => false],
+            ['key' => 'description', 'label' => 'Descripción', 'class' => 'w-full'],
         ];
     }
 
-    public function users(): LengthAwarePaginator //Collection
+    public function products(): LengthAwarePaginator //Collection
     {
-        return User::query()
-        ->when($this->search, 
-            fn($q) => $q->where(DB::raw('concat(name, " ", lastname, " ", email)'), 'like', "%$this->search%")
-        )
-        ->orderBy(...array_values($this->sortBy))->paginate(20);
+        return \App\Models\Product::when($this->search, function ($query) {
+                return $query->where(DB::raw('concat(brand, " ", model, " ", description)'), 'like', "%$this->search%");
+            })
+            ->orderBy(...array_values($this->sortBy))
+            ->paginate(20);
     }
 
     public function with(): array
     {
         return [
-            'users' => $this->users(),
+            'products' => $this->products(),
             'headers' => $this->headers()
         ];
     }
@@ -71,7 +71,7 @@ new class extends Component {
 
 <div>
     <!-- HEADER -->
-    <x-header title="Users" separator progress-indicator>
+    <x-header title="Products" separator progress-indicator>
         <x-slot:middle class="!justify-end">
             <x-input placeholder="Search..." wire:model.live.debounce="search" clearable icon="o-magnifying-glass" />
         </x-slot:middle>
@@ -81,9 +81,9 @@ new class extends Component {
     </x-header>
 
     <!-- TABLE  -->
-    <x-table :headers="$headers" :rows="$users" :sort-by="$sortBy" with-pagination>
-        @scope('actions', $user)
-        <x-button icon="o-trash" wire:click="delete({{ $user['id'] }})" wire:confirm="Are you sure?" spinner class="btn-ghost btn-sm text-red-500" />
+    <x-table :headers="$headers" :rows="$products" :sort-by="$sortBy" with-pagination>
+        @scope('actions', $product)
+        <x-button icon="o-trash" wire:click="delete({{ $product['id'] }})" wire:confirm="Are you sure?" spinner class="btn-ghost btn-sm text-red-500" />
         @endscope
     </x-table>
 
