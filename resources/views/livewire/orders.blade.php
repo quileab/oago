@@ -33,7 +33,7 @@ new class extends Component {
     {
         return [
             ['key' => 'id', 'label' => '#', 'class' => 'w-1'],
-            ['key' => 'user.name', 'label' => 'Name', 'class' => 'w-56'],
+            ['key' => 'user.fullName', 'label' => 'Name', 'class' => 'w-56'],
             ['key' => 'total_price', 'label' => 'Total', 'class' => 'w-20'],
             ['key' => 'order_date', 'label' => 'Fecha', 'class' => 'w-20'],
             ['key' => 'status', 'label' => 'Estado', 'class' => 'w-20'],
@@ -70,29 +70,27 @@ new class extends Component {
     </x-header>
 
     <!-- TABLE  -->
-    <x-card>
-        <x-table :headers="$headers" :rows="$orders" :sort-by="$sortBy" 
-            link="/order/{id}/edit"
-            :cell-decoration="
-            ['status' =>  [
-                'bg-red-500/25' => fn(Order $order) => $order->status === 'cancelled',
-                'bg-green-500/25' => fn(Order $order) => $order->status === 'completed',
-                'bg-yellow-500/25' => fn(Order $order) => $order->status === 'on-hold',
-                'bg-blue-500/25' => fn(Order $order) => $order->status === 'pending',
-                'bg-purple-500/25' => fn(Order $order) => $order->status === 'processing',
-            ]]">
-            @scope('cell_name', $user)
-            ({{ $user->lastname }}), {{ $user->name }}
-            @endscope
-            @scope('cell_total_price', $order)
-            $ {{ number_format($order->total_price, 2,',', '.') }}
-            @endscope
+    <x-table :headers="$headers" :rows="$orders" :sort-by="$sortBy" 
+        link="/order/{id}/edit"
+        :cell-decoration="
+        ['status' =>  [
+            'bg-red-500/25' => fn(Order $order) => $order->status === 'cancelled',
+            'bg-green-500/25' => fn(Order $order) => $order->status === 'completed',
+            'bg-yellow-500/25' => fn(Order $order) => $order->status === 'on-hold',
+            'bg-blue-500/25' => fn(Order $order) => $order->status === 'pending',
+            'bg-purple-500/25' => fn(Order $order) => $order->status === 'processing',
+        ]]">
+        @scope('cell_name', $user)
+        ({{ $user->lastname }}), {{ $user->name }}
+        @endscope
+        @scope('cell_total_price', $order)
+        $ {{ number_format($order->total_price, 2,',', '.') }}
+        @endscope
 
-            @scope('actions', $order)
-            <x-button icon="o-trash" wire:click="delete({{ $order['id'] }})" wire:confirm="Está seguro?" spinner class="btn-ghost btn-sm text-red-500" />
-            @endscope
-        </x-table>
-    </x-card>
+        @scope('actions', $order)
+        <x-button icon="o-trash" wire:click="delete({{ $order['id'] }})" wire:confirm="Está seguro?" spinner class="btn-ghost btn-sm text-red-500" />
+        @endscope
+    </x-table>
 
     <!-- FILTER DRAWER -->
     <x-drawer wire:model="drawer" title="Filtros" right separator with-close-button class="lg:w-1/3">

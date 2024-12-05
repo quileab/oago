@@ -78,21 +78,31 @@ class Cart extends Component
         }
     }
 
-    public function placeOrder()
+    public function placeOrder($status='pending')
     {
         if (!Auth::check()) {
             return redirect()->route('login');
         }
+        // if status is not pending, it should be 'on-hold'
+        if ($status !== 'pending') {
+            $status = 'on-hold';
+        }
 
         // Verificar si se está actualizando la orden
         if (Session::has('updateOrder')) {
-            $orderId = Session::get('updateOrder');
-            $order = Order::findOrFail($orderId);
+            $order = Order::findOrFail(
+                Session::get('updateOrder')
+            );
+            // if status changed, update it
+            if ($order->status !== $status) {
+                $order->update(['status' => $status]);
+                $this->info('La orden se ha actualizado');
+            }
         }else{  
             // Crear la orden
             $order = Order::create([
                 'user_id' => Auth::id(),
-                'status' => 'pending',
+                'status' => $status,
                 'total_price' => $this->total,
                 'order_date' => now(),
             ]);

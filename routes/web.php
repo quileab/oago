@@ -40,7 +40,7 @@ Route::get('/clear/{option?}', function ($option = null) {
         'Flush' => 'cache:flush',
     ] : [
         //'DebugBar'=>'debugbar:clear',
-        //'Storage Link'=>'storage:link',
+        'Storage Link'=>'storage:link',
         'Config' => 'config:clear',
         'Optimize Clear' => 'optimize:clear',
         //'Optimize'=>'optimize',

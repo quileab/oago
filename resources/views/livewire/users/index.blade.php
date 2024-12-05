@@ -14,7 +14,7 @@ new class extends Component {
 
     public bool $drawer = false;
 
-    public array $sortBy = ['column' => 'name', 'direction' => 'asc'];
+    public array $sortBy = ['column' => 'id', 'direction' => 'asc'];
 
     // Clear filters
     public function clear(): void
@@ -37,7 +37,8 @@ new class extends Component {
     {
         return [
             ['key' => 'id', 'label' => '#', 'class' => 'w-1'],
-            ['key' => 'name', 'label' => 'Name', 'class' => 'w-64'],
+            ['key' => 'fullName', 'label' => 'Nombre'],
+            ['key' => 'phone', 'label' => 'Tel.'],
             ['key' => 'email', 'label' => 'E-mail', 'sortable' => false],
             ['key' => 'role', 'label' => 'Role', 'class' => 'w-20'],
         ];
@@ -81,7 +82,7 @@ new class extends Component {
     </x-header>
 
     <!-- TABLE  -->
-    <x-table :headers="$headers" :rows="$users" :sort-by="$sortBy" with-pagination>
+    <x-table :headers="$headers" :rows="$users" :sort-by="$sortBy" striped with-pagination>
         @scope('actions', $user)
         <x-button icon="o-trash" wire:click="delete({{ $user['id'] }})" wire:confirm="Are you sure?" spinner class="btn-ghost btn-sm text-red-500" />
         @endscope

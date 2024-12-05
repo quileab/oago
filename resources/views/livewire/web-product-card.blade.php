@@ -1,6 +1,7 @@
 <div class="card bg-white shadow-xl overflow-hidden" wire:key="product-{{ $product->id }}">
     <div class="grid grid-cols-2">
-        <img class="h-32 w-auto mx-auto aspect-square" src="{{ $product->image_url }}" alt="{{ $product->category }}" />
+        <!-- /public/storage/qb works in production -->
+        <img class="h-32 w-auto mx-auto aspect-square" src="/public/storage/qb/proxyImg.php?url={{ $product->image_url }}" alt="{{ $product->category }}" />
         <div class="p-2 bg-slate-100">
             <h2 class="text-2xl">{{ $product->brand }}</h2>
             <p>{{ $product->description }}</p>

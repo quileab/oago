@@ -42,20 +42,20 @@
         </tbody>
     </table>
 
-    <div class="p-2 grid grid-cols-3 gap-3">
-        <div>
-            <x-button wire:click="placeOrder" label="Confirmar Pedido" icon="o-check" class="btn-success w-full" />
-            <x-dropdown>
-                <x-slot:trigger>
-                    <x-button icon="o-trash" label="Vaciar Carrito" class="btn-error w-full" />
-                </x-slot:trigger>
-             
-                <x-menu-item title="Confirmar" icon="o-check" wire:click="emptyCart" />
-                <x-menu-item title="Cancelar" icon="o-x-mark" />
-            </x-dropdown>
-        </div>
+    <div class="pt-2 grid grid-cols-3 gap-2">
+        
+        <x-button wire:click="placeOrder" label="Confirmar Pedido" icon="o-check" class="btn-success w-full" />
         <div></div>  
         <h3 class="text-2xl"><small class="text-primary">Total:</small> ${{ number_format($total, 2, ',', '.') }}</h3>
+        <x-button wire:click="placeOrder('later')" label="Guardar Carrito" icon="o-shopping-cart" class="btn-warning w-full" />
+        <x-dropdown>
+            <x-slot:trigger>
+                <x-button icon="o-trash" label="Vaciar Carrito" class="btn-error w-full" />
+            </x-slot:trigger>
+         
+            <x-menu-item title="Confirmar" icon="o-check" wire:click="emptyCart" />
+            <x-menu-item title="Cancelar" icon="o-x-mark" />
+        </x-dropdown>
     </div>
     @else
         <p>El carrito está vacío.</p>
