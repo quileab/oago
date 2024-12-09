@@ -82,10 +82,8 @@ new class extends Component {
     </x-header>
 
     <!-- TABLE  -->
-    <x-table :headers="$headers" :rows="$users" :sort-by="$sortBy" striped with-pagination>
-        @scope('actions', $user)
-        <x-button icon="o-trash" wire:click="delete({{ $user['id'] }})" wire:confirm="Are you sure?" spinner class="btn-ghost btn-sm text-red-500" />
-        @endscope
+    <x-table :headers="$headers" :rows="$users" :sort-by="$sortBy"
+        striped with-pagination link="/user/{id}">
     </x-table>
 
     <!-- FILTER DRAWER -->

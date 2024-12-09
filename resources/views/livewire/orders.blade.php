@@ -34,7 +34,7 @@ new class extends Component {
         return [
             ['key' => 'id', 'label' => '#', 'class' => 'w-1'],
             ['key' => 'user.fullName', 'label' => 'Name', 'class' => 'w-56'],
-            ['key' => 'total_price', 'label' => 'Total', 'class' => 'w-20'],
+            ['key' => 'total_price', 'label' => 'Total', 'class' => 'w-20 text-right'],
             ['key' => 'order_date', 'label' => 'Fecha', 'class' => 'w-20'],
             ['key' => 'status', 'label' => 'Estado', 'class' => 'w-20'],
         ];
@@ -48,9 +48,13 @@ new class extends Component {
             ->when(!$isAdmin, function (Collection $collection) {
                 return $collection->where('user_id', Auth::user()->id);                
             })
+            // search in full name
             ->when($this->search, function (Collection $collection) {
-                return $collection->filter(fn(array $item) => str($item['name'])->contains($this->search, true));
-            });
+                return $collection->filter(function (Order $order) {
+                    return Str::contains(strtolower($order->user->fullName), strtolower($this->search)) || Str::contains($order->id, $this->search);
+                });
+            }
+        );
     }
 
     public function with(): array

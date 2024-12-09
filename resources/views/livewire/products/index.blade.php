@@ -2,9 +2,9 @@
 use App\Models\Product;
 use Illuminate\Support\Collection;
 use Livewire\Volt\Component;
-use Mary\Traits\Toast;
 use Livewire\WithPagination; 
 use Illuminate\Pagination\LengthAwarePaginator; 
+use Mary\Traits\Toast;
 
 new class extends Component {
     use Toast;
@@ -39,15 +39,15 @@ new class extends Component {
             ['key' => 'id', 'label' => '#', 'class' => 'w-1'],
             ['key' => 'brand', 'label' => 'Marca'],
             ['key' => 'model', 'label' => 'Modelo', 'sortable' => false],
-            ['key' => 'description', 'label' => 'Descripción', 'class' => 'w-full'],
+            ['key' => 'description', 'label' => 'Descripción'],
         ];
     }
 
     public function products(): LengthAwarePaginator //Collection
     {
-        return \App\Models\Product::when($this->search, function ($query) {
-                return $query->where(DB::raw('concat(brand, " ", model, " ", description)'), 'like', "%$this->search%");
-            })
+        return Product::query()
+            ->when($this->search, fn($q)=>$q->where(DB::raw('concat(brand," ",ifnull(model,"")," ",description)'), 'like', "%$this->search%")
+            )
             ->orderBy(...array_values($this->sortBy))
             ->paginate(20);
     }
@@ -82,9 +82,7 @@ new class extends Component {
 
     <!-- TABLE  -->
     <x-table :headers="$headers" :rows="$products" :sort-by="$sortBy" with-pagination>
-        @scope('actions', $product)
-        <x-button icon="o-trash" wire:click="delete({{ $product['id'] }})" wire:confirm="Are you sure?" spinner class="btn-ghost btn-sm text-red-500" />
-        @endscope
+
     </x-table>
 
     <!-- FILTER DRAWER -->
