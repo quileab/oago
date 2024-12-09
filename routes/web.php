@@ -12,11 +12,6 @@ Route::get('/ordersuccess', function () {
   return view('ordersuccess');
 })->name('ordersuccess');
 
-
-
-Volt::route('/orders', 'orders');
-Volt::route('/order/{orderId}/edit', 'orderitems');
-
 // Route::get('/artisan/{command}', function ($command) {
     //     return Artisan::call($command);
     // });
@@ -31,8 +26,13 @@ Volt::route('/order/{orderId}/edit', 'orderitems');
     // admin only routes
     Route::middleware('auth')->group(function () {
 
+        Volt::route('/orders', 'orders');
+        Volt::route('/order/{orderId}/edit', 'orderitems');
+
         Volt::route('/users', 'users.index')->middleware('is_admin');
+        Volt::route('/user/{id?}', 'users.crud')->middleware('is_admin');
         Volt::route('/products', 'products.index')->middleware('is_admin');
+        Volt::route('/product/{id?}', 'products.crud')->middleware('is_admin');
         // Users will be redirected to this route if not logged in
         Volt::route('/register', 'register')->middleware('is_admin'); 
         Route::get('/clear/{option?}', function ($option = null) {

@@ -71,7 +71,7 @@ new class extends Component {
 
 <div>
     <!-- HEADER -->
-    <x-header title="Products" separator progress-indicator>
+    <x-header title="Productos" separator progress-indicator>
         <x-slot:middle class="!justify-end">
             <x-input placeholder="Search..." wire:model.live.debounce="search" clearable icon="o-magnifying-glass" />
         </x-slot:middle>

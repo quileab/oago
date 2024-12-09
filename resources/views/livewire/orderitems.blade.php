@@ -3,6 +3,7 @@
 use Livewire\Volt\Component;
 
 new class extends Component {
+    public bool $drawer = false;
     public $order;
     public $items = [];
 
@@ -14,7 +15,7 @@ new class extends Component {
     }
 
     // Actualizar el carrito y redirigir a la tienda
-    public function editOrder()
+    public function loadCart(bool $update = false)
     {
         // Rearmar el carrito con los items del pedido
         $cartItems = [];
@@ -27,8 +28,11 @@ new class extends Component {
                 'byBulk' => $item['product']['by_bulk']??false,
             ];
         }
-        // guardar los datos del la orden para actualizarlo luego
-        Session::put('updateOrder', $this->order->id);
+
+        if($update) {
+            // guardar los datos de la orden para actualizarlo luego
+            Session::put('updateOrder', $this->order->id);
+        }
 
         // Guardar los datos del carrito en la sesión
         Session::put('cart', $cartItems);
@@ -37,12 +41,24 @@ new class extends Component {
         return redirect('/');
     }
 
+    // delete order
+    public function delete()
+    {
+        $this->order->delete();
+        return redirect('/orders');
+    }
+
 }; ?>
 
 <div>
-    <div class="grid grid-cols-2 gap-4">
+    <div class="grid grid-cols-3 gap-4">
         <h3 class="text-2xl"><small class="text-primary">Pedido #</small> {{ $order->id }}</h3>
         <h3 class="text-2xl"><small class="text-primary">Estado:</small> {{ $order->status }}</h3>
+        <div class="text-right">
+            <x-button @click="$wire.drawer = true" responsive 
+                icon="o-ellipsis-vertical"
+                class="btn-ghost btn-circle btn-outline btn-sm" />
+        </div>
     </div>
 
     <table class="table w-full rounded-sm overflow-hidden">
@@ -70,6 +86,18 @@ new class extends Component {
         </tbody>
     </table>
 
-    <x-button wire:click="editOrder" icon="o-shopping-cart" class="mt-2 btn-primary" label="Retomar Pedido" />
-
+    <!-- DRAWER -->
+    <x-drawer wire:model="drawer" title="Acciones" right with-close-button class="lg:w-1/3">
+        @if($order->status == 'on-hold')
+            <x-button wire:click="loadCart(true)" icon="o-shopping-cart" class="mt-2 btn-primary w-full"
+                label="Retomar Pedido" />
+            <x-dropdown label="Eliminar" class="btn-error w-full mt-1">
+                <x-menu-item title="Confirmar" wire:click.stop="delete" spinner="delete" icon="o-trash" class="btn-error" />
+            </x-dropdown>
+        @endif
+        @if($order->status == 'pending')
+            <x-button wire:click="loadCart(false)" icon="o-shopping-cart" class="mt-2 btn-primary w-full"
+                label="Copiar Pedido" />
+        @endif
+    </x-drawer>
 </div>

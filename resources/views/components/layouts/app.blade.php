@@ -38,7 +38,6 @@
                 <x-list-item :item="$user" value="name" sub-value="email" class="-mx-2 !-mt-4 rounded bg-primary/20">
                     <x-slot:actions>
                         <x-button icon="o-power" class="btn-circle btn-ghost btn-xs text-warning" tooltip-left="logoff" no-wire-navigate link="/logout" />
-                        {{ $user->role }}
                     </x-slot:actions>
                 </x-list-item>
                 @endif
