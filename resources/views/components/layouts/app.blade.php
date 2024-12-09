@@ -35,25 +35,24 @@
 
                 {{-- User --}}
                 @if($user = auth()->user())
-                    <x-menu-separator />
-
-                    <x-list-item :item="$user" value="name" sub-value="email" no-separator no-hover class="-mx-2 !-my-2 rounded">
-                        <x-slot:actions>
-                            <x-button icon="o-power" class="btn-circle btn-ghost btn-xs" tooltip-left="logoff" no-wire-navigate link="/logout" />
-                        </x-slot:actions>
-                    </x-list-item>
-
-                    <x-menu-separator />
+                <x-list-item :item="$user" value="name" sub-value="email" class="-mx-2 !-mt-4 rounded bg-primary/20">
+                    <x-slot:actions>
+                        <x-button icon="o-power" class="btn-circle btn-ghost btn-xs text-warning" tooltip-left="logoff" no-wire-navigate link="/logout" />
+                        {{ $user->role }}
+                    </x-slot:actions>
+                </x-list-item>
                 @endif
 
-                <x-menu-item title="Sitio Principal" icon="o-sparkles" link="/" />
-                <x-menu-item title="Usuarios" icon="o-users" link="/users" />
-                <x-menu-item title="Productos" icon="s-square-3-stack-3d" link="/products" />
+                @if($user->role == 'admin')
+                    <x-menu-item title="Sitio Principal" icon="o-sparkles" link="/" />
+                    <x-menu-sub title="Settings" icon="o-cog-6-tooth" disabled>
+                        <x-menu-item title="Wifi" icon="o-wifi" link="####" />
+                        <x-menu-item title="Archives" icon="o-archive-box" link="####" />
+                    </x-menu-sub>
+                    <x-menu-item title="Usuarios" icon="o-users" link="/users" />
+                    <x-menu-item title="Productos" icon="s-square-3-stack-3d" link="/products" />
+                @endif
                 <x-menu-item title="Pedidos" icon="o-clipboard-document-list" link="/orders" />
-                <x-menu-sub title="Settings" icon="o-cog-6-tooth" disabled>
-                    <x-menu-item title="Wifi" icon="o-wifi" link="####" />
-                    <x-menu-item title="Archives" icon="o-archive-box" link="####" />
-                </x-menu-sub>
             </x-menu>
         </x-slot:sidebar>
 

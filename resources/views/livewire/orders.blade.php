@@ -42,8 +42,12 @@ new class extends Component {
 
     public function orders(): Collection
     {
+        $isAdmin = Auth::user()->role == 'admin';
         return Order::with('user')->get()
             ->sortBy([[...array_values($this->sortBy)]])
+            ->when(!$isAdmin, function (Collection $collection) {
+                return $collection->where('user_id', Auth::user()->id);                
+            })
             ->when($this->search, function (Collection $collection) {
                 return $collection->filter(fn(array $item) => str($item['name'])->contains($this->search, true));
             });
