@@ -44,8 +44,13 @@ class Cart extends Component
                 'price' => $product['user_price'],
                 'quantity' => $byBulk ? $product['qtty_package'] : 1,
                 'byBulk' => $byBulk,
+                'bulkQuantity' => $product['qtty_package'],
             ];
         }
+
+        // byBulk equal true if modulus of qtty_package is 0
+        $this->cart[$productId]['byBulk'] =
+            $this->cart[$productId]['quantity'] % $product['qtty_package'] == 0;
 
         // Guardar el carrito en la sesión
         Session::put('cart', $this->cart);

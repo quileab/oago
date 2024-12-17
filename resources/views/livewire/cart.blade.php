@@ -29,7 +29,10 @@
                     <td class="text-center">{{ $item['product_id'] }}</td>
                     <td>{{ $item['name'] }}</td>
                     <td class="text-right">${{ number_format($item['price'], 2) }}</td>
-                    <td class="px-4">
+                    <td class="px-4 flex">
+                        @if($item['quantity'] % $item['bulkQuantity']=== 0)
+                        <x-icon name="o-cube" label="{{ $item['quantity'] / $item['bulkQuantity']}} x {{ $item['bulkQuantity'] }}" />
+                        @endif
                         <x-input type="number" min="1" wire:change="updateQuantity({{ $item['product_id'] }}, $event.target.value)" value="{{ $item['quantity'] }}"
                             class="w-16" />
                     </td>
@@ -45,7 +48,7 @@
     <div class="pt-2 grid grid-cols-3 gap-2">
         
         <x-button wire:click="placeOrder" label="Confirmar Pedido" icon="o-check" class="btn-success w-full" />
-        <div></div>  
+        <x-icon name="o-cube" label="= Cantidad de Bultos" class="text-warning" />  
         <h3 class="text-2xl"><small class="text-primary">Total:</small> ${{ number_format($total, 2, ',', '.') }}</h3>
         <x-button wire:click="placeOrder('later')" label="Guardar Carrito" icon="o-shopping-cart" class="btn-warning w-full" />
         <x-dropdown>

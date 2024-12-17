@@ -1,15 +1,13 @@
-<div class="w-full bg-gray-600 text-gray-100 px-4 py-1">
+<div class="md:grid grid-flow-col bg-slate-700  text-gray-100 px-4 py-1">
+    <x-select wire:model="category"
+    placeholder="Categoría" icon="o-user" class="w-full" 
+    :options="$categories"
+    option-label="category"
+    option-value="category" />
     <x-input type="search" placeholder="Descripción" 
         wire:model="search"
         wire:keydown.enter="goSearch()" 
-        class="w-full">
-        <x-slot:prepend>
-            <x-select wire:model="category"
-            placeholder="Categoría" icon="o-user" class="rounded-e-none" 
-            :options="$categories"
-            option-label="category"
-            option-value="category" />
-        </x-slot:prepend>
+        class="w-full flex-1">
         <x-slot:append>
             {{-- Add `rounded-s-none` class (RTL support) --}}
             <x-button
