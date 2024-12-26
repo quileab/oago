@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('sku', 50)->nullable();
             $table->string('product_type', 30)->nullable();
             $table->string('brand', 30)->nullable();
-            $table->string('model', 30)->nullable();
+            $table->string('model', 130)->nullable();
             $table->string('description', 100);
             $table->string('description_html', 250)->nullable();
             $table->boolean('published')->default(1);

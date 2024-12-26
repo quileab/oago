@@ -1,7 +1,8 @@
 <div class="card bg-white shadow-xl overflow-hidden" wire:key="product-{{ $product->id }}">
     <div class="grid grid-cols-2">
         <!-- /public/storage/qb works in production -->
-        <img class="h-32 w-auto mx-auto aspect-square" src="/public/storage/qb/proxyImg.php?url={{ $product->image_url }}" alt="{{ $product->category }}" />
+        <img class="h-32 w-auto mx-auto aspect-square" 
+            src="{{ env('qb_public_assets_path','/public/storage/qb') }}/proxyImg.php?url={{ $product->image_url }}" alt="{{ $product->category }}" />
         <div class="p-2 bg-slate-100">
             <h2 class="text-2xl">{{ $product->brand }}</h2>
             <p>{{ $product->description }}</p>
@@ -28,15 +29,22 @@
             <p class="text-xs text-right">Cod. {{ $product->id }}</p>
         </div>
     </div>
-    <div class="p-2 bg-slate-100 grid grid-cols-2">
-        <p>
-            <x-button label="Comprar" icon="o-shopping-cart" class="btn-outline text-orange-600 btn-sm"
-                wire:click="buy({{$product}},false)" />
-        </p>
-        <p>
-            <x-button label="Comprar Pack x {{ $product->qtty_package}}" icon="o-shopping-cart" class="btn-outline text-orange-600 btn-sm"
-                wire:click="buy({{$product}},true)" />
-        </p>
+    <div class="p-2 bg-slate-200 grid grid-cols-3">
+        
+        <input type="number" class="bg-slate-100 text-black border rounded-md border-gray-900 text-center" wire:model="qtty" />
+
+        <x-button label="Comprar" icon="o-shopping-cart" class="btn-outline text-orange-600 btn-sm"
+            wire:click="buy({{$product}},false)" />
+    
+    
+        {{-- <x-button label="Comprar Pack x {{ $product->qtty_package}}" icon="o-shopping-cart" class="btn-outline text-orange-600 btn-sm"
+            wire:click="buy({{$product}},true)" /> --}}
+    
     </div>
+        <!-- if cart has products and product is in cart show cart icon -->
+@if(!empty($cart) && isset($cart[$product->id]))
+    <x-icon name="o-shopping-cart" label="Producto en el carrito" class="text-success" />    
+@endif
+
     @endif
 </div>

@@ -29,22 +29,20 @@ class Cart extends Component
         $this->info('Producto añadido');
     }
 
-    public function addToCart($product, $byBulk = false)
+    public function addToCart($product, $qtty = 1)
     {
         $productId = $product['id'];
 
         // Si el producto ya está en el carrito, aumentar la cantidad
         if (isset($this->cart[$productId])) {
-            $this->cart[$productId]['quantity'] += $byBulk ? $product['qtty_package'] : 1;
+            $this->cart[$productId]['quantity'] += $qtty;
         } else {
             // Si no, agregar el producto al carrito
             $this->cart[$productId] = [
                 'product_id' => $product['id'],
                 'name' => $product['description'],
                 'price' => $product['user_price'],
-                'quantity' => $byBulk ? $product['qtty_package'] : 1,
-                'byBulk' => $byBulk,
-                'bulkQuantity' => $product['qtty_package'],
+                'quantity' => $qtty,
             ];
         }
 
