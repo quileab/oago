@@ -24,35 +24,35 @@ class Cart extends Component
     }
 
     #[On('addToCart')]
-    public function onAddToCart($product, $byBulk = false) {
-        $this->addToCart($product, $byBulk);
-        $this->info('Producto añadido');
-    }
-
-    public function addToCart($product, $qtty = 1)
+    public function onAddToCart(array $product, int $quantity = 1): void
     {
         $productId = $product['id'];
 
-        // Si el producto ya está en el carrito, aumentar la cantidad
+        // If the product is already in the cart, increase the quantity
         if (isset($this->cart[$productId])) {
-            $this->cart[$productId]['quantity'] += $qtty;
+            $this->cart[$productId]['quantity'] += $quantity;
         } else {
-            // Si no, agregar el producto al carrito
+            // If not, add the product to the cart
             $this->cart[$productId] = [
                 'product_id' => $product['id'],
                 'name' => $product['description'],
                 'price' => $product['user_price'],
-                'quantity' => $qtty,
+                'bulkQuantity' => $product['qtty_package'],
+                'quantity' => $quantity,
             ];
         }
 
-        // byBulk equal true if modulus of qtty_package is 0
+        // Determine if the product is being purchased by bulk
         $this->cart[$productId]['byBulk'] =
             $this->cart[$productId]['quantity'] % $product['qtty_package'] == 0;
 
-        // Guardar el carrito en la sesión
+        // Save the cart to the session
         Session::put('cart', $this->cart);
+
+        // Recalculate the total
         $this->calculateTotal();
+
+        $this->info('Agregado al carrito');
     }
 
     public function removeFromCart($productId)

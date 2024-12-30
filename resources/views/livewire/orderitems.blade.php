@@ -25,6 +25,7 @@ new class extends Component {
                 'name' => $item['product']['description'],
                 'quantity' => $item['quantity'],
                 'price' => $item['price'],
+                'bulkQuantity' => $item['product']['qtty_package'],
                 'byBulk' => $item['product']['by_bulk']??false,
             ];
         }

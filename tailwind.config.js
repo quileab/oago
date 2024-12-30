@@ -1,3 +1,4 @@
+import defaultTheme from 'tailwindcss/defaultTheme';
 /** @type {import('tailwindcss').Config} */
 export default {
     content: [
@@ -13,11 +14,17 @@ export default {
         './vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php',
     ],
     theme: {
-        extend: {},
+        extend: {
+            fontFamily: {
+                sans: ['Figtree', ...defaultTheme.fontFamily.sans],
+            },
+        },
     },
 
     // Add daisyUI
-    plugins: [require("daisyui")],
+    plugins: [
+        require("daisyui")
+    ],
     daisyui: {
         themes: [
         {

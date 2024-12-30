@@ -12,7 +12,7 @@
         close-on-escape>
 
     @if (count($cart) > 0)
-    <table class="w-full cellspacing-x-2 table-compact table">
+    <table class="w-full cellspacing-x-1 table-compact table">
         <thead class="font-bold bg-slate-200/25 text-center">
             <tr>
                 <th>Prod. ID</th>
@@ -26,19 +26,31 @@
         <tbody>
             @foreach ($cart as $item)
                 <tr class="even:bg-slate-100/5 odd:bg-slate-100/10">
-                    <td class="text-center">{{ $item['product_id'] }}</td>
+                    <td class="text-center">
+                        <img src="{{ env('qb_public_assets_path','/public/storage/qb') }}/proxyImg.php?url=http://190.183.254.154/regente_img/{{ $item['product_id'].'.jpg' }}" alt="{{ $item['product_id'] }}" 
+                            class="w-16 h-16 object-cover" />
+                    </td>
                     <td>{{ $item['name'] }}</td>
                     <td class="text-right">${{ number_format($item['price'], 2) }}</td>
-                    <td class="px-4 flex">
-                        @if($item['quantity'] % $item['bulkQuantity']=== 0)
-                        <x-icon name="o-cube" label="{{ $item['quantity'] / $item['bulkQuantity']}} x {{ $item['bulkQuantity'] }}" />
-                        @endif
+                    <td class="px-2 w-[8rem]">
                         <x-input type="number" min="1" wire:change="updateQuantity({{ $item['product_id'] }}, $event.target.value)" value="{{ $item['quantity'] }}"
-                            class="w-16" />
+                            class="w-full text-center" />
+                        @if($item['quantity'] % $item['bulkQuantity']=== 0)
+                        <x-icon name="o-squares-2x2" label="{{ $item['quantity'] / $item['bulkQuantity']}} x {{ $item['bulkQuantity'] }}" />
+                        @else
+                        <x-icon name="o-squares-plus" label="{{floor($item['quantity'] / $item['bulkQuantity'])}} x {{ $item['bulkQuantity']}} + {{ $item['quantity'] - (floor($item['quantity'] / $item['bulkQuantity'])*$item['bulkQuantity'])}}" />
+                        @endif
                     </td>
                     <td class="text-right">${{ number_format($item['price'] * $item['quantity'], 2) }}</td>
                     <td class="text-center">
-                        <x-button icon="o-trash" wire:click="removeFromCart({{ $item['product_id'] }})" class="btn-ghost btn-sm text-red-500" />
+                        <x-dropdown>
+                            <x-slot:trigger>
+                                <x-button icon="o-trash" class="text-red-500 w-full btn-ghost btn-sm" />
+                            </x-slot:trigger>
+                         
+                            <x-menu-item title="Confirmar" icon="o-check" wire:click="removeFromCart({{ $item['product_id'] }})" />
+                            <x-menu-item title="Cancelar" icon="o-x-mark" />
+                        </x-dropdown>
                     </td>
                 </tr>
             @endforeach

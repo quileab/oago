@@ -21,6 +21,7 @@ class WebProduct extends Component
             // exclude products that are not published and description starts with "CONS INT"
             ->where('published', 1)
             ->where('description', 'not like', 'CONS INT%')
+            ->where('model', '!=', 'consumo interno')
 
             // filter when session category is set
             ->when(session()->has('category'), function ($query) {
@@ -34,12 +35,21 @@ class WebProduct extends Component
             return;            
         }
 
+        if (session()->has('similar')) {
+            $this->filter['model'] = session()->get('similar');
+            //clear all session filters
+            session()->forget('similar');
+            session()->forget('category');
+            session()->forget('search');
+        }
+
         // Dump the filter and session data
         $this->component_products=\App\Models\Product::where($this->filter)
             ->limit($this->items)
             // exclude products that are not published and description starts with "CONS INT"
             ->where('published', 1)
             ->where('description', 'not like', 'CONS INT%')
+            ->where('model', '!=', 'consumo interno')
             
             // filter when session category is set
             ->when(session()->has('category'), function ($query) {
@@ -48,6 +58,9 @@ class WebProduct extends Component
             // filter when session search is set
             ->when(session()->has('search'), function ($query) {
                 return $query->where('description', 'like', '%' . session()->get('search') . '%');
+            })
+            ->when($this->filter['similar']??false, function ($query) {
+                return $query->where('model', $this->filter['model']);
             })
             ->leftJoin('list_prices', function ($join) use ($user) {
                 $join->on('products.id', '=', 'list_prices.product_id')

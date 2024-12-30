@@ -20,11 +20,14 @@ class WebProductCard extends Component
     }
 
     public function buy($product,$qtty = 1){
+        $qtty = $this->qtty ?? $qtty;
         $this->dispatch('addToCart', $product, $qtty);
         $this->skipRender();      
     }
 
-    public function updated($local_product){
-        dd($local_product);
+    public function searchSimilar($product){
+        session()->put('similar', $product['model']);
+        $this->redirect('/');
     }
+
 }
