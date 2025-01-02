@@ -16,13 +16,27 @@ new class extends Component {
 
     public array $sortBy = ['column' => 'id', 'direction' => 'asc'];
 
-    // Clear filters
-    public function clear(): void
-    {
-        $this->reset();
-        $this->resetPage(); 
-        $this->success('Filters cleared.', position: 'toast-bottom');
+    public $priceLists = [];
+    public $priceList;
+
+    public function mount() {
+        $this->hydrate();
     }
+
+    public function hydrate() {
+        // get unique price lists from list_id
+        $this->priceLists = Cache::remember('priceLists', 60*60, function () { return \App\Models\ListPrice::select('list_id')->distinct()->get(); }) ?? \App\Models\ListPrice::select('list_id')->distinct()->get();
+        // if not set, set first price list
+        $this->priceList = $this->priceList ?? $this->priceLists->first()->list_id;
+    }
+
+    // Clear filters
+    // public function clear(): void
+    // {
+    //     $this->reset();
+    //     $this->resetPage(); 
+    //     $this->success('Filters cleared.', position: 'toast-bottom');
+    // }
 
     // Delete action
     public function delete($id): void
@@ -40,14 +54,21 @@ new class extends Component {
             ['key' => 'brand', 'label' => 'Marca'],
             ['key' => 'model', 'label' => 'Modelo', 'sortable' => false],
             ['key' => 'description', 'label' => 'Descripción'],
+            ['key' => 'price', 'label' => 'Precio', 'class' => 'text-right'],
+            ['key' => 'offer_price', 'label' => 'Precio Oferta', 'class' => 'text-right'],
+            ['key' => 'list_price', 'label' => 'Precio Lista', 'class' => 'text-right'],
         ];
     }
 
     public function products(): LengthAwarePaginator //Collection
     {
-        return Product::query()
-            ->when($this->search, fn($q)=>$q->where(DB::raw('concat(brand," ",ifnull(model,"")," ",description)'), 'like', "%$this->search%")
-            )
+        $this->drawer = false;
+        $list_price = $this->priceList;
+
+        return Product::join('list_prices as listprice', 'listprice.product_id', '=', 'products.id')
+            ->select('products.*', 'listprice.price as list_price')
+            ->where('listprice.list_id', $list_price)
+            ->when($this->search, fn($q) => $q->where(DB::raw('concat(brand," ",ifnull(model,"")," ",description)'), 'like', "%$this->search%"))
             ->orderBy(...array_values($this->sortBy))
             ->paginate(20);
     }
@@ -64,34 +85,37 @@ new class extends Component {
     public function updated($property): void
     {
         if (! is_array($property) && $property != "") {
-            $this->resetPage();
+            // $this->resetPage();
+            $this->goToPage(1);
+            $this->success('Page reset.', position: 'toast-bottom');
         }
     }
 }; ?>
 
 <div>
     <!-- HEADER -->
-    <x-header title="Productos" separator progress-indicator>
+    <x-header title="Productos » {{ $priceList }}" separator progress-indicator>
         <x-slot:middle class="!justify-end">
             <x-input placeholder="Search..." wire:model.live.debounce="search" clearable icon="o-magnifying-glass" />
         </x-slot:middle>
         <x-slot:actions>
-            <x-button label="Filters" @click="$wire.drawer = true" responsive icon="o-funnel" />
+            <x-button label="Filtros" @click="$wire.drawer = true" responsive icon="o-funnel" />
         </x-slot:actions>
     </x-header>
 
     <!-- TABLE  -->
-    <x-table :headers="$headers" :rows="$products" :sort-by="$sortBy" with-pagination>
-
-    </x-table>
+    <x-table :headers="$headers" :rows="$products" :sort-by="$sortBy" with-pagination 
+        :key="'products-'.$priceList"
+    />
 
     <!-- FILTER DRAWER -->
-    <x-drawer wire:model="drawer" title="Filters" right separator with-close-button class="lg:w-1/3">
-        <x-input placeholder="Search..." wire:model.live.debounce="search" icon="o-magnifying-glass" @keydown.enter="$wire.drawer = false" />
+    <x-drawer wire:model="drawer" title="Filtros" right separator with-close-button class="lg:w-1/3">
+        Listas de Precios
+        <x-select wire:model="priceList" :options="$priceLists" option-label="list_id" option-value="list_id" />
 
         <x-slot:actions>
-            <x-button label="Reset" icon="o-x-mark" wire:click="clear" spinner />
-            <x-button label="Done" icon="o-check" class="btn-primary" @click="$wire.drawer = false" />
+            <x-button label="Cerrar" icon="o-x-mark" class="btn-error" @click="$wire.drawer = false" />
+            <x-button label="Aplicar" icon="o-check" class="btn-primary" wire:click="products" spinner />
         </x-slot:actions>
     </x-drawer>
 </div>

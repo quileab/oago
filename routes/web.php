@@ -61,5 +61,8 @@ Route::get('/ordersuccess', function () {
                 //    return var_dump($maintenance,true);
         //.Artisan::output();
         });
+
+        // using Reports/ExportController -> exportProducts with associated ListPrices
+        Route::get('/export/products',[\App\Http\Controllers\Reports\ExportController::class, 'exportProducts'])->middleware('is_admin');
     
     });

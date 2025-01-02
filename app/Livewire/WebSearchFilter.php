@@ -12,7 +12,10 @@ class WebSearchFilter extends Component
     use Toast;
     public $categories = [];
     public $category;
+    public $brands = [];
+    public $brand;
     public $search;
+    public $showFilters = false;
     public function mount(){
         // categories take unique values from products category attribute as id and name
         $this->categories = //Cache::remember('categories', 60*60, function () {
@@ -22,10 +25,19 @@ class WebSearchFilter extends Component
                 ->distinct()
                 ->orderBy('category')
                 ->get(['id', 'category']);            
+        $this->brands = //Cache::remember('brands', 60*60, function () {
+            DB::table('products')->select('brand')
+                ->where('published', 1)
+                ->where('brand', '!=', '')
+                ->distinct()
+                ->orderBy('brand')
+                ->get(['id', 'brand']);
+        
         //});
 
         $this->category = session()->get('category');
         $this->search = session()->get('search');
+        $this->brand = session()->get('brand');
     }
     public function render()
     {

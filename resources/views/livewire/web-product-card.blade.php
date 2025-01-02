@@ -41,14 +41,14 @@
             
         </div>
     </div>
-    <div class="p-2 bg-slate-200 grid grid-cols-3">
+    <div class="p-2 bg-slate-200 grid grid-cols-3 gap-2">
         
-        <input type="number" class="bg-slate-100 text-black border rounded-md border-gray-900 text-center" wire:model="qtty" />
+        <input type="number" class="bg-slate-100 text-black border rounded-md border-gray-900 text-center" wire:model="qtty" / gap-2>
 
-        <x-button label="Comprar" icon="o-shopping-cart" class="btn-outline text-orange-600 btn-sm"
+        <x-button label="Comprar" icon="o-shopping-cart" class="btn-outline text-orange-600 btn-sm border-2"
             wire:click="buy({{$product}},false)" responsive />
 
-        <x-button label="Similares" icon="o-magnifying-glass-circle" class="btn-outline text-blue-600 btn-sm"
+        <x-button label="Similares" icon="o-magnifying-glass-circle" class="btn-outline text-orange-600 btn-sm border-2"
             wire:click="searchSimilar({{$product}})" responsive />    
     
         {{-- <x-button label="Comprar Pack x {{ $product->qtty_package}}" icon="o-shopping-cart" class="btn-outline text-orange-600 btn-sm"
