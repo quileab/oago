@@ -44,8 +44,8 @@
 
                 @if($user->role == 'admin')
                     <x-menu-item title="Sitio Principal" icon="o-sparkles" link="/" />
-                    <x-menu-sub title="Settings" icon="o-cog-6-tooth" disabled>
-                        <x-menu-item title="Wifi" icon="o-wifi" link="####" />
+                    <x-menu-sub title="Extras" icon="o-cog-6-tooth" disabled>
+                        <x-menu-item title="Exportar Productos" icon="o-document-duplicate" link="/export/products" />
                         <x-menu-item title="Archives" icon="o-archive-box" link="####" />
                     </x-menu-sub>
                     <x-menu-item title="Usuarios" icon="o-users" link="/users" />

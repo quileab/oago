@@ -24,16 +24,12 @@ class ProductController extends Controller
      */
     public function store(Request $request)
     {
-        //check if product exists
-        $product_exists=Product::find($request->id);
-        if($product_exists){
-            return $this->update($request, $product_exists);
-        }
-        
         $validator = Validator::make($request->all(), [
             'id'=> 'nullable',
-            'barcode' => 'nullable|string|max:50|unique:products,barcode',
-            'sku' => 'nullable|string|max:50|unique:products,sku',
+            'barcode' => 'nullable|string|max:50',
+            'sku' => 'nullable|string|max:50',
+            //'barcode' => 'nullable|string|max:50|unique:products,barcode',
+            //'sku' => 'nullable|string|max:50|unique:products,sku',
             'product_type' => 'nullable|string|max:30',
             'brand' => 'nullable|string|max:30',
             'model' => 'nullable|string|max:130',
@@ -64,6 +60,13 @@ class ProductController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
+        //check if product exists
+        $product_exists=Product::find($request->id);
+        if($product_exists instanceof Product){
+            return $this->update($request, $product_exists);
+        }
+        
+        //create new product
         $product = Product::create($request->all());
         return response()->json($product, 201);
     }
