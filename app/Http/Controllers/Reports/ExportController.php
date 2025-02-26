@@ -3,14 +3,15 @@
 namespace App\Http\Controllers\Reports;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ExportController extends Controller
 {
     // export products including listPrices to csv and download
-    public function exportProducts()
+    public function exportProducts(): BinaryFileResponse
     {
         $filename = 'products.csv';
+        $filename_download = 'products' . date("dmYHi") . '.csv';
 
         $handle = fopen($filename, 'w+');
 
@@ -20,17 +21,17 @@ class ExportController extends Controller
         // get all products
         $products = \App\Models\Product::with('listPrices')->get();
 
-        $headers = array(
+        $headers = [
             "Content-type" => "text/csv",
-            "Content-Disposition" => "attachment; filename=products.csv",
-            "Pragma" => "no-cache",
-            "Cache-Control" => "must-revalidate, post-check=0, pre-check=0",
-            "Expires" => "0"
-        );
+            "Content-disposition" => "attachment; filename=/" . $filename_download,
+            // "Pragma" => "no-cache",
+            // "Cache-Control" => "must-revalidate, post-check=0, pre-check=0",
+            // "Expires" => "0"
+        ];
 
-        $csv_headers=['id','brand','model','description','price'];
+        $csv_headers = ['id', 'brand', 'model', 'description', 'price'];
         foreach ($listPrices as $listPrice) {
-            $csv_headers[]='list_'.$listPrice->list_id;
+            $csv_headers[] = 'list_' . $listPrice->list_id;
         }
         fputcsv($handle, $csv_headers);
 
@@ -49,6 +50,6 @@ class ExportController extends Controller
 
         fclose($handle);
 
-        return response()->download($filename, 'products.csv', $headers);
+        return response()->download($filename, $filename_download, $headers)->deleteFileAfterSend(true);
     }
 }
