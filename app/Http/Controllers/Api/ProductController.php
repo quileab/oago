@@ -24,12 +24,11 @@ class ProductController extends Controller
      */
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
+        $validator = Validator::make($request->all(),
+        [
             'id'=> 'nullable',
             'barcode' => 'nullable|string|max:50',
             'sku' => 'nullable|string|max:50',
-            //'barcode' => 'nullable|string|max:50|unique:products,barcode',
-            //'sku' => 'nullable|string|max:50|unique:products,sku',
             'product_type' => 'nullable|string|max:30',
             'brand' => 'nullable|string|max:30',
             'model' => 'nullable|string|max:130',
@@ -53,7 +52,7 @@ class ProductController extends Controller
             'offer_price' => 'nullable|numeric|min:0',
             'category' => 'nullable|string|max:50',
             'tags' => 'nullable|string|max:50',
-            'image_url' => 'nullable|string|max:250'
+            'image_url' => 'nullable|string|max:250',
         ]);
 
         if ($validator->fails()) {
@@ -76,16 +75,21 @@ class ProductController extends Controller
      */
     public function show(Product $product)
     {
+        // return proper response if product not found
+        if (!$product) {
+            return response()->json(['message' => 'Product not found'], 404);
+        }
         return response()->json($product, 200);
     }
 
     // Actualizar un producto
     public function update(Request $request, Product $product)
     {
-        $validator = Validator::make($request->all(), [
+        $validator = Validator::make($request->all(),
+    [
             'id'=> 'nullable',
-            'barcode' => 'nullable|string|max:50|unique:products,barcode',
-            'sku' => 'nullable|string|max:50|unique:products,sku',
+            'barcode' => 'nullable|string|max:50',
+            'sku' => 'nullable|string|max:50',
             'product_type' => 'nullable|string|max:30',
             'brand' => 'nullable|string|max:30',
             'model' => 'nullable|string|max:130',
@@ -109,8 +113,8 @@ class ProductController extends Controller
             'offer_price' => 'nullable|numeric|min:0',
             'category' => 'nullable|string|max:50',
             'tags' => 'nullable|string|max:50',
-            'image_url' => 'nullable|string|max:250'
-        ]);
+            'image_url' => 'nullable|string|max:250',
+            ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
