@@ -3,37 +3,19 @@
 namespace App\Livewire;
 
 use Livewire\Component;
+use Livewire\WithPagination;
 
 class WebProduct extends Component
 {
-    public $filter=[];
-    public $component_products;
-    public $title="Default Title";
-    public $items = 6;
+    use WithPagination;
+    public $filter = [];
+    //public $component_products;
+    public $title = "Default Title";
+    public $items = 15;
 
     public function mount($filter = [])
     {
         $this->filter = $filter;
-        $user = auth()->user();
-        if (!$user) {
-            $this->component_products = \App\Models\Product::where($this->filter)
-            ->limit($this->items)
-            // exclude products that are not published and description starts with "CONS INT"
-            ->where('published', 1)
-            ->where('description', 'not like', 'CONS INT%')
-            ->where('model', '!=', 'consumo interno')
-
-            // filter when session category is set
-            ->when(session()->has('category'), function ($query) {
-                return $query->where('category', session()->get('category'));
-            })
-            // filter when session search is set
-            ->when(session()->has('search'), function ($query) {
-                return $query->where('description', 'like', '%' . session()->get('search') . '%');
-            })
-            ->get();
-            return;            
-        }
 
         if (session()->has('similar')) {
             $this->filter['model'] = session()->get('similar');
@@ -42,15 +24,17 @@ class WebProduct extends Component
             session()->forget('category');
             session()->forget('search');
         }
+    }
 
-        // Dump the filter and session data
-        $this->component_products=\App\Models\Product::where($this->filter)
+    public function render()
+    {
+        $component_products = \App\Models\Product::where($this->filter)
             ->limit($this->items)
             // exclude products that are not published and description starts with "CONS INT"
             ->where('published', 1)
             ->where('description', 'not like', 'CONS INT%')
             ->where('model', '!=', 'consumo interno')
-            
+
             // filter when session category is set
             ->when(session()->has('category'), function ($query) {
                 return $query->where('category', session()->get('category'));
@@ -59,22 +43,20 @@ class WebProduct extends Component
             ->when(session()->has('search'), function ($query) {
                 return $query->where('description', 'like', '%' . session()->get('search') . '%');
             })
-            ->when($this->filter['similar']??false, function ($query) {
+            ->when($this->filter['similar'] ?? false, function ($query) {
                 return $query->where('model', $this->filter['model']);
             })
-            ->leftJoin('list_prices', function ($join) use ($user) {
-                $join->on('products.id', '=', 'list_prices.product_id')
-                     ->where('list_prices.list_id', $user->list_id); // Asociar precios de la lista del usuario
+            // when user is logged in
+            ->when($user = auth()->user(), function ($query) use ($user) {
+                return $query->leftJoin('list_prices', function ($join) use ($user) {
+                    $join->on('products.id', '=', 'list_prices.product_id')
+                        ->where('list_prices.list_id', $user->list_id); // Asociar precios de la lista del usuario
+                })
+                    // Seleccionar columnas de productos y el precio del usuario
+                    ->select('products.*', 'list_prices.price as user_price');
             })
-            ->select('products.*', 'list_prices.price as user_price') // Seleccionar columnas de productos y el precio del usuario
             ->get();
 
-            //dd($this->products->toSql(), $this->products->getBindings());
-            //dd($user->list_id,$this->products);
-    }
-
-    public function render()
-    {
-        return view('livewire.web-product', ['products' => $this->component_products]);
+        return view('livewire.web-product', ['products' => $component_products, 'title' => $this->title]);
     }
 }

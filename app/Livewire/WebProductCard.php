@@ -16,18 +16,19 @@ class WebProductCard extends Component
     }
     public function render()
     {
-        return view('livewire.web-product-card',['product'=>$this->local_product]);
+        return view('livewire.web-product-card', ['product' => $this->local_product]);
     }
 
-    public function buy($product,$qtty = 1){
+    public function buy($product, $qtty = 1)
+    {
         $qtty = $this->qtty ?? $qtty;
         $this->dispatch('addToCart', $product, $qtty);
-        $this->skipRender();      
+        $this->skipRender();
     }
 
-    public function searchSimilar($product){
+    public function searchSimilar($product)
+    {
         session()->put('similar', $product['model']);
         $this->redirect('/');
     }
-
 }

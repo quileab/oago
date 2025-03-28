@@ -1,6 +1,6 @@
 <div class="fixed bottom-4 right-4 z-50">
     <x-button wire:click="$toggle('showCart')"
-        icon="o-shopping-cart" class="btn-circle btn-warning relative">
+        icon="o-shopping-cart" class="btn-circle btn-primary relative">
         @if (count($cart) > 0)
         <x-badge value="{{ count($cart) }}" class="badge-info absolute -right-2 -top-2" />
         @endif

@@ -58,8 +58,6 @@ Route::get('/ordersuccess', function () {
                     }
                 }
                 return "<pre>".print_r($logs,true)."</pre><hr />";
-                //    return var_dump($maintenance,true);
-        //.Artisan::output();
         });
 
         // using Reports/ExportController -> exportProducts with associated ListPrices

@@ -2,7 +2,7 @@
 
 namespace App\Livewire;
 
-use Illuminate\Support\Facades\Cache;
+//use Illuminate\Support\Facades\Cache;
 use Livewire\Component;
 use Illuminate\Support\Facades\DB;
 use Mary\Traits\Toast;
@@ -16,60 +16,57 @@ class WebSearchFilter extends Component
     public $brand;
     public $search;
     public $showFilters = false;
-    public function mount(){
+    public function mount()
+    {
         // categories take unique values from products category attribute as id and name
         $this->categories = //Cache::remember('categories', 60*60, function () {
             DB::table('products')->select('category')
-                ->where('published', 1)
-                ->where('category', '!=', '')
-                ->distinct()
-                ->orderBy('category')
-                ->get(['id', 'category']);            
+            ->where('published', 1)
+            ->where('category', '!=', '')
+            ->distinct()
+            ->orderBy('category')
+            ->get(['id', 'category']);
         $this->brands = //Cache::remember('brands', 60*60, function () {
             DB::table('products')->select('brand')
-                ->where('published', 1)
-                ->where('brand', '!=', '')
-                ->distinct()
-                ->orderBy('brand')
-                ->get(['id', 'brand']);
-        
+            ->where('published', 1)
+            ->where('brand', '!=', '')
+            ->distinct()
+            ->orderBy('brand')
+            ->get(['id', 'brand']);
+
         //});
 
-        $this->category = session()->get('category');
-        $this->search = session()->get('search');
-        $this->brand = session()->get('brand');
+        $this->category = session()->get('category')?: null;
+        $this->search = session()->get('search')?: null;
+        $this->brand = session()->get('brand')?: null;
     }
     public function render()
     {
         return view('livewire.web-search-filter');
     }
 
-    public function goSearch(){
-        // check if this->category or this->search is set
-        if(!$this->category && !$this->search){
-            return;
-        }
-
-        if($this->category){
+    public function goSearch()
+    {
+        if (!empty($this->category)) {
             session()->put('category', $this->category);
-        }else{
+        } else {
             session()->forget('category');
         }
-        if($this->search){
+        if (!empty($this->brand)) {
+            session()->put('brand', $this->brand);
+        } else {
+            session()->forget('brand');
+        }
+        if (!empty($this->search)) {
             session()->put('search', $this->search);
-        }else{
+        } else {
             session()->forget('search');
         }
         // page reload
-        return redirect()->to('/');
+        // return redirect()->to('/');
+        // replaced by dispatch browser event
+        $this->dispatch('updateProducts');
+        $this->showFilters = false;
     }
-    public function goReset(){
-        session()->forget('category');
-        $this->category = '';
-        session()->forget('search');
-        $this->search = '';
-        $this->info('Se ha limpiado la búsqueda');
-        // page reload
-        return redirect()->to('/');
-    }
+
 }

@@ -1,7 +1,7 @@
 <div class="w-full bg-gray-800 text-gray-100 flex justify-between items-center px-4 py-2">
   <img src="https://oagostini.com.ar/wp-content/uploads/logo1-1-1300x315.png"
     class="w-auto h-16 p-2 mx-3 hidden md:block" />
-  <img src="public/imgs/oago.png" class="w-auto h-16 p-2 mx-3 md:hidden" />
+  <img src="{{ asset('imgs/oago.png') }}" class="w-auto h-16 p-2 mx-3 md:hidden" />
 
   <div>
     <div class="inline-flex items-center gap-x-3">
