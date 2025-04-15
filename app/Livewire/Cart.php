@@ -14,12 +14,11 @@ class Cart extends Component
 {
     use Toast;
     public bool $showCart = false;
-    public $cart = [];
     public $total = 0;
 
-    public function mount() {
+    public function mount()
+    {
         // Inicializar el carrito si ya existe en la sesión
-        $this->cart = Session::get('cart', []);
         $this->calculateTotal();
     }
 
@@ -27,13 +26,13 @@ class Cart extends Component
     public function onAddToCart(array $product, int $quantity = 1): void
     {
         $productId = $product['id'];
-
+        $cart = Session::get('cart', []);
         // If the product is already in the cart, increase the quantity
-        if (isset($this->cart[$productId])) {
-            $this->cart[$productId]['quantity'] += $quantity;
+        if (isset($cart[$productId])) {
+            $cart[$productId]['quantity'] += $quantity;
         } else {
             // If not, add the product to the cart
-            $this->cart[$productId] = [
+            $cart[$productId] = [
                 'product_id' => $product['id'],
                 'name' => $product['description'],
                 'price' => $product['user_price'],
@@ -43,45 +42,55 @@ class Cart extends Component
         }
 
         // Determine if the product is being purchased by bulk
-        $this->cart[$productId]['byBulk'] =
-            $this->cart[$productId]['quantity'] % $product['qtty_package'] == 0;
+        $cart[$productId]['byBulk'] =
+            $cart[$productId]['quantity'] % $product['qtty_package'] == 0;
 
         // Save the cart to the session
-        Session::put('cart', $this->cart);
+        Session::put('cart', $cart);
 
         // Recalculate the total
         $this->calculateTotal();
 
-        $this->info('Agregado al carrito');
+        $this->info('Agregado al carrito', icon: 'o-shopping-cart', position: 'bottom-end', timeout: 1000);
+        // save temporarily the cart to JSON using User-id in storage as filename user_id_cart.json.json
+        $this->jsonCartUpdate();
     }
 
     public function removeFromCart($productId)
     {
-        if (isset($this->cart[$productId])) {
-            unset($this->cart[$productId]);
-            Session::put('cart', $this->cart);
+        // Eliminar el producto del carrito
+        $cart = Session::get('cart', []);
+        if (isset($cart[$productId])) {
+            unset($cart[$productId]);
+            Session::put('cart', $cart);
             $this->calculateTotal();
+            $this->jsonCartUpdate();
         }
     }
 
     public function updateQuantity($productId, $quantity)
     {
-        if (isset($this->cart[$productId])) {
-            $this->cart[$productId]['quantity'] = $quantity;
-            Session::put('cart', $this->cart);
+        // Actualizar la cantidad del producto en el carrito
+        $cart = Session::get('cart', []);
+        if (isset($cart[$productId])) {
+            $cart[$productId]['quantity'] = $quantity;
+            Session::put('cart', $cart);
             $this->calculateTotal();
+            $this->jsonCartUpdate();
         }
     }
 
     public function calculateTotal()
     {
+        // Recalcular el total del carrito
+        $cart = Session::get('cart', []);
         $this->total = 0;
-        foreach ($this->cart as $item) {
+        foreach ($cart as $item) {
             $this->total += $item['price'] * $item['quantity'];
         }
     }
 
-    public function placeOrder($status='pending')
+    public function placeOrder($status = 'pending')
     {
         if (!Auth::check()) {
             return redirect()->route('login');
@@ -101,7 +110,7 @@ class Cart extends Component
                 $order->update(['status' => $status]);
                 $this->info('La orden se ha actualizado');
             }
-        }else{  
+        } else {
             // Crear la orden
             $order = Order::create([
                 'user_id' => Auth::id(),
@@ -119,7 +128,8 @@ class Cart extends Component
         }
 
         // Agregar, modificar o eliminar los productos de la orden 
-        foreach ($this->cart as $item) {
+        $cart = Session::get('cart', []);
+        foreach ($cart as $item) {
             // update or create
             OrderItem::updateOrCreate([
                 'order_id' => $order->id,
@@ -128,31 +138,48 @@ class Cart extends Component
                 'quantity' => $item['quantity'],
                 'price' => $item['price'],
             ]);
-
         }
 
         // Limpiar el carrito
         Session::forget('cart');
         Session::forget('updateOrder');
-        $this->cart = [];
+        $cart = [];
         $this->total = 0;
 
+        // delete JSON cart
+        $this->jsonCartDelete();
         // Redireccionar a una página de éxito
         return redirect()->route('ordersuccess', ['order' => $order->id]);
     }
 
     public function render()
     {
-        return view('livewire.cart');
+        return view('livewire.cart', [
+            'cart' => Session::get('cart', []),
+        ]);
     }
 
-    public function emptyCart() {    
+    public function emptyCart()
+    {
         Session::forget('cart');
         Session::forget('updateOrder');
-        $this->cart = [];
         $this->total = 0;
         $this->showCart = false;
-        $this->info('Carrito vaciado');
+        $this->info('Carrito vacío');
+        $this->jsonCartDelete();
     }
 
+    public function jsonCartUpdate()
+    {
+        // save session cart to json
+        $jsonCart = json_encode(Session::get('cart'));
+        file_put_contents(storage_path('app/private/' . Auth::id() . '_cart.json'), $jsonCart);
+    }
+
+    public function jsonCartDelete()
+    {
+        if (file_exists(storage_path('app/private/' . Auth::id() . '_cart.json'))) {
+            unlink(storage_path('app/private/' . Auth::id() . '_cart.json'));
+        }
+    }
 }

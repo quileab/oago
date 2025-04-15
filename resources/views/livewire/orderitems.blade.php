@@ -20,17 +20,25 @@ new class extends Component {
         // Rearmar el carrito con los items del pedido
         $cartItems = [];
         foreach ($this->items as $item) {
+            // obtener el precio actualizado del producto según el usuario
+            $prod = \App\Models\ListPrice::where('product_id', $item['product_id'])
+                ->where('list_id', auth()->user()->list_id)
+                ->first();
+            // si el producto no tiene precio de lista, usar el precio del pedido
+            $item['price'] = $prod->price ?? $item['price'];
+
+
             $cartItems[$item['product_id']] = [
                 'product_id' => $item['product_id'],
                 'name' => $item['product']['description'],
                 'quantity' => $item['quantity'],
                 'price' => $item['price'],
                 'bulkQuantity' => $item['product']['qtty_package'],
-                'byBulk' => $item['product']['by_bulk']??false,
+                'byBulk' => $item['product']['by_bulk'] ?? false,
             ];
         }
 
-        if($update) {
+        if ($update) {
             // guardar los datos de la orden para actualizarlo luego
             Session::put('updateOrder', $this->order->id);
         }
@@ -56,8 +64,7 @@ new class extends Component {
         <h3 class="text-2xl"><small class="text-primary">Pedido #</small> {{ $order->id }}</h3>
         <h3 class="text-2xl"><small class="text-primary">Estado:</small> {{ $order->status }}</h3>
         <div class="text-right">
-            <x-button @click="$wire.drawer = true" responsive 
-                icon="o-ellipsis-vertical"
+            <x-button @click="$wire.drawer = true" responsive icon="o-ellipsis-vertical"
                 class="btn-ghost btn-circle btn-outline btn-sm" />
         </div>
     </div>
@@ -92,6 +99,8 @@ new class extends Component {
         @if($order->status == 'on-hold')
             <x-button wire:click="loadCart(true)" icon="o-shopping-cart" class="mt-2 btn-primary w-full"
                 label="Retomar Pedido" />
+            <x-alert title="IMPORTANTE" description="Al retomar el pedido, los precios pueden sufrir actualizaciones"
+                icon="o-exclamation-triangle" class="alert-warning" />
             <x-dropdown label="Eliminar" class="btn-error w-full mt-1">
                 <x-menu-item title="Confirmar" wire:click.stop="delete" spinner="delete" icon="o-trash" class="btn-error" />
             </x-dropdown>

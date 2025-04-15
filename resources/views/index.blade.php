@@ -12,19 +12,20 @@
 
 <body class="min-h-screen font-sans antialiased bg-gray-200 text-gray-900">
     <x-web-navbar />
+
     <livewire:cart />
     {{-- // slider --}}
     <livewire:webslider />
-    <livewire:web-search-filter />
+    <div class="sticky top-0 z-10">
+        <livewire:web-search-filter />
+    </div>
     <div class="my-4">
-        @if(session()->has('search') || 
-            session()->has('category') || 
-            session()->has('brand'))
-            <livewire:webproductsmain :filter="['published' => true]" />
-        @else
-            <livewire:web-product title="Productos Destacados" :items=3 :filter="['featured' => true, 'published' => true]" />
-            <livewire:web-product title="Productos" :items=9 :filter="['published' => true]" />
-        @endif
+        {{-- @if(!(session()->has('search') || !session()->has('category') || !session()->has('brand')))
+        <livewire:web-product title="Productos Destacados" :items=3
+            :filter="['featured' => true, 'published' => true]" />
+        @endif --}}
+        {{-- srch{{ session()->has('search') }}cat{{ session()->has('category') }}br{{ session()->has('brand') }} --}}
+        <livewire:webproductsmain :filter="['published' => true]" />
     </div>
     <x-web-footer />
     <x-toast />
@@ -41,13 +42,11 @@
         auto: true,
         autoTime: 4000,
     }
-    // load after document ready
-    document.onreadystatechange = () => {
-        if (document.readyState === "complete") {
-            var slider = createSlider(containerId, options);
-        }
-    };
-
+    // Correct: Using native JavaScript DOMContentLoaded for better performance
+    document.addEventListener('DOMContentLoaded', function () {
+        var slider = createSlider(containerId, options);
+        document.getElementById(containerId).style.height = 'auto';
+    });
 
 </script>
 

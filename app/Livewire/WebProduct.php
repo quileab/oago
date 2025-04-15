@@ -31,21 +31,8 @@ class WebProduct extends Component
         $component_products = \App\Models\Product::where($this->filter)
             ->limit($this->items)
             // exclude products that are not published and description starts with "CONS INT"
-            ->where('published', 1)
             ->where('description', 'not like', 'CONS INT%')
             ->where('model', '!=', 'consumo interno')
-
-            // filter when session category is set
-            ->when(session()->has('category'), function ($query) {
-                return $query->where('category', session()->get('category'));
-            })
-            // filter when session search is set
-            ->when(session()->has('search'), function ($query) {
-                return $query->where('description', 'like', '%' . session()->get('search') . '%');
-            })
-            ->when($this->filter['similar'] ?? false, function ($query) {
-                return $query->where('model', $this->filter['model']);
-            })
             // when user is logged in
             ->when($user = auth()->user(), function ($query) use ($user) {
                 return $query->leftJoin('list_prices', function ($join) use ($user) {

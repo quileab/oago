@@ -28,7 +28,12 @@ class WebProductCard extends Component
 
     public function searchSimilar($product)
     {
+        session()->forget('category');
+        session()->forget('brand');
+        session()->forget('search');
         session()->put('similar', $product['model']);
-        $this->redirect('/');
+
+        $this->dispatch('updateProducts', ['resetPage' => true]);
+        $this->skipRender();
     }
 }

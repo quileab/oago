@@ -15,5 +15,4 @@ class Product extends Model
     {
         return $this->hasMany(ListPrice::class); // Un producto puede tener múltiples precios en diferentes listas
     }
-
 }

@@ -34,7 +34,6 @@ new class extends Component {
         return [
             ['key' => 'id', 'label' => '#', 'class' => 'w-1'],
             ['key' => 'user.fullName', 'label' => 'Name', 'class' => 'w-56'],
-            ['key' => 'total_price', 'label' => 'Total', 'class' => 'w-20 text-right'],
             ['key' => 'order_date', 'label' => 'Fecha', 'class' => 'w-20'],
             ['key' => 'status', 'label' => 'Estado', 'class' => 'w-20'],
         ];
@@ -46,15 +45,17 @@ new class extends Component {
         return Order::with('user')->get()
             ->sortBy([[...array_values($this->sortBy)]])
             ->when(!$isAdmin, function (Collection $collection) {
-                return $collection->where('user_id', Auth::user()->id);                
+                return $collection->where('user_id', Auth::user()->id);
             })
             // search in full name
-            ->when($this->search, function (Collection $collection) {
-                return $collection->filter(function (Order $order) {
-                    return Str::contains(strtolower($order->user->fullName), strtolower($this->search)) || Str::contains($order->id, $this->search);
-                });
-            }
-        );
+            ->when(
+                $this->search,
+                function (Collection $collection) {
+                    return $collection->filter(function (Order $order) {
+                        return Str::contains(strtolower($order->user->fullName), strtolower($this->search)) || Str::contains($order->id, $this->search);
+                    });
+                }
+            );
     }
 
     public function with(): array
@@ -78,9 +79,7 @@ new class extends Component {
     </x-header>
 
     <!-- TABLE  -->
-    <x-table :headers="$headers" :rows="$orders" :sort-by="$sortBy" 
-        link="/order/{id}/edit"
-        :cell-decoration="
+    <x-table :headers="$headers" :rows="$orders" :sort-by="$sortBy" link="/order/{id}/edit" :cell-decoration="
         ['status' =>  [
             'bg-red-500/25' => fn(Order $order) => $order->status === 'cancelled',
             'bg-green-500/25' => fn(Order $order) => $order->status === 'completed',
@@ -92,17 +91,19 @@ new class extends Component {
         ({{ $user->lastname }}), {{ $user->name }}
         @endscope
         @scope('cell_total_price', $order)
-        $ {{ number_format($order->total_price, 2,',', '.') }}
+        $ {{ number_format($order->total_price, 2, ',', '.') }}
         @endscope
 
         @scope('actions', $order)
-        <x-button icon="o-trash" wire:click="delete({{ $order['id'] }})" wire:confirm="Está seguro?" spinner class="btn-ghost btn-sm text-red-500" />
+        <x-button icon="o-trash" wire:click="delete({{ $order['id'] }})" wire:confirm="Está seguro?" spinner
+            class="btn-ghost btn-sm text-red-500" />
         @endscope
     </x-table>
 
     <!-- FILTER DRAWER -->
     <x-drawer wire:model="drawer" title="Filtros" right separator with-close-button class="lg:w-1/3">
-        <x-input placeholder="Buscar..." wire:model.live.debounce="search" icon="o-magnifying-glass" @keydown.enter="$wire.drawer = false" />
+        <x-input placeholder="Buscar..." wire:model.live.debounce="search" icon="o-magnifying-glass"
+            @keydown.enter="$wire.drawer = false" />
 
         <x-slot:actions>
             <x-button label="Reset" icon="o-x-mark" wire:click="clear" spinner />

@@ -37,7 +37,7 @@
 
                 {{-- User --}}
                 @if($user = auth()->user())
-                    <x-list-item :item="$user" value="name" sub-value="email" class="-mx-2 !-mt-4 rounded bg-primary/20">
+                    <x-list-item :item="$user" value="name" sub-value="email" class="-mx-2 !-mt-4 rounded bg-primary/10">
                         <x-slot:actions>
                             <x-button icon="o-power" class="btn-circle btn-ghost btn-xs text-warning" tooltip-left="logoff"
                                 no-wire-navigate link="/logout" />

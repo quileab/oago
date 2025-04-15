@@ -36,9 +36,9 @@ class WebSearchFilter extends Component
 
         //});
 
-        $this->category = session()->get('category')?: null;
-        $this->search = session()->get('search')?: null;
-        $this->brand = session()->get('brand')?: null;
+        $this->category = session()->get('category') ?: null;
+        $this->search = session()->get('search') ?: null;
+        $this->brand = session()->get('brand') ?: null;
     }
     public function render()
     {
@@ -47,26 +47,27 @@ class WebSearchFilter extends Component
 
     public function goSearch()
     {
-        if (!empty($this->category)) {
+        if (strlen($this->category)) {
             session()->put('category', $this->category);
         } else {
             session()->forget('category');
         }
-        if (!empty($this->brand)) {
+        if (strlen($this->brand)) {
             session()->put('brand', $this->brand);
         } else {
             session()->forget('brand');
         }
-        if (!empty($this->search)) {
+        if (strlen($this->search)) {
             session()->put('search', $this->search);
         } else {
             session()->forget('search');
         }
+        session()->forget('similar');
+
         // page reload
         // return redirect()->to('/');
         // replaced by dispatch browser event
-        $this->dispatch('updateProducts');
+        $this->dispatch('updateProducts', ['resetPage' => true]);
         $this->showFilters = false;
     }
-
 }
