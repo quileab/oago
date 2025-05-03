@@ -24,47 +24,51 @@ class ProductController extends Controller
      */
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(),
-        [
-            'id'=> 'nullable',
-            'barcode' => 'nullable|string|max:50',
-            'sku' => 'nullable|string|max:50',
-            'product_type' => 'nullable|string|max:30',
-            'brand' => 'nullable|string|max:30',
-            'model' => 'nullable|string|max:130',
-            'description' => 'required|string|max:100',
-            'description_html' => 'nullable|string|max:250',
-            'published' => 'required|boolean',
-            'featured' => 'required|boolean',
-            'visibility' => 'required|string|max:10',
-            'offer_start' => 'nullable|date',
-            'offer_end' => 'nullable|date',
-            'tax_status' => 'required|string|max:10',
-            'in_stock' => 'required|boolean',
-            'stock' => 'required|integer|min:0',
-            'allow_reservation' => 'required|boolean',
-            'qtty_package' => 'required|integer|min:1',
-            'weight' => 'nullable|numeric|min:0',
-            'lenght' => 'nullable|numeric|min:0',
-            'width' => 'nullable|numeric|min:0',
-            'height' => 'nullable|numeric|min:0',
-            'price' => 'required|numeric|min:0',
-            'offer_price' => 'nullable|numeric|min:0',
-            'category' => 'nullable|string|max:50',
-            'tags' => 'nullable|string|max:50',
-            'image_url' => 'nullable|string|max:250',
-        ]);
+        $validator = Validator::make(
+            $request->all(),
+            [
+                'id' => 'nullable',
+                'barcode' => 'nullable|string|max:50',
+                'sku' => 'nullable|string|max:50',
+                'product_type' => 'nullable|string|max:30',
+                'brand' => 'nullable|string|max:30',
+                'model' => 'nullable|string|max:130',
+                'category' => 'nullable|string|max:50',
+                'description' => 'required|string|max:100',
+                'description_html' => 'nullable|string|max:250',
+                'published' => 'required|boolean',
+                'featured' => 'required|boolean',
+                'visibility' => 'required|string|max:10',
+                'offer_start' => 'nullable|date',
+                'offer_end' => 'nullable|date',
+                'tax_status' => 'required|string|max:10',
+                'in_stock' => 'required|boolean',
+                'stock' => 'required|integer|min:0',
+                'allow_reservation' => 'required|boolean',
+                'qtty_package' => 'required|integer|min:1',
+                'qtty_unit' => 'required|integer|min:1',
+                'by_bulk' => 'boolean',
+                'weight' => 'nullable|numeric|min:0',
+                'lenght' => 'nullable|numeric|min:0',
+                'width' => 'nullable|numeric|min:0',
+                'height' => 'nullable|numeric|min:0',
+                'price' => 'required|numeric|min:0',
+                'offer_price' => 'nullable|numeric|min:0',
+                'tags' => 'nullable|string|max:50',
+                'image_url' => 'nullable|string|max:250',
+            ]
+        );
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
         //check if product exists
-        $product_exists=Product::find($request->id);
-        if($product_exists instanceof Product){
+        $product_exists = Product::find($request->id);
+        if ($product_exists instanceof Product) {
             return $this->update($request, $product_exists);
         }
-        
+
         //create new product
         $product = Product::create($request->all());
         return response()->json($product, 201);
@@ -85,36 +89,40 @@ class ProductController extends Controller
     // Actualizar un producto
     public function update(Request $request, Product $product)
     {
-        $validator = Validator::make($request->all(),
-    [
-            'id'=> 'nullable',
-            'barcode' => 'nullable|string|max:50',
-            'sku' => 'nullable|string|max:50',
-            'product_type' => 'nullable|string|max:30',
-            'brand' => 'nullable|string|max:30',
-            'model' => 'nullable|string|max:130',
-            'description' => 'required|string|max:100',
-            'description_html' => 'nullable|string|max:250',
-            'published' => 'required|boolean',
-            'featured' => 'required|boolean',
-            'visibility' => 'required|string|max:10',
-            'offer_start' => 'nullable|date',
-            'offer_end' => 'nullable|date',
-            'tax_status' => 'required|string|max:10',
-            'in_stock' => 'required|boolean',
-            'stock' => 'required|integer|min:0',
-            'allow_reservation' => 'required|boolean',
-            'qtty_package' => 'required|integer|min:1',
-            'weight' => 'nullable|numeric|min:0',
-            'lenght' => 'nullable|numeric|min:0',
-            'width' => 'nullable|numeric|min:0',
-            'height' => 'nullable|numeric|min:0',
-            'price' => 'required|numeric|min:0',
-            'offer_price' => 'nullable|numeric|min:0',
-            'category' => 'nullable|string|max:50',
-            'tags' => 'nullable|string|max:50',
-            'image_url' => 'nullable|string|max:250',
-            ]);
+        $validator = Validator::make(
+            $request->all(),
+            [
+                'id' => 'nullable',
+                'barcode' => 'nullable|string|max:50',
+                'sku' => 'nullable|string|max:50',
+                'product_type' => 'nullable|string|max:30',
+                'brand' => 'nullable|string|max:30',
+                'model' => 'nullable|string|max:130',
+                'category' => 'nullable|string|max:50',
+                'description' => 'required|string|max:100',
+                'description_html' => 'nullable|string|max:250',
+                'published' => 'required|boolean',
+                'featured' => 'required|boolean',
+                'visibility' => 'required|string|max:10',
+                'offer_start' => 'nullable|date',
+                'offer_end' => 'nullable|date',
+                'tax_status' => 'required|string|max:10',
+                'in_stock' => 'required|boolean',
+                'stock' => 'required|integer|min:0',
+                'allow_reservation' => 'required|boolean',
+                'qtty_package' => 'required|integer|min:1',
+                'qtty_unit' => 'required|integer|min:1',
+                'by_bulk' => 'boolean',
+                'weight' => 'nullable|numeric|min:0',
+                'lenght' => 'nullable|numeric|min:0',
+                'width' => 'nullable|numeric|min:0',
+                'height' => 'nullable|numeric|min:0',
+                'price' => 'required|numeric|min:0',
+                'offer_price' => 'nullable|numeric|min:0',
+                'tags' => 'nullable|string|max:50',
+                'image_url' => 'nullable|string|max:250',
+            ]
+        );
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);

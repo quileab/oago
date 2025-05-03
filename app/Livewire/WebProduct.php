@@ -31,7 +31,7 @@ class WebProduct extends Component
         $component_products = \App\Models\Product::where($this->filter)
             ->limit($this->items)
             // exclude products that are not published and description starts with "CONS INT"
-            ->where('description', 'not like', 'CONS INT%')
+            // ->where('description', 'not like', 'CONS INT%')
             ->where('model', '!=', 'consumo interno')
             // when user is logged in
             ->when($user = auth()->user(), function ($query) use ($user) {

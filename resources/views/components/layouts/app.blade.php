@@ -47,13 +47,12 @@
 
                 @if($user->role == 'admin')
                     <x-menu-item title="Sitio Principal" icon="o-sparkles" link="/" />
-                    <x-menu-sub title="Extras" icon="o-cog-6-tooth" disabled>
-                        <x-menu-item title="Exportar Productos" icon="o-document-duplicate" link="/export/products"
-                            external />
-                        <x-menu-item title="Archives" icon="o-archive-box" link="####" />
-                    </x-menu-sub>
                     <x-menu-item title="Usuarios" icon="o-users" link="/users" />
-                    <x-menu-item title="Productos" icon="s-square-3-stack-3d" link="/products" />
+                    <x-menu-sub title="Productos" icon="o-cube">
+                        <x-menu-item title="Exportar" icon="o-document-duplicate" link="/export/products" external />
+                        <x-menu-item title="Listas de Precios" icon="o-square-3-stack-3d" link="/products" />
+                        <x-menu-item title="Extras Web" icon="s-square-3-stack-3d" link="/products/extras" />
+                    </x-menu-sub>
                 @endif
                 <x-menu-item title="Pedidos" icon="o-clipboard-document-list" link="/orders" />
             </x-menu>

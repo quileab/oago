@@ -52,7 +52,7 @@ new class extends Component {
                 return $query->where(function ($query) use ($search_multiple) {
                     foreach ($search_multiple as $word) {
                         $query->where(
-                            DB::raw('concat(description, " ", model, " ", brand)'),
+                            DB::raw('concat(description, " ", model, " ", brand," ",product_type," ",category)'),
                             'like',
                             '%' . $word . '%'
                         );

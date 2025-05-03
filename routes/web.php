@@ -1,6 +1,7 @@
 <?php
 
 use Livewire\Volt\Volt;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Artisan;
 
@@ -19,7 +20,7 @@ Route::get('/ordersuccess', function () {
 Volt::route('/login', 'login')->name('login');
 
 Route::get('/logout', function () {
-    auth()->logout();
+    Auth::logout();
     request()->session()->invalidate();
     request()->session()->regenerateToken();
     request()->session()->flush();
@@ -30,10 +31,10 @@ Route::middleware('auth')->group(function () {
 
     Volt::route('/orders', 'orders');
     Volt::route('/order/{orderId}/edit', 'orderitems');
-
     Volt::route('/users', 'users.index')->middleware('is_admin');
     Volt::route('/user/{id?}', 'users.crud')->middleware('is_admin');
     Volt::route('/products', 'products.index')->middleware('is_admin');
+    Volt::route('/products/extras', 'products.extras')->middleware('is_admin');
     Volt::route('/product/{id?}', 'products.crud')->middleware('is_admin');
     // Users will be redirected to this route if not logged in
     Volt::route('/register', 'register')->middleware('is_admin');

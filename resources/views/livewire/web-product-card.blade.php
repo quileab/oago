@@ -62,7 +62,7 @@
         </div>
         <div class="p-2 bg-slate-200 grid grid-cols-3 gap-2">
 
-            <input id="qtty-{{ $product->id }}" wire:key="qtty-$product->id" type="number"
+            <input id="qtty-{{ $product->id }}" wire:key="qtty-$product->id" type="number" min="1"
                 class="bg-slate-100 text-black border rounded-md border-gray-900 text-center" wire:model="qtty" / gap-2>
 
             <x-button label="Comprar" icon="o-shopping-cart" class="btn-outline text-orange-600 btn-sm border-2 hover:bg-orange-600 hover:text-white"
