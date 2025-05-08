@@ -46,7 +46,7 @@
                 @endif
 
                 @if($user->role == 'admin')
-                    <x-menu-item title="Sitio Principal" icon="o-sparkles" link="/" />
+                    <x-menu-item title="Sitio Principal" icon="o-sparkles" link="/" no-wire-navigate />
                     <x-menu-item title="Usuarios" icon="o-users" link="/users" />
                     <x-menu-sub title="Productos" icon="o-cube">
                         <x-menu-item title="Exportar" icon="o-document-duplicate" link="/export/products" external />

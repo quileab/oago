@@ -9,6 +9,12 @@
     <script type="text/javascript" src="{{ asset('js/vanilla-slider.min.js') }}"></script>
 </head>
 <!-- Charly -->
+<!-- force page refresh -->
+<script>
+    if (window.history.replaceState) {
+        window.history.replaceState(null, null, window.location.href);
+    }
+</script>
 
 <body class="min-h-screen font-sans antialiased bg-gray-200 text-gray-900">
     <x-web-navbar />
