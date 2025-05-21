@@ -34,6 +34,9 @@
         <livewire:webproductsmain :filter="['published' => true]" />
     </div>
     <x-web-footer />
+    {{-- <p class="bg-gray-200 text-gray-900 h-5">{{ Auth::user() ? Auth::user()->name : 'Nada' }}</p>
+    <p class="bg-gray-200 text-gray-900 h-5">
+        {{ Auth::guard('guest_user') ? Auth::guard('guest_user')->user()->name : 'Nada' }}</p> --}}
     <x-toast />
 </body>
 <script>

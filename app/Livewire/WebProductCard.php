@@ -13,6 +13,7 @@ class WebProductCard extends Component
     public function mount($product)
     {
         $this->local_product = $product;
+        $this->qtty = $product['qtty_package'] ?? 1;
     }
     public function render()
     {
@@ -21,6 +22,7 @@ class WebProductCard extends Component
 
     public function buy($product, $qtty = 1)
     {
+        //dd('buy', $product, $qtty);
         $qtty = $this->qtty ?? $qtty;
         $this->dispatch('addToCart', $product, $qtty);
         $this->skipRender();

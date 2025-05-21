@@ -8,6 +8,7 @@
     <title>{{ isset($title) ? $title . ' - ' . config('app.name') : config('app.name') }}</title>
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <script src="{{ asset('js/tinymce/tinymce.min.js') }}"></script>
 </head>
 
 <body class="min-h-screen font-sans antialiased bg-base-200/50 dark:bg-base-200">
@@ -47,11 +48,16 @@
 
                 @if($user->role == 'admin')
                     <x-menu-item title="Sitio Principal" icon="o-sparkles" link="/" no-wire-navigate />
-                    <x-menu-item title="Usuarios" icon="o-users" link="/users" />
+                    <x-menu-sub title="Usuarios" icon="o-user">
+                        <x-menu-item title="Registrados" icon="s-users" link="/users" />
+                        <x-menu-item title="Invitados" icon="o-users" link="/guests" />
+                    </x-menu-sub>
                     <x-menu-sub title="Productos" icon="o-cube">
-                        <x-menu-item title="Exportar" icon="o-document-duplicate" link="/export/products" external />
+                        <x-menu-item title="Exportar Todo" icon="o-document-duplicate" link="/export/products" external />
+                        <x-menu-item title="Exportar Vista Clientes" icon="o-document-duplicate"
+                            link="/export/customers-products" external />
                         <x-menu-item title="Listas de Precios" icon="o-square-3-stack-3d" link="/products" />
-                        <x-menu-item title="Extras Web" icon="s-square-3-stack-3d" link="/products/extras" />
+                        <x-menu-item title="Atrib. Extras Web" icon="s-square-3-stack-3d" link="/products/extras" />
                     </x-menu-sub>
                 @endif
                 <x-menu-item title="Pedidos" icon="o-clipboard-document-list" link="/orders" />

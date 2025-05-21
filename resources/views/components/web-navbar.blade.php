@@ -13,13 +13,11 @@
         @if(Auth::guest())
       <x-button icon="o-user" class="btn-circle btn-outline ml-1" link="/login" />
     @else
-    <x-dropdown label="{{ Auth::user()->name }}" class="btn-ghost z-55">
-      <x-menu-item title="Ordenes de Compra" icon="o-archive-box" link="/orders" />
-      <x-menu-item title="Option 2" icon="o-trash" />
-      <x-menu-item title="Option 3" icon="o-arrow-path" />
-      <x-button icon="o-arrow-right-start-on-rectangle" label="LOGOUT" link="/logout" class="btn-ghost btn-sm" />
-    </x-dropdown>
-  @endif
+      <x-dropdown label="{{ Auth::user()->name }}" class="btn-ghost z-55">
+        <x-menu-item title="Ordenes de Compra" icon="o-archive-box" link="/orders" />
+        <x-menu-item title="LOGOUT" icon="o-arrow-right-start-on-rectangle" link="/logout" no-wire-navigate />
+      </x-dropdown>
+    @endif
       </div>
     </div>
   </div>

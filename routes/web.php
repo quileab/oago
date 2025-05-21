@@ -33,11 +33,16 @@ Route::middleware('auth')->group(function () {
     Volt::route('/order/{orderId}/edit', 'orderitems');
     Volt::route('/users', 'users.index')->middleware('is_admin');
     Volt::route('/user/{id?}', 'users.crud')->middleware('is_admin');
+    Volt::route('/guests', 'users.guests.index')->middleware('is_admin');
+    Volt::route('/guest/{id?}', 'users.guests.crud')->middleware('is_admin');
     Volt::route('/products', 'products.index')->middleware('is_admin');
     Volt::route('/products/extras', 'products.extras')->middleware('is_admin');
     Volt::route('/product/{id?}', 'products.crud')->middleware('is_admin');
     // Users will be redirected to this route if not logged in
     Volt::route('/register', 'register')->middleware('is_admin');
+
+    Volt::route('/checkout', 'checkout')->name('checkout');
+
     Route::get('/clear/{option?}', function ($option = null) {
         $logs = [];
         // if option is 'prod' then run composer install --optimize-autoloader --no-dev
@@ -74,4 +79,5 @@ Route::middleware('auth')->group(function () {
 
     // using Reports/ExportController -> exportProducts with associated ListPrices
     Route::get('/export/products', [\App\Http\Controllers\Reports\ExportController::class, 'exportProducts'])->middleware('is_admin');
+    Route::get('/export/customers-products', [\App\Http\Controllers\Reports\ExportController::class, 'exportCustomersProducts'])->middleware('is_admin');
 });

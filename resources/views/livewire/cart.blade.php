@@ -32,9 +32,9 @@
                             <td>{{ $item['name'] }}</td>
                             <td class="text-right">${{ number_format($item['price'], 2) }}</td>
                             <td class="px-2 w-[8rem]">
-                                <x-input type="number" min="1"
+                                <x-input type="number" min="{{ $item['bulkQuantity'] }}" step="{{ $item['bulkQuantity'] }}"
                                     wire:change="updateQuantity({{ $item['product_id'] }}, $event.target.value)"
-                                    value="{{ $item['quantity'] }}" class="w-full text-center" />
+                                    value="{{ $item['quantity'] }}" class="input-control w-full text-center" />
                                 @if($item['quantity'] % $item['bulkQuantity'] === 0)
                                     <x-icon name="o-squares-2x2"
                                         label="{{ $item['quantity'] / $item['bulkQuantity']}} x {{ $item['bulkQuantity'] }}" />
@@ -62,11 +62,14 @@
 
             <div class="pt-2 grid grid-cols-3 gap-2">
 
-                <x-button wire:click="placeOrder" label="Confirmar Pedido" icon="o-check" class="btn-success w-full" />
+                {{-- <x-button wire:click="placeOrder" label="Confirmar Pedido" icon="o-check" class="btn-success w-full" />
+                --}}
+                <x-button link="{{ route('checkout') }}" label="Confirmar Pedido" icon="o-check"
+                    class="btn-success w-full" />
                 <x-icon name="o-squares-2x2" label="= Cantidad de Bultos" class="text-warning" />
                 <h3 class="text-2xl"><small class="text-primary">Total:</small> ${{ number_format($total, 2, ',', '.') }}
                 </h3>
-                <x-button wire:click="placeOrder('later')" label="Guardar Carrito" icon="o-shopping-cart"
+                <x-button wire:click="saveCart()" label="Guardar Carrito" icon="o-shopping-cart"
                     class="btn-warning w-full" />
                 <x-dropdown>
                     <x-slot:trigger>

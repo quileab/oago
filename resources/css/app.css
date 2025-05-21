@@ -1,7 +1,10 @@
 @import "tailwindcss";
 
 @plugin "daisyui" {
-    themes: light --default, dark --prefersdark;
+    /* themes: light --default, dark --prefersdark; */
+    /* only dark mode */
+    darktheme: "dark";
+    themes: dark --default;
 }
 
 @source "../../vendor/robsontenorio/mary/src/View/Components/**/*.php";
@@ -25,4 +28,28 @@
 /* Table pagination: for dark mode */
 .mary-table-pagination button {
     @apply bg-base-100;
+}
+
+.html-desc h1 {
+    @apply text-4xl;
+}
+
+.html-desc h2 {
+    @apply text-3xl;
+}
+
+.html-desc h3 {
+    @apply text-2xl;
+}
+
+.html-desc h4 {
+    @apply text-xl;
+}
+
+.html-desc h5 {
+    @apply text-lg;
+}
+
+.html-desc h6 {
+    @apply text-base;
 }

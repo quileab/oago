@@ -33,6 +33,8 @@ new class extends Component {
         ['id' => 2, 'name' => 'remove', 'value' => 'Remover'],
     ];
 
+    public $htmldescription = '';
+
     // Table headers
     public function headers(): array
     {
@@ -115,6 +117,7 @@ new class extends Component {
                     }
                 }
                 $product->tags = implode('|', $tags);
+                $product->description_html = $this->htmldescription;
                 $product->save();
             }
         }
@@ -138,11 +141,17 @@ new class extends Component {
     <!-- TABLE  -->
     <x-table :headers="$headers" :rows="$products" :sort-by="$sortBy" with-pagination selectable
         wire:model.live.debounce="selected">
+        @scope('cell_brand', $product)
+        {{ $product->brand . ' » ' . $product->model . ' » ' . $product->description }}
+        @endscope
         @scope('cell_published', $product)
         {{ $product->published ? 'Si' : 'No' }}
         @endscope
         @scope('cell_featured', $product)
         {{ $product->featured ? 'Si' : 'No' }}
+        @endscope
+        @scope('cell_tags', $product)
+        {{ $product->tags ? str_replace('|', ' ', $product->tags) : 'N/A' }}
         @endscope
     </x-table>
 
@@ -150,13 +159,32 @@ new class extends Component {
     <x-drawer wire:model="drawer" title="Atributos" right separator with-close-button class="lg:w-1/3">
         @if(count($selected))
             <x-form wire:submit="applyPromotions" id="promotion">
-                <div class="grid grid-cols-2 gap-4 items-center">
+                <div>
                     @foreach ($tags_list as $tag)
-                        <span class="w-full text-right">{{ $tag['name'] }}</span>
-                        {{-- <x-checkbox label="{{ $tag['name'] }}" wire:model="tags_list.{{ $loop->index }}.value" /> --}}
-                        <x-group wire:model="tags_list.{{ $loop->index }}.action" :options="$actions" option-value="name"
-                            option-label="value" class="[&:checked]:!btn-primary" />
+                        <div class="flex items-center gap-2">
+                            {{-- <x-checkbox label="{{ $tag['name'] }}" wire:model="tags_list.{{ $loop->index }}.value" /> --}}
+                            <x-group wire:model="tags_list.{{ $loop->index }}.action" :options="$actions" option-value="name"
+                                option-label="value" class="[&:checked]:!btn-primary" />
+                            {{ $tag['name'] }}
+                        </div>
                     @endforeach
+
+                    @php
+                        // Configuración para el editor TinyMCE
+                        $config = [
+                            'license_key' => 'gpl',
+                            'plugins' => 'autoresize link image quickbars', // Añadido 'image' plugin
+                            'statusbar' => false,
+                            'toolbar' => 'undo redo | bold italic underline | forecolor backcolor | h1 h2 h3 h4 h5 h6 | removeformat', // Añadido 'image' a la toolbar
+                            'quickbars_selection_toolbar' => 'bold italic underline',
+                            // Opcional: Configuración para subida de imágenes en TinyMCE (si quieres esa funcionalidad)
+                            // 'images_upload_url' => '/your-image-upload-handler', // Define tu ruta de subida de imágenes
+                            // 'automatic_uploads' => true,
+                            // 'file_picker_types' => 'image',
+                        ];
+                    @endphp
+                    {{-- Editor de contenido --}}
+                    <x-editor wire:model="htmldescription" label="Descripción" :config="$config" />
 
                     <x-slot:actions>
                         <x-button label="Aplicar" icon="o-check" class="btn-primary mr-4" type="submit"

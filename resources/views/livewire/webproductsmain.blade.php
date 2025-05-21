@@ -34,8 +34,8 @@ new class extends Component {
             $this->featured = false;
         }
 
-        $products = \App\Models\Product::where($filter)
-            // ->where('published', 1)
+        $products = \App\Models\Product::where('published', 1)
+            ->where($filter)
             ->where('description', 'not like', 'CONS INT%')
             ->where('model', '!=', 'consumo interno')
 
@@ -73,6 +73,13 @@ new class extends Component {
             })->orderBy('description', 'asc');
         //dump($products->toSql(), $products->getBindings(), $products->get()->take($this->items)->toArray());
         $products = $products->paginate($this->items);
+        // test set qtty to minimum qtty
+        $products->map(function ($product) {
+            $product->qtty = $product->qtty_package;
+            return $product;
+        });
+
+
         //$this->skipMount();
         return $products;
     }
@@ -97,14 +104,14 @@ new class extends Component {
     @endif
     <div wire:ignore.self class="grid grid-cols-1 md:grid-cols-3 gap-8">
         @forelse ($products as $product)
-                <div>
-                    @php
-                        // remove \n from description 
-                        $product->description_html = str_replace('\n', '', $product->description_html);
-                    @endphp
-                    {{-- <livewire:web-product-card :$product wire:key="{{ $product->id }}" /> --}}
-                    <livewire:web-product-card :$product :key="'prod-{{ $product->id }}'.Str::random(16)" />
-                </div>
+            <div>
+                @php
+                    // remove \n from description 
+                    $product->description_html = str_replace('\n', '', $product->description_html);
+                @endphp
+                {{-- <livewire:web-product-card :$product wire:key="{{ $product->id }}" /> --}}
+                <livewire:web-product-card :$product :key="'prod-{{ $product->id }}'.Str::random(16)" />
+            </div>
         @empty
             <h1 class="text-2xl">No existen productos</h1>
         @endforelse

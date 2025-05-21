@@ -27,7 +27,8 @@ new class extends Component {
     {
         // get unique price lists from list_id
         $this->priceLists = Cache::remember('priceLists', 60 * 60, function () {
-            return \App\Models\ListPrice::select('list_id')->distinct()->get(); }) ?? \App\Models\ListPrice::select('list_id')->distinct()->get();
+            return \App\Models\ListPrice::select('list_id')->distinct()->get();
+        }) ?? \App\Models\ListPrice::select('list_id')->distinct()->get();
         // if not set, set first price list
         $this->priceList = $this->priceList ?? $this->priceLists->first()->list_id;
     }
@@ -96,7 +97,7 @@ new class extends Component {
 
 <div>
     <!-- HEADER -->
-    <x-header title="Productos » {{ $priceList }}" separator progress-indicator>
+    <x-header title="Productos » Lista {{ $priceList }}" separator progress-indicator>
         <x-slot:middle class="!justify-end">
             <x-input placeholder="Search..." wire:model.live.debounce="search" clearable icon="o-magnifying-glass" />
         </x-slot:middle>
