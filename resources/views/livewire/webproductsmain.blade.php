@@ -33,7 +33,7 @@ new class extends Component {
         // add published=1 and description not like "CONS INT" to filter
         $filter['published'] = 1;
 
-        if (strlen(session('search') . session('category') . session('brand') . session('similar')) == 0) {
+        if (strlen(session('search') . session('category') . session('brand') . session('similar') . session('tag')) == 0) {
             $filter['featured'] = 1;
             $this->featured = true;
         } else {

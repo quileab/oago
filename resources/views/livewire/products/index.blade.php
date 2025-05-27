@@ -115,7 +115,6 @@ new class extends Component {
         <x-select wire:model="priceList" :options="$priceLists" option-label="list_id" option-value="list_id" />
 
         <x-slot:actions>
-            <x-button label="Cerrar" icon="o-x-mark" class="btn-error" @click="$wire.drawer = false" />
             <x-button label="Aplicar" icon="o-check" class="btn-primary" wire:click="products" spinner />
         </x-slot:actions>
     </x-drawer>

@@ -24,7 +24,6 @@
             @endforeach
         </div>
         <x-slot:actions>
-            <x-button label="CERRAR" icon="o-x-mark" class="btn-error" @click="$wire.showFilters = false" />
             <x-button label="BUSCAR" class="btn-primary" icon="o-magnifying-glass" wire:click="goSearch()" />
         </x-slot:actions>
     </x-drawer>
