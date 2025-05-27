@@ -1,6 +1,6 @@
 <div>
     <x-drawer wire:model="showFilters" title="Filtros" separator with-close-button close-on-escape
-        class="w-8/12 md:w-2/4 top-0 text-white">
+        class="w-8/12 md:w-1/4 top-0 text-white">
         <x-select wire:model="category" placeholder="Categoría" icon="o-clipboard-document-list" :options="$categories"
             option-label="category" option-value="category">
             <x-slot:append>
@@ -18,9 +18,10 @@
             </x-slot:append>
         </x-select>
         <div class="flex flex-wrap gap-2">
-            <x-button label="OFERTAS" icon="o-tag" class="btn-success" />
-            <x-button label="REMATES" icon="o-tag" class="btn-success" />
-            <x-button label="NUEVOS" icon="o-tag" class="btn-success" />
+            @foreach (\App\Models\Product::getTags() as $tag)
+                <x-button label="{{ $tag }}" icon="o-tag" wire:click="addTag('{{ $tag }}')" wire:key="tag-{{ $tag }}"
+                    @class(['btn-success' => $tag != session('tag')]) />
+            @endforeach
         </div>
         <x-slot:actions>
             <x-button label="CERRAR" icon="o-x-mark" class="btn-error" @click="$wire.showFilters = false" />

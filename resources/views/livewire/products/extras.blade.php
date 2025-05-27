@@ -23,10 +23,8 @@ new class extends Component {
     public array $tags_list = [
         ['name' => 'Publicado', 'value' => false, 'action' => 'nothing'],
         ['name' => 'Destacado', 'value' => false, 'action' => 'nothing'],
-        ['name' => 'OFERTA', 'value' => false, 'action' => 'nothing'],
-        ['name' => 'REMATE', 'value' => false, 'action' => 'nothing'],
-        ['name' => 'NUEVOS', 'value' => false, 'action' => 'nothing'],
     ];
+
     public array $actions = [
         ['id' => 0, 'name' => 'nothing', 'value' => 'Nada'],
         ['id' => 1, 'name' => 'apply', 'value' => 'Aplicar'], // Added new action
@@ -34,6 +32,13 @@ new class extends Component {
     ];
 
     public $htmldescription = '';
+
+    public function mount()
+    {
+        foreach (Product::getTags() as $key => $value) {
+            $this->tags_list[] = ['name' => $value, 'value' => false, 'action' => 'nothing'];
+        }
+    }
 
     // Table headers
     public function headers(): array
@@ -106,7 +111,7 @@ new class extends Component {
                     if ($tag['action'] != 'nothing' && $tag['name'] == 'Publicado') {
                         $product->published = $tag['action'] == 'apply' ? true : false;
                     }
-                    if (in_array($tag['name'], ['OFERTA', 'REMATE', 'NUEVOS'])) {
+                    if (in_array($tag['name'], Product::getTags())) {
                         if ($tag['action'] == 'apply' && !in_array($tag['name'], $tags)) {
                             $tags[] = $tag['name'];
                         }
@@ -123,6 +128,7 @@ new class extends Component {
         }
         $this->reset('selected', 'tags_list');
         $this->success('Atributos aplicados 👍');
+        $this->mount();
     }
 
 }; ?>

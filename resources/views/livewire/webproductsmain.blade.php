@@ -18,7 +18,14 @@ new class extends Component {
     {
         $this->info('Actualizando productos', timeout: 1000);
         $params['search'] = session()->get('search') ?: null;
+        // add to search params tags session tag
+        if (session()->has('tag')) {
+            $params['search'] .= ' ' . session()->get('tag');
+        }
+
         $search_multiple = explode(' ', $params['search']);
+        //remove empty values
+        $search_multiple = array_filter($search_multiple);
 
         $params['category'] = session()->get('category') ?: null;
         $params['brand'] = session()->get('brand') ?: null;
@@ -35,6 +42,10 @@ new class extends Component {
         }
 
         $products = \App\Models\Product::where('published', 1)
+            ->where('visibility', '!=', 'hidden')
+            ->when(session()->has('tag'), function ($query) {
+                return $query->where('tags', 'like', '%' . session()->get('tag') . '%');
+            })
             ->where($filter)
             ->where('description', 'not like', 'CONS INT%')
             ->where('model', '!=', 'consumo interno')
@@ -52,7 +63,7 @@ new class extends Component {
                 return $query->where(function ($query) use ($search_multiple) {
                     foreach ($search_multiple as $word) {
                         $query->where(
-                            DB::raw('concat(description, " ", model, " ", brand," ",product_type," ",category)'),
+                            DB::raw('concat(description, " ", model, " ", brand," ",product_type," ",category," ",tags)'),
                             'like',
                             '%' . $word . '%'
                         );

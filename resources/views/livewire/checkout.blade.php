@@ -19,7 +19,6 @@ new class extends Component {
             'name' => 'Transporte OAgostini',
         ],
     ];
-    public $selectedTransportation = null;
 
     public $paymentOptions = [
         [
@@ -74,6 +73,8 @@ new class extends Component {
         if (!Auth::check()) {
             return redirect()->route('login');
         }
+        // remove tags & sanitize data from "information"
+        $this->data['information'] = strip_tags($this->data['information']);
         // TODO: validate data
         \App\Models\Order::placeOrder(shipping: $this->data);
     }
@@ -117,11 +118,11 @@ new class extends Component {
         <x-form wire:submit.prevent="save">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-x-4">
                 <x-select label="Transporte a Utilizar" wire:model.lazy="data.sending_method" :options="$transportation"
-                    icon="o-truck" />
+                    option-value="name" icon="o-truck" class="flex-1" />
                 <x-input label="Datos del Transporte" wire:model="data.transport_detail"
                     icon="o-clipboard-document-list" />
             </div>
-            @if($data['sending_method'] == 3)
+            @if($data['sending_method'] == 'Transporte OAgostini')
                 <x-input label="Dirección de Entrega" wire:model="data.sending_address" icon="o-map-pin" maxlength="100" />
                 <x-input label="Ciudad de Entrega" wire:model="data.sending_city" icon="o-map" maxlength="50" />
             @endif
@@ -131,7 +132,7 @@ new class extends Component {
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-x-4">
                 <x-select label="Forma de Pago" wire:model="data.payment_method" :options="$paymentOptions"
-                    icon="o-currency-dollar" class="flex-1" />
+                    option-value="name" icon="o-currency-dollar" class="flex-1" />
                 <x-input label="Detalles del Pago" wire:model="data.payment_detail" icon="o-document-text"
                     class="flex-1" maxlength="100" />
             </div>

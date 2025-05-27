@@ -16,6 +16,13 @@
         {{-- // if product is featured show description above image --}}
         <div class="p-2 bg-white html-desc">
             <h2 class="text-2xl">{{ $product->brand }}</h2>
+            <div class="w-full">
+                {{-- split tags by | --}}
+                @foreach (array_filter(explode('|', $product->tags)) as $tag)
+                    <x-badge value="{{ $tag }}" class="badge-warning" />
+                @endforeach
+
+            </div>
             <p>{{ $product->description }}</p>
             {!! $product->description_html !!}
         </div>
@@ -46,9 +53,9 @@
                 @endif
             </div>
             <div>
-                <p class="text-xs text-right">Cod. {{ $product->id }}</p>
-                <!-- Stock less than 10 show icon in red, 11 to 100 in yellow, more than 100 in green -->
-                <p class="text-right">
+                <div class="text-xs text-right">Cod. {{ $product->id }}<br>
+                    <!-- Stock less than 10 show icon in red, 11 to 100 in yellow, more than 100 in green -->
+
                     <x-icon name="o-cube" label="{{ $product->qtty_package }} " class="text-gray-600 text-sm h-4" />
                     @if($product->stock < 10)
                         <x-icon name="s-battery-0" label="Stock Bajo" class="text-red-600 text-sm h-4" />
@@ -57,7 +64,7 @@
                     @else
                         <x-icon name="s-battery-100" label="En stock" class="text-green-600 text-sm h-4" />
                     @endif
-                </p>
+                </div>
 
             </div>
         </div>

@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use App\Mail\OrderMail;
 use App\Models\OrderItem;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Session;
 
@@ -59,13 +61,7 @@ class Order extends Model
             $data
         );
 
-        // TODO: Improve this Update, Delete and Create
-        // Remove old items from the order
-        // $items = OrderItem::where('order_id', $orderCreated->id)->get();
-        // foreach ($items as $item) {
-        //     $item->delete();
-        // }
-        // remove items from OrderItem where order_id at once
+        // Remove old items from the order OrderItem where order_id at once
         OrderItem::where('order_id', $orderCreated->id)->delete();
 
         // Add / Update items to the order 
@@ -79,6 +75,10 @@ class Order extends Model
                 'price' => $item['price'],
             ]);
         }
+
+        // Enviar correo de confirmación
+        //Mail::to('' . Auth::user()->email)->send(new OrderMail($orderCreated));
+        Mail::to('gmenaker@oagostini.com.ar')->send(new OrderMail($orderCreated->id));
 
         // Limpiar el carrito
         Session::forget('cart');

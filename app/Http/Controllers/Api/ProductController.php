@@ -8,6 +8,8 @@ use App\Models\Product;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
+use function Pest\Laravel\json;
+
 class ProductController extends Controller
 {
     /**
@@ -160,5 +162,29 @@ class ProductController extends Controller
         }
 
         return response()->json(['message' => 'No se pudo subir la imagen'], 500);
+    }
+
+    public function changeVisibility(Request $request, $product)
+    {
+        $product = Product::find($product);
+        //return response()->json(['message' => json_encode($request)], 200);
+
+        $request->validate([
+            'sku' => 'nullable|string|max:50',
+            'visibility' => 'required|string|in:visible,catalog,hidden',
+        ]);
+
+        // check if product not exists try to find sku
+        if (!$product) {
+            $product = Product::where('sku', $request->sku)->first();
+            if (!$product) {
+                return response()->json(['message' => 'Producto no encontrado'], 404);
+            }
+        }
+
+        $product->visibility = $request->visibility;
+        $product->save();
+
+        return response()->json(['message' => 'Visibilidad actualizada correctamente', 'product' => $product], 200);
     }
 }

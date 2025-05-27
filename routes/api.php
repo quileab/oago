@@ -13,7 +13,7 @@ Route::post('/login', [AuthController::class, 'login']);
 
 // sanctum middleware protected routes
 Route::middleware('auth:sanctum')->group(function () {
-    
+
     //return users list
     Route::get('/users', function (Request $request) {
         //return response()->json($request->user());
@@ -24,17 +24,20 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 // group protected Order routes 
 //Route::middleware('auth:sanctum')->group(function () {
-    // Ruta para obtener el listado de pedidos pendientes
-    Route::get('/orders/pending', [OrderController::class, 'listPendingOrders']);
-    
-    // Ruta para actualizar el estado de un pedido
-    Route::put('/orders/{order}/status', [OrderController::class, 'updateOrderStatus']);
-    
-    // Ruta para actualizar los productos de un pedido
-    Route::put('/orders/{order}/products', [OrderController::class, 'updateOrderProducts']);
+// Ruta para obtener el listado de pedidos pendientes
+Route::get('/orders/pending', [OrderController::class, 'listPendingOrders']);
+
+// Ruta para actualizar el estado de un pedido
+Route::put('/orders/{order}/status', [OrderController::class, 'updateOrderStatus']);
+
+// Ruta para actualizar los productos de un pedido
+Route::put('/orders/{order}/products', [OrderController::class, 'updateOrderProducts']);
 //});
 
 Route::apiResource('products', ProductController::class);
+Route::post('products/{product}/upload-image', [ProductController::class, 'uploadImage']);
+Route::put('products/{product}/visibility', [ProductController::class, 'changeVisibility']);
+
 Route::post('products/{product}/upload-image', [ProductController::class, 'uploadImage']);
 // list-prices resource routes
 Route::get('list-prices', [ListPriceController::class, 'index']);

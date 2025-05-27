@@ -14,6 +14,7 @@ class WebSearchFilter extends Component
     public $category;
     public $brands = [];
     public $brand;
+    public $tag;
     public $search;
     public $showFilters = false;
     public function mount()
@@ -67,6 +68,22 @@ class WebSearchFilter extends Component
         // page reload
         // return redirect()->to('/');
         // replaced by dispatch browser event
+        $this->dispatch('updateProducts', ['resetPage' => true]);
+        $this->showFilters = false;
+    }
+
+    public function addTag($tag)
+    {
+        // if session has tag is the same, remove it
+        if ($this->tag == $tag) {
+            session()->forget('tag');
+            $this->tag = null;
+            $this->dispatch('updateProducts', ['resetPage' => true]);
+            $this->showFilters = false;
+            return;
+        }
+        $this->tag = $tag;
+        session()->put('tag', $this->tag);
         $this->dispatch('updateProducts', ['resetPage' => true]);
         $this->showFilters = false;
     }
