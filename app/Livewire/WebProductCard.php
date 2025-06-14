@@ -20,6 +20,24 @@ class WebProductCard extends Component
         return view('livewire.web-product-card', ['product' => $this->local_product]);
     }
 
+    public function decrementQtty($product, $package = false)
+    {
+        // if package true then set qtty to qtty_package and check stock
+        $qtty = $package ? $product['qtty_package'] : 1;
+        if ($this->qtty > $qtty) {
+            $this->qtty -= $qtty;
+        }
+        $this->skipRender();
+    }
+
+    public function incrementQtty($product, $package = false)
+    {
+        // if package true then set qtty to qtty_package and check stock
+        $qtty = $package ? $product['qtty_package'] : 1;
+        $this->qtty += $qtty;
+        $this->skipRender();
+    }
+
     public function buy($product, $qtty = 1)
     {
         //dd('buy', $product, $qtty);

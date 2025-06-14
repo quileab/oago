@@ -118,4 +118,5 @@ new class extends Component {
             <x-button label="Aplicar" icon="o-check" class="btn-primary" wire:click="products" spinner />
         </x-slot:actions>
     </x-drawer>
+
 </div>

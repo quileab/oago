@@ -16,6 +16,19 @@ new class extends Component {
 
     public function products()
     {
+        // check if everything is empty then show last updated products
+        if (empty(session()->get('search')) && empty(session()->get('category')) && empty(session()->get('brand')) && empty(session()->get('similar')) && empty(session()->get('tag'))) {
+            $this->info('Mostrando productos actualizados recientemente', timeout: 1000);
+            // return ordered byfeatured and last updated
+            $filter = ['published' => 1];
+            return \App\Models\Product::where('visibility', '!=', 'hidden')
+                ->where($filter)
+                ->where('model', '!=', 'consumo interno')
+                ->orderBy('featured', 'desc')
+                ->orderBy('updated_at', 'desc')
+                ->paginate($this->items);
+        }
+
         $this->info('Actualizando productos', timeout: 1000);
         $params['search'] = session()->get('search') ?: null;
         // add to search params tags session tag
@@ -41,13 +54,12 @@ new class extends Component {
             $this->featured = false;
         }
 
-        $products = \App\Models\Product::where('published', 1)
-            ->where('visibility', '!=', 'hidden')
+        $products = \App\Models\Product::where('visibility', '!=', 'hidden')
             ->when(session()->has('tag'), function ($query) {
                 return $query->where('tags', 'like', '%' . session()->get('tag') . '%');
             })
             ->where($filter)
-            ->where('description', 'not like', 'CONS INT%')
+            //->where('description', 'not like', 'CONS INT%')
             ->where('model', '!=', 'consumo interno')
 
             ->when($params['category'] ?? false, function ($query, $param) {
@@ -63,7 +75,7 @@ new class extends Component {
                 return $query->where(function ($query) use ($search_multiple) {
                     foreach ($search_multiple as $word) {
                         $query->where(
-                            DB::raw('concat(description, " ", model, " ", brand," ",product_type," ",category," ",tags)'),
+                            DB::raw('concat(description, " ", model, " ", brand," ",product_type," ",category," ",ifnull(tags,""))'),
                             'like',
                             '%' . $word . '%'
                         );
@@ -82,7 +94,7 @@ new class extends Component {
                     // Seleccionar columnas de productos y el precio del usuario
                     ->select('products.*', 'list_prices.price as user_price');
             })->orderBy('description', 'asc');
-        //dump($products->toSql(), $products->getBindings(), $products->get()->take($this->items)->toArray());
+        // dump($products->toSql(), $products->getBindings(), $products->get()->take(5)->toArray());
         $products = $products->paginate($this->items);
         // test set qtty to minimum qtty
         $products->map(function ($product) {

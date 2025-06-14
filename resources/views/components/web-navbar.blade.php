@@ -11,11 +11,13 @@
 
       <div class="inline-flex items-center">
         @if(Auth::guest())
-      <x-button icon="o-user" class="btn-circle btn-outline ml-1" link="/login" />
+      <x-button label="INGRESAR" icon="o-lock-closed" class="btn btn-ghost ml-1" link="/login" />
+      <span class="opacity-50">|</span>
+      <x-button label="REGISTRARSE" icon="o-check-circle" class="btn btn-ghost ml-1" link="/login" />
     @else
       <x-dropdown label="{{ Auth::user()->name }}" class="btn-ghost z-55">
         <x-menu-item title="Ordenes de Compra" icon="o-archive-box" link="/orders" />
-        <x-menu-item title="LOGOUT" icon="o-arrow-right-start-on-rectangle" link="/logout" no-wire-navigate />
+        <x-menu-item title="SALIR" icon="o-arrow-right-start-on-rectangle" link="/logout" no-wire-navigate />
       </x-dropdown>
     @endif
       </div>

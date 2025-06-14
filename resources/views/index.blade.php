@@ -26,12 +26,14 @@
         <livewire:web-search-filter />
     </div>
     <div class="my-4">
-        {{-- @if(!(session()->has('search') || !session()->has('category') || !session()->has('brand')))
-        <livewire:web-product title="Productos Destacados" :items=3
-            :filter="['featured' => true, 'published' => true]" />
-        @endif --}}
-        {{-- srch{{ session()->has('search') }}cat{{ session()->has('category') }}br{{ session()->has('brand') }} --}}
-        <livewire:webproductsmain :filter="['published' => true]" />
+        @php
+            $prod_id = request()->query('product_id');
+        @endphp
+        @if ($prod_id)
+            <livewire:web-product-detail :prod_id="$prod_id" />
+        @else
+            <livewire:webproductsmain :filter="['published' => true]" />
+        @endif
     </div>
     <x-web-footer />
     {{-- <p class="bg-gray-200 text-gray-900 h-5">{{ Auth::user() ? Auth::user()->name : 'Nada' }}</p>
@@ -40,22 +42,53 @@
     <x-toast />
 </body>
 <script>
-    var containerId = 'slider';
-
-    var options = {
-        transitionTime: 500,
-        transitionZoom: 'in',
-        bullets: true,
-        arrows: true,
-        arrowsHide: true,
-        auto: true,
-        autoTime: 4000,
-    }
     // Correct: Using native JavaScript DOMContentLoaded for better performance
     document.addEventListener('DOMContentLoaded', function () {
+        var containerId = 'slider';
+
+        var options = {
+            transitionTime: 500,
+            transitionZoom: 'in',
+            bullets: true,
+            arrows: true,
+            arrowsHide: true,
+            auto: true,
+            autoTime: 4000,
+        }
         var slider = createSlider(containerId, options);
         document.getElementById(containerId).style.height = 'auto';
+
+        // const animationName = 'animar-rebote';
+        const animationName = 'cart-wiggle-animation';
+        const cartIconEffect = document.getElementById('cart-highlight');
+
+        if (cartIconEffect) {
+            window.addEventListener('cart-updated', () => {
+                cartIconEffect.classList.remove(animationName);
+                void cartIconEffect.offsetWidth; // Forzar reflow
+                cartIconEffect.classList.add(animationName);
+            });
+            cartIconEffect.addEventListener('animationend', () => {
+                cartIconEffect.classList.remove(animationName);
+            });
+        }
     });
+
+    function increaseQuantity(id, qtty) {
+        var inputElement = document.getElementById('qtty-' + id);
+        var currentValue = parseInt(inputElement.value);
+        inputElement.value = currentValue + qtty;
+    }
+    function decreaseQuantity(id, qtty) {
+        var inputElement = document.getElementById('qtty-' + id);
+        var currentValue = parseInt(inputElement.value);
+        // ensure currentValue is a number and greater than qtty
+        if (isNaN(currentValue) || currentValue - qtty < 1) {
+            inputElement.value = 1; // Reset to 1 if current value is less than 1
+            return;
+        }
+        inputElement.value = currentValue - qtty;
+    }
 
 </script>
 

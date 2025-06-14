@@ -38,6 +38,7 @@ Route::middleware('auth')->group(function () {
     Volt::route('/products', 'products.index')->middleware('is_admin');
     Volt::route('/products/extras', 'products.extras')->middleware('is_admin');
     Volt::route('/product/{id?}', 'products.crud')->middleware('is_admin');
+    Volt::route('/product/details/{id?}', 'web-product-detail');
     // Users will be redirected to this route if not logged in
     Volt::route('/register', 'register')->middleware('is_admin');
 

@@ -1,34 +1,58 @@
-<div class="card bg-white shadow-md shadow-slate-400 overflow-hidden">
-    <a href="./?product_id={{ $product->id }}">
-        <div class="grid grid-cols-2">
-            <!-- /public/storage/qb works in production -->
-            <div>
-                {{-- if product is featured show description above image --}}
-                @if($product->featured)
-                    <h2 class="text-xs text-center text-white bg-red-700">
-                        PRODUCTO DESTACADO ⭐
-                    </h2>
-                @endif
-                <img class="h-32 w-auto mx-auto object-cover"
-                    src="{{ env('qb_public_assets_path', '/public/storage/qb') }}/proxyImg.php?url={{ $product->image_url }}"
-                    alt="{{ $product->category }}" />
+<?php
 
-            </div>
-            {{-- // if product is featured show description above image --}}
-            <div class="p-2 bg-white html-desc">
-                <h2 class="text-2xl">{{ $product->brand }}</h2>
-                <div class="w-full">
-                    {{-- split tags by | --}}
-                    @foreach (array_filter(explode('|', $product->tags)) as $tag)
-                        <x-badge value="{{ $tag }}" class="badge-warning" />
-                    @endforeach
+use Livewire\Volt\Component;
+use \App\Models\Product;
 
-                </div>
-                <p>{{ $product->description }}</p>
-                {!! $product->description_html !!}
-            </div>
+new class extends Component {
+    public $product;
+    public $qtty = 1;
+    public $related_products = [];
+
+    public function mount(Product $prod_id)
+    {
+        $this->product = $prod_id;
+        $this->related_products = Product::where([
+            'published' => true,
+            'product_type' => $prod_id->product_type
+        ])
+            ->where('visibility', '!=', 'hidden')
+            ->where('id', '!=', $prod_id->id)
+            // get 6 random products
+            ->inRandomOrder()->limit(6)
+            ->get();
+    }
+}; ?>
+
+<div>
+    <div class="grid grid-cols-2">
+        <!-- /public/storage/qb works in production -->
+        <div>
+            {{-- if product is featured show description above image --}}
+            @if($product->featured)
+                <h2 class="text-xs text-center text-white bg-red-700">
+                    PRODUCTO DESTACADO ⭐
+                </h2>
+            @endif
+            <img class="h-32 w-auto mx-auto object-cover"
+                src="{{ env('qb_public_assets_path', '/public/storage/qb') }}/proxyImg.php?url={{ $product->image_url }}"
+                alt="{{ $product->category }}" />
+
         </div>
-    </a>
+        {{-- // if product is featured show description above image --}}
+        <div class="p-2 bg-white html-desc">
+            <h2 class="text-2xl">{{ $product->brand }}</h2>
+            <div class="w-full">
+                {{-- split tags by | --}}
+                @foreach (array_filter(explode('|', $product->tags)) as $tag)
+                    <x-badge value="{{ $tag }}" class="badge-warning" />
+                @endforeach
+
+            </div>
+            <p>{{ $product->description }}</p>
+            {!! $product->description_html !!}
+        </div>
+    </div>
+
     @if(Auth::guest())
         <div class="p-2 bg-slate-100 text-center text-sm">
             Regístrese para ver precios o realizar compras
@@ -98,12 +122,9 @@
 
 
             <div class="grid grid-cols-2 gap-2">
-                <x-button label="Similares" icon="o-magnifying-glass-circle"
-                    class="btn-outline text-orange-600 border-2 hover:bg-orange-600 hover:text-white"
-                    wire:click="searchSimilar({{$product}})" responsive />
                 <button class="btn btn-outline text-red-600 border-2 hover:bg-red-600 hover:text-white"
                     onclick="Livewire.dispatch('addToCart', {'product': {{ $product }}, 'quantity':
-                                                                                document.getElementById('qtty-{{ $product->id }}').value})">
+                                                                                                                                                document.getElementById('qtty-{{ $product->id }}').value})">
                     <x-icon name="o-shopping-cart" label="AGREGAR" />
                 </button>
             </div>
@@ -112,6 +133,13 @@
         @if(!empty($cart) && isset($cart[$product->id]))
             <x-icon name="o-shopping-cart" label="Producto en el carrito" class="text-success" />
         @endif
+
+        <h1 class="text-2xl font-bold m-4 px-2">Relacionados</h1>
+        <div class="p-4 bg-slate-200 grid grid-cols-3 gap-4">
+            @foreach ($related_products as $product)
+                <livewire:web-product-card :$product />
+            @endforeach
+        </div>
 
     @endif
 </div>

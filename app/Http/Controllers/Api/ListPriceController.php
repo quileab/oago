@@ -80,7 +80,9 @@ class ListPriceController extends Controller
         }
 
         $listPrice->update($request->only(['price', 'unit_price']));
-        return response()->json($listPrice, 200);
+        //return response()->json($listPrice, 200);
+        // just return ok when no errors
+        return response()->json(['message' => 'OK'], 200);
     }
 
     /**

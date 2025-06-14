@@ -28,8 +28,7 @@ class OrderController extends Controller
         $order->update(['status' => $request->status]);
 
         return response()->json([
-            'message' => 'Estado del pedido actualizado con éxito.',
-            'order' => $order
+            'message' => 'Estado del pedido '.$order->id.' => '.$request->status.': OK',
         ], 200);
     }
 

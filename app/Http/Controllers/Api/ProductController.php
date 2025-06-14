@@ -131,7 +131,9 @@ class ProductController extends Controller
         }
 
         $product->update($request->all());
-        return response()->json($product, 200);
+        // return response()->json($product, 200);
+        // just return ok when no errors
+        return response()->json(['message' => 'OK'], 200);
     }
 
     // Eliminar un producto

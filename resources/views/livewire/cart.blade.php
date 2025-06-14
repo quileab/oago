@@ -1,10 +1,15 @@
 <div class="fixed bottom-4 right-4 z-50">
-    <x-button wire:click="$toggle('showCart')" icon="o-shopping-cart"
-        class="btn-xl btn-circle bg-blue-700 relative text-white">
-        @if (count($cart) > 0)
-            <x-badge value="{{ count($cart) }}" class="bg-transparent absolute top-0 border-0" />
-        @endif
-    </x-button>
+    @if (count($cart) > 0)
+        <div id="cartCount" class="z-11 relative text-lg text-white -right-8 top-8">
+            {{ count($cart) }}
+        </div>
+    @endif
+    <div id="cart-highlight" class="cartButton" wire:ignore>
+        {{-- Aquí se activará la animación. Necesitamos un elemento interno para el ping --}}
+        <x-button wire:click="$toggle('showCart')" class="w-18 h-18 btn-circle bg-blue-700 relative z-10">
+            <x-icon name="o-shopping-cart" class="w-10 h-10 mt-3" />
+        </x-button>
+    </div>
 
     <x-drawer wire:model="showCart" class="w-11/12 lg:w-2/3 text-gray-50" right
         title="Compra {{ Session::get('updateOrder') ? 'Actualizando #' . Session::get('updateOrder') : 'Nueva' }}"

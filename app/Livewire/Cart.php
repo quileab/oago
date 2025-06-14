@@ -22,7 +22,7 @@ class Cart extends Component
     }
 
     #[On('addToCart')]
-    public function onAddToCart(array $product, int $quantity = 1): void
+    public function onAddToCart($product, int $quantity = 1): void
     {
         $productId = $product['id'];
         $cart = Session::get('cart', []);
@@ -49,7 +49,9 @@ class Cart extends Component
         $this->calculateTotal();
         // save temporarily the cart to JSON using User-id in storage as filename user_id_cart.json.json
         $this->jsonCartUpdate();
-        $this->info('Agregado', icon: 'o-shopping-cart', position: 'bottom-end', timeout: 1000);
+        //$this->info('Agregado', icon: 'o-shopping-cart', position: 'bottom-end', timeout: 1000);
+        // Informar al usuario que el producto se ha agregado al carrito
+        $this->dispatch('cart-updated');
     }
 
     public function removeFromCart($productId)
