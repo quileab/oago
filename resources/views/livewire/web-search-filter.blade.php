@@ -1,11 +1,12 @@
 {{-- SEARCH BAR START --}}
 <div class="px-3 py-2 text-black bg-gray-400/50 shadow-md backdrop-blur-xs">
     <x-input type="search" placeholder="Buscar" wire:model="search" wire:keydown.enter="goSearch()"
-        class="w-full flex-1 bg-white text-black shadow-sm">
+        class="w-full flex-1 bg-white text-black shadow-sm before:text-black after:text-black" id="search-input">
         <x-slot:append>
             {{-- Add `rounded-s-none` class (RTL support) --}}
+            <x-button wire:click="$set('search', '')" icon="o-x-mark" class="btn-primary rounded-none" />
             <x-button wire:click="goSearch()" label="Buscar" icon="o-magnifying-glass"
-                class="btn-primary rounded-s-none" />
+            class="btn-primary rounded-s-none" />
         </x-slot:append>
     </x-input>
 
@@ -17,16 +18,18 @@
         <x-select wire:model.live="brand" placeholder="Marca" icon="o-clipboard-document-list" class="w-full mb-2"
             :options="$brands" option-label="brand" option-value="brand" class="bg-white text-black shadow-sm">
         </x-select>
-
-        @foreach (\App\Models\Product::getTags() as $tag)
-            <x-button label="{{ $tag }}" icon="o-tag" wire:click="addTag('{{ $tag }}')" wire:key="tag-{{ $tag }}" @class([
-                'btn-outline btn-primary' => $tag != session('tag'),
-                'btn-success' => $tag == session('tag')
-            ]) />
-        @endforeach
-        @if($brand || $category || session()->has('tag'))
-            <x-button label="Limpiar Filtros: {{ $brand }} {{ $category }} {{ session('tag') }}" icon="o-eye-slash"
-                class="btn-primary" wire:click="clearFilters()" />
-        @endif
+        <div>
+            @foreach (\App\Models\Product::getTags() as $tag)
+                <x-button label="{{ $tag }}" icon="o-tag" wire:click="addTag('{{ $tag }}')" wire:key="tag-{{ $tag }}"
+                    @class([
+                        'btn-outline btn-primary' => $tag != session('tag'),
+                        'btn-success' => $tag == session('tag')
+                    ]) />
+            @endforeach
+            @if($brand || $category || session()->has('tag'))
+                <x-button label="Limpiar Filtros: {{ $brand }} {{ $category }} {{ session('tag') }}" icon="o-eye-slash"
+                    class="btn-primary" wire:click="clearFilters()" />
+            @endif
+        </div>
     </div>
 </div>

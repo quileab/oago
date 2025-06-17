@@ -63,8 +63,8 @@ class WebSearchFilter extends Component
             session()->forget('search');
         }
         session()->forget('similar');
-
         $this->dispatch('updateProducts', ['resetPage' => true]);
+        return redirect('/');
     }
 
     public function updatedCategory()
@@ -94,5 +94,6 @@ class WebSearchFilter extends Component
         }
         session()->put('tag', $tag);
         $this->dispatch('updateProducts', ['resetPage' => true]);
+        return redirect('/');
     }
 }

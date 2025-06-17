@@ -31,7 +31,7 @@
                     @foreach ($cart as $item)
                         <tr class="even:bg-slate-100/5 odd:bg-slate-100/10">
                             <td class="text-center">
-                                <img src="{{ env('qb_public_assets_path', '/public/storage/qb') }}/proxyImg.php?url=http://190.183.254.154/regente_img/{{ $item['product_id'] . '.jpg' }}"
+                                <x-image-proxy url="http://190.183.254.154/regente_img/{{ $item['product_id'] . '.jpg' }}"
                                     alt="{{ $item['product_id'] }}" class="w-16 h-16 object-cover" />
                             </td>
                             <td>{{ $item['name'] }}</td>

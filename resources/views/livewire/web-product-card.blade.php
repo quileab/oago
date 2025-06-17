@@ -1,4 +1,4 @@
-<div class="card bg-white shadow-md shadow-slate-400 overflow-hidden">
+<div wire:ignore class="card bg-white shadow-md shadow-slate-400 overflow-hidden" skip="true">
     <a href="./?product_id={{ $product->id }}">
         <div class="grid grid-cols-2">
             <!-- /public/storage/qb works in production -->
@@ -9,9 +9,8 @@
                         PRODUCTO DESTACADO ⭐
                     </h2>
                 @endif
-                <img class="h-32 w-auto mx-auto object-cover"
-                    src="{{ env('qb_public_assets_path', '/public/storage/qb') }}/proxyImg.php?url={{ $product->image_url }}"
-                    alt="{{ $product->category }}" />
+
+                <x-image-proxy url="{{ $product->image_url }}" class="h-32 w-auto mx-auto object-cover" />
 
             </div>
             {{-- // if product is featured show description above image --}}
@@ -103,7 +102,7 @@
                     wire:click="searchSimilar({{$product}})" responsive />
                 <button class="btn btn-outline text-red-600 border-2 hover:bg-red-600 hover:text-white"
                     onclick="Livewire.dispatch('addToCart', {'product': {{ $product }}, 'quantity':
-                                                                                document.getElementById('qtty-{{ $product->id }}').value})">
+                                                                                            document.getElementById('qtty-{{ $product->id }}').value})">
                     <x-icon name="o-shopping-cart" label="AGREGAR" />
                 </button>
             </div>

@@ -4,6 +4,7 @@ use Livewire\Volt\Volt;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Artisan;
+use App\Http\Controllers\ImageProxyController;
 
 // route to web /
 Route::get('/', function () {
@@ -13,6 +14,8 @@ Route::get('/', function () {
 Route::get('/ordersuccess', function () {
     return view('ordersuccess');
 })->name('ordersuccess');
+
+Route::get('/proxy-image', [ImageProxyController::class, 'show'])->name('proxy.image');
 
 // Route::get('/artisan/{command}', function ($command) {
 //     return Artisan::call($command);
