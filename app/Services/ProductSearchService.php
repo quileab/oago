@@ -69,4 +69,48 @@ class ProductSearchService
 
     return $query->orderBy('description', 'asc')->paginate($itemsPerPage);
   }
+
+  public function searchProductById(int $id): ?Product
+  {
+    $query = Product::where('id', $id)
+      ->where('visibility', '!=', 'hidden')
+      ->where('model', '!=', 'consumo interno');
+    if ($user = auth()->user()) {
+      $query->leftJoin('list_prices', function ($join) use ($user) {
+        $join->on('products.id', '=', 'list_prices.product_id')
+          ->where('list_prices.list_id', $user->list_id);
+      })
+        ->select('products.*', 'list_prices.price as user_price');
+    }
+    return $query->first();
+  }
+  public function searchRelatedProduct(Product $product, $limit = 9)
+  {
+    $query = Product::query()
+      ->where('published', true)
+      ->where('product_type', $product->product_type)
+      ->where('visibility', '!=', 'hidden')
+      ->where('id', '!=', $product->id)
+      ->inRandomOrder()
+      ->limit($limit); // aún es builder
+
+    if ($user = auth()->user()) {
+      $query->leftJoin('list_prices', function ($join) use ($user) {
+        $join->on('products.id', '=', 'list_prices.product_id')
+          ->where('list_prices.list_id', $user->list_id);
+      });
+
+      $query->select('products.*', 'list_prices.price as user_price');
+    }
+
+    $products = $query->get();
+
+    // mapear qtty si lo necesitás
+    $products->map(function ($product) {
+      $product->qtty = $product->qtty_package;
+      return $product;
+    });
+
+    return $products;
+  }
 }

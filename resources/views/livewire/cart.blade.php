@@ -39,6 +39,7 @@
                             <td class="px-2 w-[8rem]">
                                 <x-input type="number" min="{{ $item['bulkQuantity'] }}" step="{{ $item['bulkQuantity'] }}"
                                     wire:change="updateQuantity({{ $item['product_id'] }}, $event.target.value)"
+                                    wire:key="cart-{{ $item['product_id'] }}" id="cart-{{ $item['product_id'] }}"
                                     value="{{ $item['quantity'] }}" class="input-control w-full text-center" />
                                 @if($item['quantity'] % $item['bulkQuantity'] === 0)
                                     <x-icon name="o-squares-2x2"

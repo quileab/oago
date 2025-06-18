@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use Livewire\Component;
 use Livewire\WithPagination;
+use App\Services\ProductSearchService;
 
 class WebProduct extends Component
 {
@@ -26,23 +27,17 @@ class WebProduct extends Component
         }
     }
 
-    public function render()
+    public function render(ProductSearchService $productSearch)
     {
-        $component_products = \App\Models\Product::where($this->filter)
-            ->limit($this->items)
-            // exclude products that are not published and description starts with "CONS INT"
-            // ->where('description', 'not like', 'CONS INT%')
-            ->where('model', '!=', 'consumo interno')
-            // when user is logged in
-            ->when($user = auth()->user(), function ($query) use ($user) {
-                return $query->leftJoin('list_prices', function ($join) use ($user) {
-                    $join->on('products.id', '=', 'list_prices.product_id')
-                        ->where('list_prices.list_id', $user->list_id); // Asociar precios de la lista del usuario
-                })
-                    // Seleccionar columnas de productos y el precio del usuario
-                    ->select('products.*', 'list_prices.price as user_price');
-            })
-            ->get();
+        $featured = false;
+        $params = $this->filter;
+
+        if (isset($params['model'])) {
+            $params['similar'] = $params['model'];
+            unset($params['model']);
+        }
+
+        $component_products = $productSearch->searchProducts($params, $this->items, $featured);
 
         return view('livewire.web-product', ['products' => $component_products, 'title' => $this->title]);
     }
