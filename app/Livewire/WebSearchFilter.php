@@ -45,6 +45,13 @@ class WebSearchFilter extends Component
         return view('livewire.web-search-filter');
     }
 
+    public function clearSearch()
+    {
+        $this->search = null;
+        session()->forget('search');
+        $this->dispatch('updateProducts', ['resetPage' => true]);
+        return redirect('/');
+    }
     public function goSearch()
     {
         if (strlen($this->category)) {

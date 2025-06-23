@@ -4,113 +4,113 @@ namespace App\Services;
 
 use App\Models\Product;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class ProductSearchService
 {
-  public function searchProducts(array $params, int $itemsPerPage, bool &$featured): LengthAwarePaginator
+  public function searchProducts(array $params, int $itemsPerPage): Product|LengthAwarePaginator|null
   {
-    $filter['published'] = 1;
-
-    if (empty($params['search']) && empty($params['category']) && empty($params['brand']) && empty($params['similar']) && empty($params['tag'])) {
-      $filter['featured'] = 1;
-      $featured = true;
-      return Product::where('visibility', '!=', 'hidden')
-        ->where($filter)
-        ->where('model', '!=', 'consumo interno')
-        ->orderBy('featured', 'desc')
-        ->orderBy('updated_at', 'desc')
-        ->paginate($itemsPerPage);
-    } else {
-      $featured = false;
-    }
+    $user = Auth::user();
 
     $query = Product::query()
+      ->where('published', 1)
       ->where('visibility', '!=', 'hidden')
-      ->where('model', '!=', 'consumo interno')
-      ->where($filter);
+      ->where('model', '!=', 'consumo interno');
+
+    // 🔍 Buscar por ID
+    if (isset($params['id'])) {
+      $query->where('products.id', $params['id']);
+
+      if ($user) {
+        $this->addUserPriceJoin($query, $user);
+      }
+
+      return $query->first();
+    }
+
+    // ⭐ Mostrar destacados y ultimos productos si no hay filtros
+    if (
+      !isset($params['featured']) &&
+      empty($params['search']) &&
+      empty($params['category']) &&
+      empty($params['brand']) &&
+      empty($params['similar']) &&
+      empty($params['tag'])
+    ) {
+      // last created products and featured products first
+      $query->orderBy('featured', 'desc')
+        ->orderBy('created_at', 'desc');
+    }
+
+    // 🔍 Filtros básicos
+    if (!empty($params['featured'])) {
+      $query->where('featured', 1);
+    }
 
     if (!empty($params['tag'])) {
       $query->where('tags', 'like', '%' . $params['tag'] . '%');
     }
 
-    if (!empty($params['category'])) {
-      $query->where('category', $params['category']);
-    }
-
-    if (!empty($params['brand'])) {
-      $query->where('brand', $params['brand']);
+    foreach (['category', 'brand', 'similar'] as $filter) {
+      if (!empty($params[$filter])) {
+        $query->where($filter === 'similar' ? 'model' : $filter, $params[$filter]);
+      }
     }
 
     if (!empty($params['search'])) {
-      $searchMultiple = array_filter(explode(' ', $params['search']));
-      $query->where(function ($q) use ($searchMultiple) {
-        foreach ($searchMultiple as $word) {
-          $q->where(
-            DB::raw('concat(description, " ", model, " ", brand," ",product_type," ",category," ",ifnull(tags,""))'),
-            'like',
-            '%' . $word . '%'
-          );
+      $terms = array_filter(explode(' ', $params['search']));
+      $query->where(function ($q) use ($terms) {
+        foreach ($terms as $term) {
+          $q->where(DB::raw('concat(description, " ", model, " ", brand, " ", product_type, " ", category, " ", ifnull(tags, ""))'), 'like', "%$term%");
         }
       });
     }
 
-    if (!empty($params['similar'])) {
-      $query->where('model', $params['similar']);
+    // 💰 Agregar precios si hay usuario
+    if ($user) {
+      $this->addUserPriceJoin($query, $user);
     }
 
-    if ($user = auth()->user()) {
-      $query->leftJoin('list_prices', function ($join) use ($user) {
-        $join->on('products.id', '=', 'list_prices.product_id')
-          ->where('list_prices.list_id', $user->list_id);
-      })
-        ->select('products.*', 'list_prices.price as user_price');
-    }
+    // 🧭 Ordenamiento
+    $orderBy = $params['order_by'] ?? 'description';
+    $orderDirection = $params['order_direction'] ?? 'asc';
+    $query->orderBy("products.$orderBy", $orderDirection);
 
-    return $query->orderBy('description', 'asc')->paginate($itemsPerPage);
+    return $itemsPerPage === 1
+      ? $query->first()
+      : $query->paginate($itemsPerPage);
   }
 
-  public function searchProductById(int $id): ?Product
+  public function searchRelatedProducts(Product $product, int $limit = 9)
   {
-    $query = Product::where('id', $id)
-      ->where('visibility', '!=', 'hidden')
-      ->where('model', '!=', 'consumo interno');
-    if ($user = auth()->user()) {
-      $query->leftJoin('list_prices', function ($join) use ($user) {
-        $join->on('products.id', '=', 'list_prices.product_id')
-          ->where('list_prices.list_id', $user->list_id);
-      })
-        ->select('products.*', 'list_prices.price as user_price');
-    }
-    return $query->first();
-  }
-  public function searchRelatedProduct(Product $product, $limit = 9)
-  {
+    $user = Auth::user();
+
     $query = Product::query()
-      ->where('published', true)
+      ->where('published', 1)
       ->where('product_type', $product->product_type)
       ->where('visibility', '!=', 'hidden')
-      ->where('id', '!=', $product->id)
+      ->where('products.id', '!=', $product->id)
       ->inRandomOrder()
-      ->limit($limit); // aún es builder
+      ->limit($limit);
 
-    if ($user = auth()->user()) {
-      $query->leftJoin('list_prices', function ($join) use ($user) {
-        $join->on('products.id', '=', 'list_prices.product_id')
-          ->where('list_prices.list_id', $user->list_id);
-      });
-
-      $query->select('products.*', 'list_prices.price as user_price');
+    if ($user) {
+      $this->addUserPriceJoin($query, $user);
     }
 
-    $products = $query->get();
-
-    // mapear qtty si lo necesitás
-    $products->map(function ($product) {
+    return $query->get()->map(function ($product) {
       $product->qtty = $product->qtty_package;
       return $product;
     });
+  }
 
-    return $products;
+  protected function addUserPriceJoin($query, $user): void
+  {
+    $query->leftJoin('list_prices', function ($join) use ($user) {
+      $join->on('products.id', '=', 'list_prices.product_id')
+        ->where('list_prices.list_id', $user->list_id);
+    });
+
+    $query->select('products.*', 'list_prices.price as user_price');
   }
 }

@@ -2,7 +2,6 @@
 
 use Livewire\Volt\Component;
 use \App\Models\Product;
-use \App\Services\ProductSearchService;
 
 new class extends Component {
     public $product;
@@ -11,12 +10,21 @@ new class extends Component {
 
     public function mount(Product $prod_id)
     {
-        // this->product join list_prices of user
-        $prod_id->load('list_prices');
-        dd($prod_id->list_prices);
-        $this->product = $prod_id;
-        $service = new ProductSearchService();
-        $this->related_products = app(\App\Services\ProductSearchService::class)->searchRelatedProduct($prod_id, 6);
+        // use ProductSearchService to get product
+        $this->product = app(\App\Services\ProductSearchService::class)
+            ->searchProducts(
+                ['id' => $prod_id->id],
+                1
+            );
+
+        // use ProductSearchService to get related products
+        $this->related_products = app(\App\Services\ProductSearchService::class)
+            ->searchRelatedProducts(
+                $this->product,
+                6
+            );
+
+        //dd($this->product, $this->related_products);
 
         //dd($this->related_products->get());
         // Product::where([
@@ -123,7 +131,7 @@ new class extends Component {
                     <div class="grid grid-cols-2 gap-2">
                         <button class="btn btn-outline text-red-600 border-2 hover:bg-red-600 hover:text-white"
                             onclick="Livewire.dispatch('addToCart', {'product': {{ $product }}, 'quantity':
-                                                                                                                                                                                                                                document.getElementById('qtty-{{ $product->id }}').value})">
+                                                                                                                                                                                                                                                                                                                document.getElementById('qtty-{{ $product->id }}').value})">
                             <x-icon name="o-shopping-cart" label="AGREGAR" />
                         </button>
                     </div>
