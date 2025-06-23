@@ -58,11 +58,11 @@ new class extends Component {
 
             </div>
             <h2 class="text-2xl">{{ $product->brand }}</h2>
-            <p>{{ $product->description }}</p>
+            <p class="text-lg">{{ $product->description }}</p>
             {!! $product->description_html !!}
 
             @if(Auth::guest())
-                <div class="p-2 bg-slate-100 text-center text-sm">
+                <div class="py-2 my-4 bg-slate-300 text-center text-sm">
                     Regístrese para ver precios o realizar compras
                 </div>
             @else
@@ -131,7 +131,7 @@ new class extends Component {
                     <div class="grid grid-cols-2 gap-2">
                         <button class="btn btn-outline text-red-600 border-2 hover:bg-red-600 hover:text-white"
                             onclick="Livewire.dispatch('addToCart', {'product': {{ $product }}, 'quantity':
-                                                                                                                                                                                                                                                                                                                document.getElementById('qtty-{{ $product->id }}').value})">
+                                                                                                                                                                                                                                                                                                                            document.getElementById('qtty-{{ $product->id }}').value})">
                             <x-icon name="o-shopping-cart" label="AGREGAR" />
                         </button>
                     </div>

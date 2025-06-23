@@ -130,7 +130,8 @@ new #[Layout('components.layouts.empty')]       // <-- Here is the `empty` layou
 }; ?>
 
 <div class="min-h-screen flex justify-center items-center">
-    <div class="w-3/4 md:w-1/3 mx-auto bg-slate-900/80 backdrop-blur-xl rounded-lg shadow-lg shadow-black/50 p-4">
+    <div data-theme="dark"
+        class="w-3/4 md:w-1/3 mx-auto bg-slate-900/80 backdrop-blur-xl rounded-lg shadow-lg shadow-black/50 p-4">
         <x-tabs wire:model="selectedTab">
             <x-tab name="users-tab" label="Usuarios" icon="o-users">
                 <x-header title="LOGIN" />

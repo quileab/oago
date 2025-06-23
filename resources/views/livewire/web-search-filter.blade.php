@@ -22,7 +22,7 @@
             @foreach (\App\Models\Product::getTags() as $tag)
                 <x-button label="{{ $tag }}" icon="o-tag" wire:click="addTag('{{ $tag }}')" wire:key="tag-{{ $tag }}"
                     @class([
-                        'btn-outline btn-primary' => $tag != session('tag'),
+                        'btn-outline text-primary' => $tag != session('tag'),
                         'btn-success' => $tag == session('tag')
                     ]) />
             @endforeach

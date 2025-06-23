@@ -29,6 +29,11 @@ Route::get('/logout', function () {
     request()->session()->flush();
     return redirect('/');
 });
+
+Route::get('/register', function () {
+    //return "<pre>Registration is disabled. Please contact the administrator.</pre>";
+    return view('registration');
+})->name('register');
 // admin only routes
 Route::middleware('auth')->group(function () {
 
@@ -43,7 +48,7 @@ Route::middleware('auth')->group(function () {
     Volt::route('/product/{id?}', 'products.crud')->middleware('is_admin');
     Volt::route('/product/details/{id?}', 'web-product-detail');
     // Users will be redirected to this route if not logged in
-    Volt::route('/register', 'register')->middleware('is_admin');
+    // Volt::route('/register', 'register')->middleware('is_admin');
 
     Volt::route('/checkout', 'checkout')->name('checkout');
 

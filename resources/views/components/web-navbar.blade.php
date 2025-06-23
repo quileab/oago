@@ -13,7 +13,7 @@
         @if(Auth::guest())
       <x-button label="INGRESAR" icon="o-lock-closed" class="btn btn-ghost ml-1" link="/login" />
       <span class="opacity-50">|</span>
-      <x-button label="REGISTRARSE" icon="o-check-circle" class="btn btn-ghost ml-1" link="/login" />
+      <x-button label="REGISTRARSE" icon="o-check-circle" class="btn btn-ghost ml-1" link="/register" />
     @else
       <x-dropdown label="{{ Auth::user()->name }}" class="btn-ghost z-55">
         <x-menu-item title="Ordenes de Compra" icon="o-archive-box" link="/orders" />
