@@ -10,7 +10,7 @@ use Mary\Traits\Toast;
 new class extends Component {
     use WithPagination, WithoutUrlPagination, Toast;
 
-    public $items = 12;
+    public $items = 30;
     public $featured = false;
 
     // # //[ Inject]

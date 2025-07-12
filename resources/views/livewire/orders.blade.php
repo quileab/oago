@@ -87,6 +87,9 @@ new class extends Component {
             'bg-blue-500/25' => fn(Order $order) => $order->status === 'pending',
             'bg-purple-500/25' => fn(Order $order) => $order->status === 'processing',
         ]]">
+        @scope('cell_status', $order)
+        {{ Order::orderStates($order->status) }}
+        @endscope
         @scope('cell_name', $user)
         ({{ $user->lastname }}), {{ $user->name }}
         @endscope

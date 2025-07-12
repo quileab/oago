@@ -71,6 +71,8 @@ class WebSearchFilter extends Component
         }
         session()->forget('similar');
         $this->dispatch('updateProducts', ['resetPage' => true]);
+        // set session noslider
+        session()->put('noslider', true);
         return redirect('/');
     }
 

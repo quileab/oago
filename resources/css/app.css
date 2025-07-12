@@ -4,7 +4,8 @@
     /* themes: light --default, dark --prefersdark; */
     /* only dark mode */
     darktheme: "dark";
-    themes: dark --default, light --prefersdark;
+    themes: dark --default, light --preferslight;
+    /* themes: dark --default, light --prefersdark; */
 }
 
 @source "../../vendor/robsontenorio/mary/src/View/Components/**/*.php";

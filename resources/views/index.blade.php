@@ -17,11 +17,15 @@
 </script>
 
 <body class="min-h-screen font-sans antialiased bg-gray-200 text-gray-900">
-    <x-web-navbar />
+    <div id="navbar" class="sticky z-20">
+        <x-web-navbar />
+    </div>
 
     <livewire:cart />
     {{-- // slider --}}
-    <livewire:webslider />
+    @if(!session()->has('noslider'))
+        <livewire:webslider />
+    @endif
     <div class="sticky top-0 z-10">
         <livewire:web-search-filter />
     </div>
@@ -42,38 +46,6 @@
     <x-toast />
 </body>
 <script>
-    // Correct: Using native JavaScript DOMContentLoaded for better performance
-    document.addEventListener('DOMContentLoaded', function () {
-        var containerId = 'slider';
-
-        var options = {
-            transitionTime: 500,
-            transitionZoom: 'in',
-            bullets: true,
-            arrows: true,
-            arrowsHide: true,
-            auto: true,
-            autoTime: 4000,
-        }
-        var slider = createSlider(containerId, options);
-        document.getElementById(containerId).style.height = 'auto';
-
-        // const animationName = 'animar-rebote';
-        const animationName = 'cart-wiggle-animation';
-        const cartIconEffect = document.getElementById('cart-highlight');
-
-        if (cartIconEffect) {
-            window.addEventListener('cart-updated', () => {
-                cartIconEffect.classList.remove(animationName);
-                void cartIconEffect.offsetWidth; // Forzar reflow
-                cartIconEffect.classList.add(animationName);
-            });
-            cartIconEffect.addEventListener('animationend', () => {
-                cartIconEffect.classList.remove(animationName);
-            });
-        }
-    });
-
     function increaseQuantity(id, qtty) {
         var inputElement = document.getElementById('qtty-' + id);
         var currentValue = parseInt(inputElement.value);
@@ -89,7 +61,19 @@
         }
         inputElement.value = currentValue - qtty;
     }
-
+    // const animationName = 'animar-rebote';
+    const animationName = "cart-wiggle-animation";
+    const cartIconEffect = document.getElementById("cart-highlight");
+    if (cartIconEffect) {
+        window.addEventListener("cart-updated", () => {
+            cartIconEffect.classList.remove(animationName);
+            void cartIconEffect.offsetWidth; // Forzar reflow
+            cartIconEffect.classList.add(animationName);
+        });
+        cartIconEffect.addEventListener("animationend", () => {
+            cartIconEffect.classList.remove(animationName);
+        });
+    }
 </script>
 
 </html>

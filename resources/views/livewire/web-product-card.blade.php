@@ -10,7 +10,8 @@
                     </h2>
                 @endif
 
-                <x-image-proxy url="{{ $product->image_url }}" class="h-32 w-auto mx-auto object-cover" />
+                <x-image-proxy url="{{ $product->image_url }}"
+                    class="h-32 w-auto mx-auto object-cover {{ $product->stock < 10 ? 'opacity-50' : '' }}" />
 
             </div>
             {{-- // if product is featured show description above image --}}
@@ -75,37 +76,38 @@
                     </small>
                 </p>
             @endif
-            <div class="flex gap-0">
-                <button class="btn bg-red-600 border-2 hover:bg-red-500 hover:text-white grow-1"
-                    onclick="decreaseQuantity({{ $product->id }}, 1)">
-                    -1</button>
-                @if($product->qtty_package > 1)
+            @if($product->stock > 10)
+                <div class="flex gap-0">
                     <button class="btn bg-red-600 border-2 hover:bg-red-500 hover:text-white grow-1"
-                        onclick="decreaseQuantity('{{$product->id}}', {{ $product->qtty_package }})">
-                        -{{ $product->qtty_package }}</button>
-                @endif
-                <input id="qtty-{{ $product->id }}" wire:key="{{ $product->id }}" type="number" wire:model="qtty" min="1"
-                    step="1" class="bg-slate-100 text-black border rounded-md border-gray-900 text-center w-16">
-                <button class="btn bg-red-600 border-2 hover:bg-red-500 hover:text-white grow-1"
-                    onclick="document.getElementById('qtty-{{ $product->id }}').value = parseInt(document.getElementById('qtty-{{ $product->id }}').value)+1">+1</button>
-                @if($product->qtty_package > 1)
+                        onclick="decreaseQuantity({{ $product->id }}, 1)">
+                        -1</button>
+                    @if($product->qtty_package > 1)
+                        <button class="btn bg-red-600 border-2 hover:bg-red-500 hover:text-white grow-1"
+                            onclick="decreaseQuantity('{{$product->id}}', {{ $product->qtty_package }})">
+                            -{{ $product->qtty_package }}</button>
+                    @endif
+                    <input id="qtty-{{ $product->id }}" wire:key="{{ $product->id }}" type="number" wire:model="qtty" min="1"
+                        step="1" class="bg-slate-100 text-black border rounded-md border-gray-900 text-center w-16">
                     <button class="btn bg-red-600 border-2 hover:bg-red-500 hover:text-white grow-1"
-                        onclick="increaseQuantity('{{$product->id}}', {{ $product->qtty_package }})">
-                        +{{ $product->qtty_package }}</button>
-                @endif
-            </div>
-
-
-            <div class="grid grid-cols-2 gap-2">
-                <x-button label="Similares" icon="o-magnifying-glass-circle"
+                        onclick="document.getElementById('qtty-{{ $product->id }}').value = parseInt(document.getElementById('qtty-{{ $product->id }}').value)+1">+1</button>
+                    @if($product->qtty_package > 1)
+                        <button class="btn bg-red-600 border-2 hover:bg-red-500 hover:text-white grow-1"
+                            onclick="increaseQuantity('{{$product->id}}', {{ $product->qtty_package }})">
+                            +{{ $product->qtty_package }}</button>
+                    @endif
+                </div>
+                
+                <div class="grid grid-cols-2 gap-2">
+                    <x-button label="Similares" icon="o-magnifying-glass-circle"
                     class="btn-outline text-orange-600 border-2 hover:bg-orange-600 hover:text-white"
                     wire:click="searchSimilar({{$product}})" responsive />
-                <button class="btn btn-outline text-red-600 border-2 hover:bg-red-600 hover:text-white"
+                    <button class="btn btn-outline text-red-600 border-2 hover:bg-red-600 hover:text-white"
                     onclick="Livewire.dispatch('addToCart', {'product': {{ $product }}, 'quantity':
-                                                                                            document.getElementById('qtty-{{ $product->id }}').value})">
+                                                                                                        document.getElementById('qtty-{{ $product->id }}').value})">
                     <x-icon name="o-shopping-cart" label="AGREGAR" />
                 </button>
             </div>
+            @endif
         </div>
         <!-- if cart has products and product is in cart show cart icon -->
         @if(!empty($cart) && isset($cart[$product->id]))

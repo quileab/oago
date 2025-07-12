@@ -11,8 +11,11 @@ Route::get('/', function () {
     return view('index');
 });
 
-Route::get('/ordersuccess', function () {
-    return view('ordersuccess');
+Route::get('/ordersuccess', function (Illuminate\Http\Request $request) {
+    return view('ordersuccess', [
+        'orderId' => $request->order,
+        'orderStatus' => $request->status
+    ]);
 })->name('ordersuccess');
 
 Route::get('/proxy-image', [ImageProxyController::class, 'show'])->name('proxy.image');
@@ -37,6 +40,8 @@ Route::get('/register', function () {
 // admin only routes
 Route::middleware('auth')->group(function () {
 
+    Volt::route('/user/profile', 'users.profile');
+
     Volt::route('/orders', 'orders');
     Volt::route('/order/{orderId}/edit', 'orderitems');
     Volt::route('/users', 'users.index')->middleware('is_admin');
@@ -47,11 +52,11 @@ Route::middleware('auth')->group(function () {
     Volt::route('/products/extras', 'products.extras')->middleware('is_admin');
     Volt::route('/product/{id?}', 'products.crud')->middleware('is_admin');
     Volt::route('/product/details/{id?}', 'web-product-detail');
+    Volt::route('/slider', 'slider')->middleware('is_admin');
     // Users will be redirected to this route if not logged in
     // Volt::route('/register', 'register')->middleware('is_admin');
 
     Volt::route('/checkout', 'checkout')->name('checkout');
-
     Route::get('/clear/{option?}', function ($option = null) {
         $logs = [];
         // if option is 'prod' then run composer install --optimize-autoloader --no-dev

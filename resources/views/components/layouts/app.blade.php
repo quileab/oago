@@ -40,7 +40,7 @@
                 @if($user = auth()->user())
                     <x-list-item :item="$user" value="name" sub-value="email" class="-mx-2 !-mt-4 rounded bg-primary/10">
                         <x-slot:actions>
-                            <x-button icon="o-power" class="btn-circle btn-ghost btn-xs text-warning" tooltip-left="logoff"
+                            <x-button icon="o-power" class="btn-circle btn-ghost btn-xs text-warning" tooltip-left="SALIR"
                                 no-wire-navigate link="/logout" />
                         </x-slot:actions>
                     </x-list-item>
@@ -55,12 +55,16 @@
                     <x-menu-sub title="Productos" icon="o-cube">
                         <x-menu-item title="Exportar Todo" icon="o-document-duplicate" link="/export/products" external />
                         <x-menu-item title="Exportar Vista Clientes" icon="o-document-duplicate"
-                            link="/export/customers-products" external />
+                        link="/export/customers-products" external />
                         <x-menu-item title="Listas de Precios" icon="o-square-3-stack-3d" link="/products" />
                         <x-menu-item title="Atrib. Extras Web" icon="s-square-3-stack-3d" link="/products/extras" />
                     </x-menu-sub>
+                    <x-menu-sub title="Web" icon="o-paint-brush">
+                        <x-menu-item title="Slider" icon="o-photo" link="/slider" />
+                    </x-menu-sub>
                 @endif
                 <x-menu-item title="Pedidos" icon="o-clipboard-document-list" link="/orders" />
+                <x-menu-item title="Mi Perfil" icon="o-user" link="/user/profile" />
             </x-menu>
         </x-slot:sidebar>
 
@@ -72,6 +76,8 @@
 
     {{-- TOAST area --}}
     <x-toast />
+
+    @stack('scripts')
 </body>
 
 </html>

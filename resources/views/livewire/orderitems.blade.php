@@ -3,7 +3,6 @@
 use Livewire\Volt\Component;
 
 new class extends Component {
-    public bool $drawer = false;
     public $order;
     public $items = [];
 
@@ -60,12 +59,32 @@ new class extends Component {
 }; ?>
 
 <div>
-    <div class="grid grid-cols-3 gap-4">
-        <h3 class="text-2xl"><small class="text-primary">Pedido #</small> {{ $order->id }}</h3>
-        <h3 class="text-2xl"><small class="text-primary">Estado:</small> {{ $order->status }}</h3>
-        <div class="text-right">
-            <x-button @click="$wire.drawer = true" responsive icon="o-ellipsis-vertical"
-                class="btn-ghost btn-circle btn-outline btn-sm" />
+    <div class="grid grid-cols-3 mb-2">
+        <div>
+            <h3 class="text-2xl"><small class="text-primary">Pedido #</small> {{ $order->id }}</h3>
+            <x-button label="Volver" icon="o-arrow-left" class="btn-primary" onclick="window.history.back()" />
+        </div>
+        <h3 class="text-2xl"><small class="text-primary">Estado:</small>
+            {{ \App\Models\Order::orderStates($order->status) }}</h3>
+        <div>
+            @if($order->status == 'on-hold')
+                <x-button wire:click="loadCart(true)" icon="o-shopping-cart" class="btn-primary w-full"
+                    label="Retomar Pedido" />
+                <div class="flex gap-1">
+                    <x-alert title="IMPORTANTE"
+                        description="Al retomar el pedido, los precios pueden sufrir actualizaciones"
+                        icon="o-exclamation-triangle" class="bg-yellow-500/50" />
+                    <x-dropdown label="Eliminar" icon="o-trash" class="btn-error w-full mt-1">
+                        <x-menu-item title="Confirmar" wire:click.stop="delete" spinner="delete" icon="o-trash"
+                            class="bg-error" />
+                    </x-dropdown>
+                </div>
+            @endif
+            @if($order->status == 'pending')
+                <x-button wire:click="loadCart(false)" icon="o-shopping-cart" class="mt-2 btn-primary w-full"
+                    label="Copiar Pedido" />
+            @endif
+
         </div>
     </div>
 
@@ -93,21 +112,4 @@ new class extends Component {
             @endforeach
         </tbody>
     </table>
-
-    <!-- DRAWER -->
-    <x-drawer wire:model="drawer" title="Acciones" right with-close-button class="lg:w-1/3">
-        @if($order->status == 'on-hold')
-            <x-button wire:click="loadCart(true)" icon="o-shopping-cart" class="mt-2 btn-primary w-full"
-                label="Retomar Pedido" />
-            <x-alert title="IMPORTANTE" description="Al retomar el pedido, los precios pueden sufrir actualizaciones"
-                icon="o-exclamation-triangle" class="alert-warning" />
-            <x-dropdown label="Eliminar" class="btn-error w-full mt-1">
-                <x-menu-item title="Confirmar" wire:click.stop="delete" spinner="delete" icon="o-trash" class="btn-error" />
-            </x-dropdown>
-        @endif
-        @if($order->status == 'pending')
-            <x-button wire:click="loadCart(false)" icon="o-shopping-cart" class="mt-2 btn-primary w-full"
-                label="Copiar Pedido" />
-        @endif
-    </x-drawer>
 </div>

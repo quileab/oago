@@ -90,6 +90,22 @@ class Order extends Model
             unlink(storage_path('app/private/' . Auth::id() . '_cart.json'));
         }
         // Redireccionar a una página de éxito
-        return redirect()->route('ordersuccess', ['order' => $orderCreated->id]);
+        return redirect()->route('ordersuccess', ['order' => $orderCreated->id, 'status' => $orderCreated->status]);
+    }
+
+    public static function orderStates($state)
+    {
+        $statuses = [
+            'pending' => 'Pendiente',
+            'on-hold' => 'En espera',
+            'processing' => 'Procesando',
+            'completed' => 'Completado',
+            'cancelled' => 'Cancelado',
+            'refunded' => 'Reembolsado',
+            'failed' => 'Fallido',
+        ];
+
+        //return translation of order status from array
+        return $statuses[$state];
     }
 }
