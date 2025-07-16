@@ -7,7 +7,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="flex flex-col min-h-screen font-sans antialiased bg-gray-200 text-gray-900">
-  <x-web-navbar />
+  <livewire:web-navbar />
 
   <div class="border-2 my-auto py-4 border-green-800 rounded bg-green-500 text-gray-950 text-2xl text-center">
     @if(isset($orderStatus))

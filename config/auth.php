@@ -40,9 +40,9 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
-        'guest_user' => [
+        'guest' => [
             'driver' => 'session',
-            'provider' => 'guest_users',
+            'provider' => 'guests',
         ],
     ],
 
@@ -68,10 +68,11 @@ return [
             'driver' => 'eloquent',
             'model' => env('AUTH_MODEL', App\Models\User::class),
         ],
-        'guest_users' => [
+        'guests' => [
             'driver' => 'eloquent',
-            'model' => env('AUTH_GUEST_MODEL', App\Models\GuestUser::class),
+            'model' => App\Models\GuestUser::class,
         ],
+        
 
         // 'users' => [
         //     'driver' => 'database',

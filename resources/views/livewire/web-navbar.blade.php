@@ -20,6 +20,11 @@
         <x-menu-item title="SALIR" icon="o-arrow-right-start-on-rectangle" link="/logout" no-wire-navigate />
       </x-dropdown>
     @endif
+        @if(Auth::check() && Auth::user()->role == 'guest')
+        @if($trial_days_remaining)
+        <span class="text-sm opacity-50">Dias pendientes: {{ $trial_days_remaining }}</span>
+      @endif
+    @endif
       </div>
     </div>
   </div>

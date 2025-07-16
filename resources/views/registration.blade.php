@@ -10,7 +10,7 @@
 <!-- Charly -->
 
 <body class="min-h-screen font-sans antialiased bg-gray-200 text-gray-900">
-  <x-web-navbar />
+  <livewire:web-navbar />
   <livewire:users.guests.registration />
   <x-web-footer />
 </body>

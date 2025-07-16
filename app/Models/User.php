@@ -26,7 +26,7 @@ class User extends Authenticatable
      *
      * @var array<int, string>
      */
-     protected $hidden = [
+    protected $hidden = [
         'password',
         'remember_token',
     ];
@@ -56,8 +56,8 @@ class User extends Authenticatable
     public function list()
     {
         return $this->belongsTo(ListName::class); // Un usuario pertenece a una lista de precios
-    }   
-    
+    }
+
     public function getProductPrice(Product $product)
     {
         return $this->list->listPrices()->where('product_id', $product->id)->first()->price ?? null;
@@ -69,7 +69,7 @@ class User extends Authenticatable
 
     public function getFullNameAttribute()
     {
-        if($this->lastname && $this->name){
+        if ($this->lastname && $this->name) {
             return $this->lastname . ', ' . $this->name;
         }
 

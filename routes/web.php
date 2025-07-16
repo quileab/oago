@@ -30,6 +30,7 @@ Route::get('/logout', function () {
     request()->session()->invalidate();
     request()->session()->regenerateToken();
     request()->session()->flush();
+    request()->session()->forget('is_guest_login'); // Eliminar la bandera de invitado
     return redirect('/');
 });
 

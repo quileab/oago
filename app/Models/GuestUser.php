@@ -10,4 +10,17 @@ class GuestUser extends Authenticatable
 {
     use Notifiable;
     protected $guarded = ['id', 'created_at', 'updated_at'];
+
+    protected $hidden = [
+        'password',
+    ];
+
+    public function getFullNameAttribute()
+    {
+        if ($this->lastname && $this->name) {
+            return $this->lastname . ', ' . $this->name;
+        }
+
+        return '✨SYS: ' . $this->name;
+    }
 }

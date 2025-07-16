@@ -25,6 +25,7 @@ return new class extends Migration
             $table->foreignId('list_id')->nullable()
                 ->constrained('list_names')
                 ->onDelete('set null');
+            $table->rememberToken();
             $table->timestamps();
         });
     }

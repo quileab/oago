@@ -11,7 +11,12 @@ class ProductSearchService
 {
   public function searchProducts(array $params, int $itemsPerPage): Product|LengthAwarePaginator|null
   {
-    $user = Auth::user();
+    $user = null;
+    if (Auth::guard('web')->check()) {
+        $user = Auth::guard('web')->user();
+    } elseif (Auth::guard('guest')->check()) {
+        $user = Auth::guard('guest')->user();
+    }
 
     $query = Product::query()
       ->where('published', 1)
@@ -84,7 +89,12 @@ class ProductSearchService
 
   public function searchRelatedProducts(Product $product, int $limit = 9)
   {
-    $user = Auth::user();
+    $user = null;
+    if (Auth::guard('web')->check()) {
+        $user = Auth::guard('web')->user();
+    } elseif (Auth::guard('guest')->check()) {
+        $user = Auth::guard('guest')->user();
+    }
 
     $query = Product::query()
       ->where('published', 1)

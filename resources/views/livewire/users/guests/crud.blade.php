@@ -6,15 +6,17 @@ use \App\Models\GuestUser as User;
 
 new class extends Component {
     use Toast;
-    public bool $drawer = false;
     public string $newPassword = '';
     public $data = [];
     public $list_names = [];
+
+    public $createdAtDate = '';
 
     public function mount($id = null)
     {
         if ($id) {
             $this->data = User::findOrFail($id)->toArray();
+            $this->createdAtDate = $this->data['created_at'] ? \Carbon\Carbon::parse($this->data['created_at'])->format('Y-m-d') : null;
         } else {
             $this->data = [
                 'name' => '',
@@ -28,6 +30,7 @@ new class extends Component {
                 'role' => 'customer',
                 'list_id' => 1,
             ];
+            $this->createdAtDate = now()->format('Y-m-d');
         }
         $this->list_names = \App\Models\ListName::all();
     }
@@ -70,7 +73,6 @@ new class extends Component {
         $user->password = Hash::make($this->newPassword);
         $user->save();
         $this->newPassword = '';
-        $this->drawer = false;
         $this->success('Password updated.', position: 'toast-bottom');
     }
 
@@ -80,14 +82,38 @@ new class extends Component {
         $user->delete();
         return redirect('users');
     }
+
+    public function resetDate()
+    {
+        $user = User::find($this->data['id']);
+        $user->created_at = now();
+        $user->save();
+        $this->data['created_at'] = $user->created_at; // Update data array for consistency
+        $this->createdAtDate = $user->created_at->format('Y-m-d'); // Update the displayed date
+        $this->success('Fecha de creación reiniciada.', position: 'toast-bottom');
+    }
+
+    public function sendWelcomeEmail()
+    {
+        $user = User::find($this->data['id']);
+        // update created_at and updated_at timestamps to current time
+        $user->created_at = now();
+        $user->updated_at = $user->created_at;
+        // set user role to 'guest'
+        $user->role = 'guest';
+        // create 8 characters password string with 4 letters and 4 numbers
+        $password = substr(str_shuffle('abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'), 0, 8);
+        // hash password
+        $user->password = Hash::make($password);
+        $user->save();
+        // Assuming you have a default password or a way to generate one
+        Mail::to($user->email)->send(new \App\Mail\GuestUserWelcomeMail($user, $password));
+        $this->success('Correo de bienvenida enviado.', position: 'toast-bottom');
+    }
 }; ?>
 
 <div>
-    <x-card title="Usuario Invitado" shadow separator>
-        <x-slot:menu>
-            <x-button @click="$wire.drawer = true" responsive icon="o-ellipsis-vertical"
-                class="btn-ghost btn-circle btn-outline btn-sm" />
-        </x-slot:menu>
+    <x-card title="Usuario Invitado" shadow separator class="mb-4">
         <x-form wire:submit="save">
             <div class="grid grid-cols-1 gap-2 md:grid-cols-2">
                 <x-input label="Apellido" wire:model="data.lastname" icon="o-user" error-field="data.lastname" />
@@ -117,20 +143,33 @@ new class extends Component {
             </x-slot:actions>
         </x-form>
     </x-card>
-    <!-- DRAWER -->
-    <x-drawer wire:model="drawer" title="Acciones" right with-close-button separator with-close-button close-on-escape
-        class="lg:w-1/3">
-        <x-input inline label="Password" wire:model="newPassword" type="text" icon="o-key" error-field="newPassword">
-            <x-slot:append>
-                <x-button label="Cambiar Clave" icon="o-check" class="btn-primary rounded-s-none"
-                    wire:click="changePassword" spinner="changePassword" />
-            </x-slot:append>
-        </x-input>
-        <x-slot:actions>
-            <x-dropdown label="Eliminar Usuario" class="btn-error w-full mt-1">
+
+    {{-- reset created_at to today --}}
+    <x-card title="Acciones" shadow separator>
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <x-input label="RESET Fecha" type="date" wire:model="createdAtDate">
+                <x-slot:append>
+                    <x-button label="RESET" icon="o-clock" wire:click="resetDate" class="join-item btn-primary" />
+                </x-slot:append>
+            </x-input>
+
+            <x-input label="Password" wire:model="newPassword" type="text" icon="o-key" error-field="newPassword">
+                <x-slot:append>
+                    <x-button label="Cambiar Clave" icon="o-check" class="btn-primary join-item"
+                        wire:click="changePassword" spinner="changePassword" />
+                </x-slot:append>
+            </x-input>
+            <x-dropdown label="Eliminar Usuario" class="btn-error mt-8">
                 <x-menu-item title="Confirmar" wire:click.stop="delete" spinner="delete" icon="o-trash"
-                    class="btn-red-500" />
+                    class="bg-red-500" />
             </x-dropdown>
-        </x-slot:actions>
-    </x-drawer>
+            <div class="flex align-middle justify-between w-full border border-gray-300/50 rounded-md p-2 gap-2">
+                <p>Enviar correo de bienvenida con <br><b>· contraseña autogenerada<br>· rol: invitado<br>· reseteo de
+                        fecha</b>.
+                </p>
+                <x-button label="Enviar" icon="o-envelope" wire:click="sendWelcomeEmail" spinner="sendWelcomeEmail"
+                    class="btn-primary" />
+            </div>
+        </div>
+    </x-card>
 </div>

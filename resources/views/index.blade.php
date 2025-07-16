@@ -18,7 +18,7 @@
 
 <body class="min-h-screen font-sans antialiased bg-gray-200 text-gray-900">
     <div id="navbar" class="sticky z-20">
-        <x-web-navbar />
+        <livewire:web-navbar />
     </div>
 
     <livewire:cart />
