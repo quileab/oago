@@ -5,7 +5,7 @@
             <div>
                 {{-- if product is featured show description above image --}}
                 @if($product->featured)
-                    <h2 class="text-xs text-center text-white bg-red-700">
+                    <h2 class="text-xs text-center text-white bg-red-700 rounded-br-lg">
                         PRODUCTO DESTACADO ⭐
                     </h2>
                 @endif
@@ -16,7 +16,7 @@
             </div>
             {{-- // if product is featured show description above image --}}
             <div class="p-2 bg-white html-desc">
-                <h2 class="text-2xl">{{ $product->brand }}</h2>
+                {{-- <h2 class="text-2xl">{{ $product->brand }}</h2> --}}
                 <div class="w-full">
                     {{-- split tags by | --}}
                     @foreach (array_filter(explode('|', $product->tags)) as $tag)
@@ -24,7 +24,9 @@
                     @endforeach
 
                 </div>
-                <p>{{ $product->description }}</p>
+                <p class="text-lg font-bold">{{ $product->description }}
+                    <span class="text-sm font-normal text-gray-800">({{ $product->brand }})</span>
+                </p>
                 {!! $product->description_html !!}
             </div>
         </div>
@@ -103,7 +105,7 @@
                         wire:click="searchSimilar({{$product}})" responsive />
                     <button class="btn btn-outline text-red-600 border-2 hover:bg-red-600 hover:text-white"
                         onclick="Livewire.dispatch('addToCart', {'product': {{ $product }}, 'quantity':
-                                                                                                                                        document.getElementById('qtty-{{ $product->id }}').value})">
+                                                                                                                                                                                                                document.getElementById('qtty-{{ $product->id }}').value})">
                         <x-icon name="o-shopping-cart" label="AGREGAR" />
                     </button>
                 </div>

@@ -6,8 +6,8 @@
   <div>
     <div class="inline-flex items-center">
       <a href="/" class="hover:bg-gray-400 hover:text-black transition-all duration-300 p-4">Inicio</a>
-      <a href="#" class="hover:bg-gray-400 hover:text-black transition-all duration-300 p-4">Nosotros</a>
-      <a href="#" class="hover:bg-gray-400 hover:text-black transition-all duration-300 p-4">Contactos</a>
+      <a href="/about" class="hover:bg-gray-400 hover:text-black transition-all duration-300 p-4">Nosotros</a>
+      <a href="/contact" class="hover:bg-gray-400 hover:text-black transition-all duration-300 p-4">Contactos</a>
 
       <div class="inline-flex items-center">
         @if(Auth::guest())

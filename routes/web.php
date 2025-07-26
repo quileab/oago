@@ -24,6 +24,8 @@ Route::get('/proxy-image', [ImageProxyController::class, 'show'])->name('proxy.i
 //     return Artisan::call($command);
 // });
 Volt::route('/login', 'login')->name('login');
+Volt::route('/about', 'about')->name('about');
+Volt::route('/contact', 'contact')->name('contact');
 
 Route::get('/logout', function () {
     Auth::logout();
@@ -43,7 +45,7 @@ Route::middleware('auth')->group(function () {
 
     Volt::route('/user/profile', 'users.profile');
 
-    Volt::route('/orders', 'orders');
+    Volt::route('/orders', 'orders')->middleware('is_role:admin,customer');
     Volt::route('/order/{orderId}/edit', 'orderitems');
     Volt::route('/users', 'users.index')->middleware('is_admin');
     Volt::route('/user/{id?}', 'users.crud')->middleware('is_admin');

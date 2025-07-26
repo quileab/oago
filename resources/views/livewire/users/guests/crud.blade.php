@@ -80,7 +80,7 @@ new class extends Component {
     {
         $user = User::findOrFail($this->data['id']);
         $user->delete();
-        return redirect('users');
+        return redirect('guests');
     }
 
     public function resetDate()

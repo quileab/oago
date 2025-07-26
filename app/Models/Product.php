@@ -16,11 +16,14 @@ class Product extends Model
         return $this->hasMany(ListPrice::class); // Un producto puede tener múltiples precios en diferentes listas
     }
 
-    public static function getTags(){
+    public static function getTags()
+    {
         return [
             'NUEVO',
             'OFERTA',
             'REMATE',
+            'IMPORTADOS',
+            'REPRESENTACIONES'
         ];
     }
 }

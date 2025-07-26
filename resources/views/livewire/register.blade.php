@@ -5,24 +5,24 @@ use Livewire\Attributes\Rule;
 use Livewire\Attributes\Title;
 use Livewire\Volt\Component;
 use Illuminate\Support\Facades\Hash;
- 
+
 new
-#[Layout('components.layouts.empty')]       // <-- The same `empty` layout
-#[Title('Login')]
-class extends Component {
- 
+    #[Layout('components.layouts.empty')]       // <-- The same `empty` layout
+    #[Title('Registrarse')]
+    class extends Component {
+
     #[Rule('required')]
     public string $name = '';
- 
+
     #[Rule('required|email|unique:users')]
     public string $email = '';
- 
+
     #[Rule('required|confirmed')]
     public string $password = '';
- 
+
     #[Rule('required')]
     public string $password_confirmation = '';
- 
+
     public function mount()
     {
         // It is logged in
@@ -30,21 +30,21 @@ class extends Component {
             return redirect('/');
         }
     }
- 
+
     public function register()
     {
         $data = $this->validate();
- 
+
         $data['avatar'] = '/empty-user.jpg';
         $data['password'] = Hash::make($data['password']);
- 
+
         $user = User::create($data);
         $token = $user->createToken('auth_token')->plainTextToken;
- 
+
         auth()->login($user);
- 
+
         request()->session()->regenerate();
- 
+
         return redirect('/');
     }
 }; ?>
@@ -60,7 +60,7 @@ class extends Component {
         <x-input label="E-mail" wire:model="email" icon="o-envelope" inline />
         <x-input label="Password" wire:model="password" type="password" icon="o-key" inline />
         <x-input label="Confirm Password" wire:model="password_confirmation" type="password" icon="o-key" inline />
- 
+
         <x-slot:actions>
             <x-button label="Login" class="btn-ghost" link="/login" />
             <x-button label="Register" type="submit" icon="o-paper-airplane" class="btn-primary" spinner="register" />

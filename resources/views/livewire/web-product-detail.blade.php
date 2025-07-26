@@ -21,21 +21,9 @@ new class extends Component {
         $this->related_products = app(\App\Services\ProductSearchService::class)
             ->searchRelatedProducts(
                 $this->product,
-                6
+                30
             );
 
-        //dd($this->product, $this->related_products);
-
-        //dd($this->related_products->get());
-        // Product::where([
-        //     'published' => true,
-        //     'product_type' => $prod_id->product_type
-        // ])
-        //     ->where('visibility', '!=', 'hidden')
-        //     ->where('id', '!=', $prod_id->id)
-        //     // get 6 random products
-        //     ->inRandomOrder()->limit(6)
-        //     ->get();
     }
 }; ?>
 
@@ -131,7 +119,7 @@ new class extends Component {
                     <div class="grid grid-cols-2 gap-2">
                         <button class="btn btn-outline text-red-600 border-2 hover:bg-red-600 hover:text-white"
                             onclick="Livewire.dispatch('addToCart', {'product': {{ $product }}, 'quantity':
-                                                                                                                                                                                                                                                                                                                            document.getElementById('qtty-{{ $product->id }}').value})">
+                                                                                                                                                                                                                                                                                                                                document.getElementById('qtty-{{ $product->id }}').value})">
                             <x-icon name="o-shopping-cart" label="AGREGAR" />
                         </button>
                     </div>
