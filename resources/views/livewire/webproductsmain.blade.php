@@ -50,6 +50,11 @@ new class extends Component {
         }
         return ['products' => $this->products()];
     }
+
+    public function loadMore()
+    {
+        $this->items += 15;
+    }
 }; ?>
 
 <div class="mx-5 z-10 bg-gray-200">
@@ -72,7 +77,12 @@ new class extends Component {
             <h1 class="text-2xl">No existen productos</h1>
         @endforelse
     </div>
-    <div class="block justify-center w-full mt-2">
-        {{ $products->links(data: ['scrollTo' => true]) }}
-    </div>
+
+    @if (count($products) >= $items)
+        <div x-data x-intersect.full="$wire.loadMore()">
+            <div wire:loading wire:target="loadMore" class="text-center w-full p-4">
+                <p>Cargando más productos...</p>
+            </div>
+        </div>
+    @endif
 </div>

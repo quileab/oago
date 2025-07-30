@@ -23,12 +23,12 @@
                 <x-button label="{{ $tag }}" icon="o-tag" wire:click="addTag('{{ $tag }}')" wire:key="tag-{{ $tag }}"
                     @class([
                         'btn-outline text-primary' => $tag != session('tag'),
-                        'btn-success' => $tag == session('tag')
+                        'btn-success' => $tag == session('tag'),
+                        'hover:bg-primary hover:text-white' => $tag != session('tag'),
                     ]) />
             @endforeach
             @if($brand || $category || session()->has('tag'))
-                <x-button label="Limpiar Filtros: {{ $brand }} {{ $category }} {{ session('tag') }}" icon="o-eye-slash"
-                    class="btn-primary" wire:click="clearFilters()" />
+                <x-button label="Limpiar Filtros" icon="o-eye-slash" class="btn-primary" wire:click="clearFilters()" />
             @endif
         </div>
     </div>

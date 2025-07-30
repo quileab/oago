@@ -95,6 +95,11 @@ class WebSearchFilter extends Component
 
     public function addTag($tag)
     {
+        // clear other filters
+        session()->forget('search');
+        session()->forget('category');
+        session()->forget('brand');
+
         // if session has tag is the same, remove it
         if (session()->has('tag') && session('tag') == $tag) {
             session()->forget('tag');
