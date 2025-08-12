@@ -12,7 +12,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        $middleware->alias([ 
+        $middleware->api(prepend: [
+            \Illuminate\Session\Middleware\StartSession::class,
+        ]);
+
+        $middleware->alias([
             'is_admin' => \App\Http\Middleware\IsAdminMiddleware::class,
             'is_role' => \App\Http\Middleware\IsRoleMiddleware::class,
         ]);

@@ -105,7 +105,7 @@
                         wire:click="searchSimilar({{$product}})" responsive />
                     <button class="btn btn-outline text-red-600 border-2 hover:bg-red-600 hover:text-white"
                         onclick="Livewire.dispatch('addToCart', {'product': {{ $product }}, 'quantity':
-                                                                                                                                                                                                                document.getElementById('qtty-{{ $product->id }}').value})">
+                                                                                                                                                                                                                        document.getElementById('qtty-{{ $product->id }}').value})">
                         <x-icon name="o-shopping-cart" label="AGREGAR" />
                     </button>
                 </div>

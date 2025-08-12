@@ -24,6 +24,11 @@ class Cart extends Component
     #[On('addToCart')]
     public function onAddToCart($product, int $quantity = 1): void
     {
+        //if auth user role is guest or nor logged return
+        if (Auth::guest() || Auth::user()->role === 'guest') {
+            return;
+        }
+
         $productId = $product['id'];
         $cart = Session::get('cart', []);
         // If the product is already in the cart, increase the quantity

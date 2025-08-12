@@ -1,6 +1,6 @@
 {{-- SEARCH BAR START --}}
-<div class="px-3 py-2 text-black bg-gray-400/50 shadow-md backdrop-blur-lg">
-    <x-input type="search" placeholder="Buscar" wire:model.live.debounce.250ms="search" wire:keydown.enter="goSearch()"
+<div class="sticky top-0 z-10 px-3 py-2 text-black bg-gray-400/50 shadow-md backdrop-blur-lg">
+    <x-input type="search" placeholder="Buscar" wire:model="search" wire:keydown.enter="goSearch()"
         class="w-full flex-1 bg-white text-black shadow-sm before:text-black after:text-black" id="search-input">
         <x-slot:append>
             {{-- Add `rounded-s-none` class (RTL support) --}}

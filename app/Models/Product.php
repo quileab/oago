@@ -23,7 +23,6 @@ class Product extends Model
             'OFERTA',
             'REMATE',
             'IMPORTADOS',
-            'REPRESENTACIONES'
         ];
     }
 }

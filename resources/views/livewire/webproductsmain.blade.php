@@ -63,7 +63,7 @@ new class extends Component {
     @else
         <h2 class="text-3xl font-bold my-4">Productos</h2>
     @endif
-    <div wire:ignore.self class="grid grid-cols-1 md:grid-cols-3 gap-8">
+    <div wire:ignore.self class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         @forelse ($products as $product)
             <div>
                 @php

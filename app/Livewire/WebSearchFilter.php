@@ -78,10 +78,14 @@ class WebSearchFilter extends Component
 
     public function updatedCategory()
     {
+        $this->search = null;
+        $this->brand = null;
         $this->goSearch();
     }
     public function updatedBrand()
     {
+        $this->search = null;
+        $this->category = null;
         $this->goSearch();
     }
 

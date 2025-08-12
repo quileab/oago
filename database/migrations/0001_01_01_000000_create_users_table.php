@@ -13,16 +13,16 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
-            $table->string('name',30);
-            $table->string('lastname',30);
-            $table->string('address',50);
-            $table->string('city',30);
-            $table->string('postal_code',10);
-            $table->string('phone',50);
+            $table->string('name', 30);
+            $table->string('lastname', 30);
+            $table->string('address', 100);
+            $table->string('city', 30);
+            $table->string('postal_code', 10);
+            $table->string('phone', 50);
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
-            $table->string('role',8)->default('none');
+            $table->string('role', 8)->default('none');
             // Cambiamos el tipo de 'list_id' a un campo relacional
             $table->foreignId('list_id')->nullable()
                 ->constrained('list_names') // Referencia a la tabla de listas de precios

@@ -1,10 +1,9 @@
-<div class="w-full bg-gray-800 text-gray-100 flex justify-between items-center px-4 py-1 z-50">
-  <img src="https://oagostini.com.ar/wp-content/uploads/logo1-1-1300x315.png"
-    class="w-auto h-16 p-2 mx-3 hidden md:block" />
+<div class="w-full bg-gray-800 text-gray-100 flex justify-between items-center px-2 py-0 my-0 sticky z-20">
+  <img src="{{ asset('imgs/oago-big.png') }}" class="w-auto h-16 p-2 mx-3 hidden md:block" />
   <img src="{{ asset('imgs/oago.png') }}" class="w-auto h-16 p-2 mx-3 md:hidden" />
 
   <div>
-    <div class="inline-flex items-center">
+    <div class="inline-flex flex-wrap items-right align-middle justify-end">
       <a href="/" class="hover:bg-gray-400 hover:text-black transition-all duration-300 p-4">Inicio</a>
       <a href="/about" class="hover:bg-gray-400 hover:text-black transition-all duration-300 p-4">Nosotros</a>
       <a href="/contact" class="hover:bg-gray-400 hover:text-black transition-all duration-300 p-4">Contactos</a>

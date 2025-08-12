@@ -17,18 +17,14 @@
 </script>
 
 <body class="min-h-screen font-sans antialiased bg-gray-200 text-gray-900">
-    <div id="navbar" class="sticky z-20">
-        <livewire:web-navbar />
-    </div>
+    <livewire:web-navbar />
 
     <livewire:cart />
     {{-- // slider --}}
     @if(!session()->has('noslider'))
         <livewire:webslider />
     @endif
-    <div class="sticky top-0 z-10">
-        <livewire:web-search-filter />
-    </div>
+    <livewire:web-search-filter />
     <div class="my-4">
         @php
             $prod_id = request()->query('product_id');
@@ -40,9 +36,6 @@
         @endif
     </div>
     <x-web-footer />
-    {{-- <p class="bg-gray-200 text-gray-900 h-5">{{ Auth::user() ? Auth::user()->name : 'Nada' }}</p>
-    <p class="bg-gray-200 text-gray-900 h-5">
-        {{ Auth::guard('guest_user') ? Auth::guard('guest_user')->user()->name : 'Nada' }}</p> --}}
     <x-toast />
 </body>
 <script>

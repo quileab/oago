@@ -112,8 +112,11 @@ new #[Layout('components.layouts.empty')]
                     <x-input label="Password" wire:model="password" type="password" icon="o-lock-closed" inline />
 
                     <x-slot:actions>
-                        {{-- <x-button label="Create an account" class="btn-ghost" link="/register" /> --}}
-                        <x-button label="INGRESAR" type="submit" icon="o-key" class="btn-primary" spinner="login" />
+                        <div class="flex justify-between w-full">
+                            <x-button label="Volver" @click="window.history.back()" icon="o-arrow-uturn-left"
+                                class="btn-neutral" />
+                            <x-button label="INGRESAR" type="submit" icon="o-key" class="btn-primary" spinner="login" />
+                        </div>
                     </x-slot:actions>
                 </x-form>
             </x-tab>

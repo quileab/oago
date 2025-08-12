@@ -33,25 +33,25 @@ class UserController extends Controller
     public function store(Request $request)
     {
         // check if the user already exists
-        $user_exists=User::find($request->id);
-        if($user_exists){
+        $user_exists = User::find($request->id);
+        if ($user_exists) {
             // update the user
             return $this->update($request, $user_exists->id);
         }
 
-        // create default password with phone number
-        $request->merge(['password' => $request->phone]);
+        // create default password with user id
+        $request->merge(['password' => $request->id]);
 
         $validator = Validator::make($request->all(), [
             'id' => 'nullable',
             'name' => 'required|string|max:30',
             'lastname' => 'required|string|max:30',
-            'address' => 'nullable|string|max:50',
+            'address' => 'nullable|string|max:100',
             'city' => 'nullable|string|max:30',
             'postal_code' => 'nullable|string|max:10',
             'phone' => 'nullable|string|max:50',
             'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:8',
+            'password' => 'required|string|min:3', // Changed to min:3 as requested
             'role' => 'required|string|in:admin,customer,other', // Ajustar según los roles permitidos
             'list_id' => 'nullable|exists:list_names,id', // validar solo si el cliente pertenece a una lista de precios
         ]);
@@ -97,7 +97,7 @@ class UserController extends Controller
             'id' => 'exists:users,id',
             'name' => 'string|max:30',
             'lastname' => 'string|max:30',
-            'address' => 'nullable|string|max:50',
+            'address' => 'nullable|string|max:100',
             'city' => 'nullable|string|max:30',
             'postal_code' => 'nullable|string|max:10',
             'phone' => 'nullable|string|max:50',
