@@ -2,20 +2,22 @@
 
 use Livewire\Volt\Component;
 use Mary\Traits\Toast;
+use App\Models\User; // Ensure User model is imported
+use Illuminate\Support\Facades\Hash; // Ensure Hash is imported
 
 new class extends Component {
     use Toast;
     public bool $drawer = false;
     public string $newPassword = '';
-    public $data = [];
-    
+    public array $formData = []; // Use array for form data
+
     public function mount($id = null)
     {
         if($id) {
-            $this->data = \App\Models\User::findOrFail($id)->toArray();
-        } 
+            $this->formData = User::findOrFail($id)->toArray();
+        }
         else {
-            $this->data = [
+            $this->formData = [
                 'name' => '',
                 'lastname' => '',
                 'address' => '',
@@ -30,30 +32,37 @@ new class extends Component {
         }
     }
 
+    protected function rules()
+    {
+        return [
+            'formData.name' => 'required',
+            'formData.lastname' => 'required',
+            'formData.address' => 'required',
+            'formData.city' => 'required',
+            'formData.postal_code' => 'required',
+            'formData.phone' => 'required',
+            'formData.email' => 'required|email',
+        ];
+    }
+
+    
+
     public function save()
     {
         // validate
-        $this->validate([
-            'data.name' => 'required',
-            'data.lastname' => 'required',
-            'data.address' => 'required',
-            'data.city' => 'required',
-            'data.postal_code' => 'required',
-            'data.phone' => 'required',
-            'data.email' => 'required|email',
-        ]);
+        $this->validate($this->rules()); // Use the rules() method
 
         // update OR create
         $user = \App\Models\User::updateOrCreate(
-            ['id' => $this->data['id']],
-            $this->data
+            ['id' => $this->formData['id'] ?? null], // Use formData and handle new records
+            $this->formData
         );
         return redirect('users');
     }
 
     public function changePassword()
     {
-        $user = \App\Models\User::find($this->data['id']);
+        $user = \App\Models\User::find($this->formData['id']);
         $user->password = Hash::make($this->newPassword);
         $user->save();
         $this->newPassword = '';
@@ -63,7 +72,7 @@ new class extends Component {
 
     public function delete()
     {
-        $user = \App\Models\User::findOrFail($this->data['id']);
+        $user = \App\Models\User::findOrFail($this->formData['id']);
         $user->delete();
         return redirect('users');
     }
@@ -78,21 +87,21 @@ new class extends Component {
         </x-slot:menu>
     <x-form wire:submit="save">
         <div class="grid grid-cols-1 gap-2 md:grid-cols-2">
-        <x-input label="Apellido" wire:model="data.lastname" icon="o-user" error-field="data.lastname" />
-        <x-input label="Nombre/s" wire:model="data.name" icon="o-user" error-field="data.name" />
+        <x-input label="Apellido" wire:model="formData.lastname" icon="o-user" error-field="formData.lastname" />
+        <x-input label="Nombre/s" wire:model="formData.name" icon="o-user" error-field="formData.name" />
         </div>
         <div class="grid grid-cols-1 gap-2 md:grid-cols-3">
-        <x-input label="Dirección" wire:model="data.address" icon="o-map-pin" error-field="data.address" />
-        <x-input label="Ciudad" wire:model="data.city" icon="o-map-pin" error-field="data.city" />
-        <x-input label="Código Postal" wire:model="data.postal_code" icon="o-hashtag" error-field="data.postal_code" />
+        <x-input label="Dirección" wire:model="formData.address" icon="o-map-pin" error-field="formData.address" />
+        <x-input label="Ciudad" wire:model="formData.city" icon="o-map-pin" error-field="formData.city" />
+        <x-input label="Código Postal" wire:model="formData.postal_code" icon="o-hashtag" error-field="formData.postal_code" />
         </div>
         <div class="grid grid-cols-1 gap-2 md:grid-cols-2">
-        <x-input label="Teléfono" wire:model="data.phone" icon="o-phone" error-field="data.phone" />
-        <x-input label="E-mail" wire:model="data.email" icon="o-envelope" error-field="data.email" />
+        <x-input label="Teléfono" wire:model="formData.phone" icon="o-phone" error-field="formData.phone" />
+        <x-input label="E-mail" wire:model="formData.email" icon="o-envelope" error-field="formData.email" />
         </div>
         <div class="grid grid-cols-1 gap-2 md:grid-cols-2">
-        <x-select label="Rol" icon="o-queue-list" :options="[['name' => 'customer'],['name' => 'admin']]" option-value="name" wire:model.lazy="data.role" />
-        <x-input label="Lista de Precios" wire:model="data.list_id" type="number" icon="o-numbered-list" error-field="list_id" />
+        <x-select label="Rol" icon="o-queue-list" :options="[['name' => 'customer'],['name' => 'admin']]" option-value="name" wire:model.lazy="formData.role" />
+        <x-input label="Lista de Precios" wire:model="formData.list_id" type="number" icon="o-numbered-list" error-field="list_id" />
         </div>
         
         <x-slot:actions>

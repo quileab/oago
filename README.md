@@ -1,66 +1,100 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Oago - Web Application
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+## About The Project
 
-## About Laravel
+This is a web application built with Laravel, Livewire, and other modern web technologies. It´s an e-commerce platform with features like product management, orders, user authentication, and an API (mainly).
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Built With
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+-   [Laravel](https://laravel.com/)
+-   [Livewire](https://laravel-livewire.com/)
+-   [Volt](https://volt.laravel.com/)
+-   [Mary UI](https://mary-ui.com/)
+-   [Tailwind CSS](https://tailwindcss.com/)
+-   [Alpine.js](https://alpinejs.dev/)
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Getting Started
 
-## Learning Laravel
+To get a local copy up and running follow these simple steps.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### Prerequisites
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+-   PHP >= 8.2
+-   Composer
+-   Node.js & npm
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### Installation
 
-## Laravel Sponsors
+1. Clone the repo
+    ```sh
+    git clone https://github.com/quileab/oago.git
+    ```
+2. Install PHP dependencies
+    ```sh
+    composer install
+    ```
+3. Install NPM packages
+    ```sh
+    npm install
+    ```
+4. Create a copy of your .env file
+    ```sh
+    cp .env.example .env
+    ```
+5. Generate an app encryption key
+    ```sh
+    php artisan key:generate
+    ```
+6. Create a database and add credentials to .env
+7. Run the database migrations
+    ```sh
+    php artisan migrate
+    ```
+8. Start the development server
+    ```sh
+    npm run dev
+    ```
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+## Database Schema
 
-### Premium Partners
+The database schema is defined by the migration files in `database/migrations`. The main tables are:
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+-   **`users`**: Stores user information, including name, email, password, and role.
+-   **`products`**: Stores product information, such as name, description, price, and stock.
+-   **`orders`**: Stores order information, including total price, status, and user.
+-   **`order_items`**: Stores the items for each order.
+-   **`list_names`**: Stores the names of the price lists.
+-   **`list_prices`**: Stores the prices for each product in a specific price list.
+-   **`guest_users`**: Stores information about guest users.
+-   **`shipping_details`**: Stores shipping details for each order.
 
-## Contributing
+## Web Routes
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+The web routes are defined in `routes/web.php`. They include routes for:
 
-## Code of Conduct
+-   Authentication (login, logout, register)
+-   Static pages (about, contact)
+-   Product and order management (for admins)
+-   User profile
+-   Checkout process
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## API Routes
 
-## Security Vulnerabilities
+The API routes are defined in `routes/api.php` and are protected by Sanctum. They include routes for:
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+-   Authentication (login, logout, register)
+-   Product management (CRUD)
+-   Order management
+-   User management
+-   Price list management
 
-## License
+## Dependencies
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Key dependencies from `composer.json`:
+
+-   `php: ^8.2`
+-   `laravel/framework: ^12.0`
+-   `livewire/livewire: ^3.5`
+-   `livewire/volt: ^1.6`
+-   `robsontenorio/mary: ^2.0`
+-   `dedoc/scramble: ^0.12.17`

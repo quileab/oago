@@ -56,6 +56,7 @@ Route::middleware('auth')->group(function () {
     Volt::route('/product/{id?}', 'products.crud')->middleware('is_admin');
     Volt::route('/product/details/{id?}', 'web-product-detail');
     Volt::route('/slider', 'slider')->middleware('is_admin');
+    Volt::route('/dashboard', 'dashboard')->name('dashboard')->middleware('is_admin');
     // Users will be redirected to this route if not logged in
     // Volt::route('/register', 'register')->middleware('is_admin');
 

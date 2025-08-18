@@ -9,6 +9,7 @@
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script src="{{ asset('js/tinymce/tinymce.min.js') }}"></script>
+    @livewireStyles
 </head>
 
 <body class="min-h-screen font-sans antialiased bg-base-200/50 dark:bg-base-200">
@@ -48,6 +49,7 @@
 
                 @if($user->role == 'admin')
                     <x-menu-item title="Sitio Principal" icon="o-sparkles" link="/" no-wire-navigate />
+                    <x-menu-item title="Dashboard" icon="o-chart-pie" link="/dashboard" />
                     <x-menu-sub title="Usuarios" icon="o-user">
                         <x-menu-item title="Registrados" icon="s-users" link="/users" />
                         <x-menu-item title="Invitados" icon="o-users" link="/guests" />

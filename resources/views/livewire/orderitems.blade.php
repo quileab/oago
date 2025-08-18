@@ -1,10 +1,13 @@
 <?php
 
 use Livewire\Volt\Component;
+use Mary\Traits\Toast; // Added this line
 
 new class extends Component {
+    use Toast; // Added this line
     public $order;
     public $items = [];
+    public string $newStatus = '';
 
     // Recibir el pedido y cargar los items al iniciar
     public function mount($orderId)
@@ -56,19 +59,44 @@ new class extends Component {
         return redirect('/orders');
     }
 
+    public function changeStatus(string $status): void
+    {
+        $this->order->status = $status;
+        $this->order->save();
+
+        $this->success('Estado del pedido actualizado a ' . $status, position: 'toast-bottom');
+    }
+
 }; ?>
 
 <div>
     <div class="grid grid-cols-3 mb-2">
         <div>
-            <h3 class="text-2xl"><small class="text-primary">Pedido #</small> {{ $order->id }}</h3>
             <x-button label="Volver" icon="o-arrow-left" class="btn-primary" onclick="window.history.back()" />
+            <h3 class="text-2xl"><small class="text-primary">Pedido #</small> {{ $order->id }}</h3>
+            <h3 class="text-2xl"><small class="text-primary">Importe:</small>
+                ${{ number_format($order->total_price, 2, ',', '.') }}</h3>
         </div>
-        <h3 class="text-2xl"><small class="text-primary">Estado:</small>
-            {{ \App\Models\Order::orderStates($order->status) }}</h3>
+        <div>
+            <h3 class="text-2xl"><small class="text-primary">Estado:</small>
+                {{ \App\Models\Order::orderStates($order->status) }}</h3>
+            {{-- Si el estado no es completado poder cambiar el estado --}}
+            @if($order->status != 'completed' && Auth::user()->role == 'admin')
+                <x-dropdown label="Cambiar Estado" icon="o-arrow-path-rounded-square" class="btn-primary w-full mt-2">
+                    @foreach(['pending', 'on-hold', 'cancelled'] as $statusOption)
+                        @if($statusOption != $order->status)
+                            <x-menu-item title="{{ \App\Models\Order::orderStates($statusOption) }}"
+                                wire:click="changeStatus('{{ $statusOption }}')"
+                                wire:confirm="¿Está seguro de cambiar el estado a {{ \App\Models\Order::orderStates($statusOption) }}?"
+                                spinner="changeStatus('{{ $statusOption }}')" />
+                        @endif
+                    @endforeach
+                </x-dropdown>
+            @endif
+        </div>
         <div>
             @if($order->status == 'on-hold')
-                <x-button wire:click="loadCart(true)" icon="o-shopping-cart" class="btn-primary w-full"
+                <x-button wire:click="loadCart(true)" icon="o-shopping-cart" class="btn-primary w-full mt-2"
                     label="Retomar Pedido" />
                 <div class="flex gap-1">
                     <x-alert title="IMPORTANTE"

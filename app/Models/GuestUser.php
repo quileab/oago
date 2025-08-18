@@ -9,7 +9,7 @@ use Illuminate\Notifications\Notifiable;
 class GuestUser extends Authenticatable
 {
     use Notifiable;
-    protected $guarded = ['id', 'created_at', 'updated_at'];
+    protected $guarded = [];
 
     protected $hidden = [
         'password',

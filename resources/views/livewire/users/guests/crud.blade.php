@@ -2,23 +2,33 @@
 
 use Livewire\Volt\Component;
 use Mary\Traits\Toast;
-use \App\Models\GuestUser as User;
+use App\Models\GuestUser; // Ensure GuestUser model is imported
+use App\Models\ListName; // Ensure ListName is imported
+use Illuminate\Support\Facades\Hash; // Ensure Hash is imported
+use Illuminate\Support\Facades\Mail; // Ensure Mail is imported
+use Carbon\Carbon; // Ensure Carbon is imported
 
 new class extends Component {
     use Toast;
     public string $newPassword = '';
-    public $data = [];
+    public array $formData = []; // Use array for form data
     public $list_names = [];
 
     public $createdAtDate = '';
 
     public function mount($id = null)
     {
+        $this->list_names = ListName::all();
+
         if ($id) {
-            $this->data = User::findOrFail($id)->toArray();
-            $this->createdAtDate = $this->data['created_at'] ? \Carbon\Carbon::parse($this->data['created_at'])->format('Y-m-d') : null;
+            $this->formData = GuestUser::findOrFail($id)->toArray();
+            // check if list_id is null and set it to 1
+            if ($this->formData['list_id'] === null) {
+                $this->formData['list_id'] = 1;
+            }
+            $this->createdAtDate = $this->formData['created_at'] ? Carbon::parse($this->formData['created_at'])->format('Y-m-d') : null;
         } else {
-            $this->data = [
+            $this->formData = [
                 'name' => '',
                 'lastname' => '',
                 'address' => '',
@@ -32,44 +42,52 @@ new class extends Component {
             ];
             $this->createdAtDate = now()->format('Y-m-d');
         }
-        $this->list_names = \App\Models\ListName::all();
+    }
+
+    protected function rules()
+    {
+        return [
+            'formData.name' => 'required',
+            'formData.lastname' => 'required',
+            'formData.address' => 'required',
+            'formData.city' => 'required',
+            'formData.postal_code' => 'required',
+            'formData.phone' => 'required',
+            'formData.email' => 'required|email',
+            'formData.list_id' => 'required|numeric',
+        ];
+    }
+
+    protected function messages()
+    {
+        return [
+            'formData.name.required' => 'El nombre es requerido.',
+            'formData.lastname.required' => 'El apellido es requerido.',
+            'formData.address.required' => 'La dirección es requerida.',
+            'formData.city.required' => 'La ciudad es requerida.',
+            'formData.postal_code.required' => 'El código postal es requerido.',
+            'formData.phone.required' => 'El teléfono es requerido.',
+            'formData.email.required' => 'El e-mail es requerido.',
+            'formData.email.email' => 'El e-mail no es válido.',
+            'formData.list_id.required' => 'La lista de precios es requerida.',
+        ];
     }
 
     public function save()
     {
         // validate
-        $this->validate([
-            'data.name' => 'required',
-            'data.lastname' => 'required',
-            'data.address' => 'required',
-            'data.city' => 'required',
-            'data.postal_code' => 'required',
-            'data.phone' => 'required',
-            'data.email' => 'required|email',
-            'data.list_id' => 'required|numeric',
-        ], [
-            'data.name.required' => 'El nombre es requerido.',
-            'data.lastname.required' => 'El apellido es requerido.',
-            'data.address.required' => 'La dirección es requerida.',
-            'data.city.required' => 'La ciudad es requerida.',
-            'data.postal_code.required' => 'El código postal es requerido.',
-            'data.phone.required' => 'El teléfono es requerido.',
-            'data.email.required' => 'El e-mail es requerido.',
-            'data.email.email' => 'El e-mail no es válido.',
-            'data.list_id.required' => 'La lista de precios es requerida.',
-        ]);
-
+        $this->validate($this->rules(), $this->messages()); // Use the rules() and messages() methods
         // update OR create
-        $user = User::updateOrCreate(
-            ['id' => $this->data['id']],
-            $this->data
+        $user = GuestUser::updateOrCreate(
+            ['id' => $this->formData['id'] ?? null], // Use formData and handle new records
+            $this->formData
         );
-        return redirect('users');
+        return redirect('guests');
     }
 
     public function changePassword()
     {
-        $user = User::find($this->data['id']);
+        $user = GuestUser::find($this->formData['id']);
         $user->password = Hash::make($this->newPassword);
         $user->save();
         $this->newPassword = '';
@@ -78,24 +96,23 @@ new class extends Component {
 
     public function delete()
     {
-        $user = User::findOrFail($this->data['id']);
+        $user = GuestUser::findOrFail($this->formData['id']);
         $user->delete();
         return redirect('guests');
     }
 
     public function resetDate()
     {
-        $user = User::find($this->data['id']);
+        $user = GuestUser::find($this->formData['id']);
         $user->created_at = now();
         $user->save();
-        $this->data['created_at'] = $user->created_at; // Update data array for consistency
         $this->createdAtDate = $user->created_at->format('Y-m-d'); // Update the displayed date
         $this->success('Fecha de creación reiniciada.', position: 'toast-bottom');
     }
 
     public function sendWelcomeEmail()
     {
-        $user = User::find($this->data['id']);
+        $user = GuestUser::find($this->formData['id']);
         // update created_at and updated_at timestamps to current time
         $user->created_at = now();
         $user->updated_at = $user->created_at;
@@ -116,25 +133,26 @@ new class extends Component {
     <x-card title="Usuario Invitado" shadow separator class="mb-4">
         <x-form wire:submit="save">
             <div class="grid grid-cols-1 gap-2 md:grid-cols-2">
-                <x-input label="Apellido" wire:model="data.lastname" icon="o-user" error-field="data.lastname" />
-                <x-input label="Nombre/s" wire:model="data.name" icon="o-user" error-field="data.name" />
+                <x-input label="Apellido" wire:model="formData.lastname" icon="o-user"
+                    error-field="formData.lastname" />
+                <x-input label="Nombre/s" wire:model="formData.name" icon="o-user" error-field="formData.name" />
             </div>
             <div class="grid grid-cols-1 gap-2 md:grid-cols-3">
-                <x-input label="Dirección" wire:model="data.address" icon="o-map-pin" error-field="data.address" />
-                <x-input label="Ciudad" wire:model="data.city" icon="o-map-pin" error-field="data.city" />
-                <x-input label="Código Postal" wire:model="data.postal_code" icon="o-hashtag"
-                    error-field="data.postal_code" />
+                <x-input label="Dirección" wire:model="formData.address" icon="o-map-pin"
+                    error-field="formData.address" />
+                <x-input label="Ciudad" wire:model="formData.city" icon="o-map-pin" error-field="formData.city" />
+                <x-input label="Código Postal" wire:model="formData.postal_code" icon="o-hashtag"
+                    error-field="formData.postal_code" />
             </div>
             <div class="grid grid-cols-1 gap-2 md:grid-cols-2">
-                <x-input label="Teléfono" wire:model="data.phone" icon="o-phone" error-field="data.phone" />
-                <x-input label="E-mail" wire:model="data.email" icon="o-envelope" error-field="data.email" />
+                <x-input label="Teléfono" wire:model="formData.phone" icon="o-phone" error-field="formData.phone" />
+                <x-input label="E-mail" wire:model="formData.email" icon="o-envelope" error-field="formData.email" />
             </div>
             <div class="grid grid-cols-1 gap-2 md:grid-cols-2">
                 <x-select label="Rol" icon="o-queue-list" :options="[['name' => 'none'], ['name' => 'guest']]"
-                    option-value="name" wire:model.lazy="data.role" />
+                    option-value="name" wire:model.lazy="formData.role" />
                 <x-select label="Lista de Precios" icon="o-queue-list" :options="$list_names"
-                    prefix="{{ $data['list_id'] ? $data['list_id'] : '' }}" wire:model.lazy="data.list_id"
-                    error-field="list_id" />
+                    wire:model="formData.list_id" error-field="list_id" option-value="id" option-label="name" />
             </div>
 
             <x-slot:actions>

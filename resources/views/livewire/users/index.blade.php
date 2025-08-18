@@ -1,36 +1,35 @@
 <?php
 use App\Models\User;
-use Illuminate\Support\Collection;
 use Livewire\Volt\Component;
-use Livewire\WithPagination; 
-use Illuminate\Pagination\LengthAwarePaginator; 
+use Livewire\WithPagination;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Mary\Traits\Toast;
+use App\Livewire\Traits\ManagesModelIndex; // Import the new trait
+use Illuminate\Support\Facades\DB;
 
 new class extends Component {
     use Toast;
     use WithPagination;
+    use ManagesModelIndex; // Use the new trait
 
-    public string $search = '';
+    // Properties from Trait: public string $search
+    // Methods from Trait: public function delete($id)
+
+    protected string $modelClass = User::class; // Configure the model for the trait
+    
 
     public bool $drawer = false;
-
     public array $sortBy = ['column' => 'id', 'direction' => 'asc'];
 
     // Clear filters
     public function clear(): void
     {
-        $this->reset();
-        $this->resetPage(); 
+        $this->reset('search');
+        $this->resetPage();
         $this->success('Filters cleared.', position: 'toast-bottom');
     }
 
-    // Delete action
-    public function delete($id): void
-    {
-        User::destroy($id);
-        $this->success('User deleted.', position: 'toast-bottom');
-        //$this->warning("Will delete #$id", 'It is fake.', position: 'toast-bottom');
-    }
+    // --- delete() is now handled by ManagesModelIndex trait ---
 
     // Table headers
     public function headers(): array
@@ -44,10 +43,11 @@ new class extends Component {
         ];
     }
 
-    public function users(): LengthAwarePaginator //Collection
+    // The query is specific to this component, so we keep it here.
+    public function users(): LengthAwarePaginator
     {
         return User::query()
-        ->when($this->search, 
+        ->when($this->search,
             fn($q) => $q->where(DB::raw('concat(name, " ", lastname, " ", email)'), 'like', "%$this->search%")
         )
         ->orderBy(...array_values($this->sortBy))->paginate(20);
@@ -61,7 +61,6 @@ new class extends Component {
         ];
     }
 
-    // Reset pagination when any component property changes
     public function updated($property): void
     {
         if (! is_array($property) && $property != "") {
@@ -82,8 +81,10 @@ new class extends Component {
     </x-header>
 
     <!-- TABLE  -->
-    <x-table :headers="$headers" :rows="$users" :sort-by="$sortBy"
-        striped with-pagination link="/user/{id}">
+    <x-table :headers="$headers" :rows="$users" :sort-by="$sortBy" striped with-pagination link="/user/{id}" >
+        @scope('actions', $user)
+            <x-button icon="o-trash" wire:click="delete({{ $user->id }})" spinner class="btn-ghost btn-sm text-red-500" />
+        @endscope
     </x-table>
 
     <!-- FILTER DRAWER -->

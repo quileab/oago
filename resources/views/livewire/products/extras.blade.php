@@ -2,18 +2,15 @@
 
 use Livewire\Volt\Component;
 use Livewire\WithPagination;
-//use Livewire\WithoutUrlPagination;
-//use Illuminate\Pagination\LengthAwarePaginator;
 use Mary\Traits\Toast;
 use \App\Models\Product;
 
 
 new class extends Component {
     use WithPagination;
-    //use WithoutUrlPagination;
     use Toast;
 
-    public $perPage = 12;
+    public $perPage = 30;
     public string $search = '';
 
     public bool $drawer = false;
@@ -35,6 +32,10 @@ new class extends Component {
 
     public function mount()
     {
+        $this->tags_list = [
+            ['name' => 'Publicado', 'value' => false, 'action' => 'nothing'],
+            ['name' => 'Destacado', 'value' => false, 'action' => 'nothing'],
+        ];
         foreach (Product::getTags() as $key => $value) {
             $this->tags_list[] = ['name' => $value, 'value' => false, 'action' => 'nothing'];
         }
@@ -46,6 +47,7 @@ new class extends Component {
         return [
             ['key' => 'id', 'label' => '#', 'class' => 'w-1'],
             ['key' => 'brand', 'label' => 'Marca'],
+            ['key' => 'description_html', 'label' => 'Descripción'],
             ['key' => 'published', 'label' => 'Publicado'],
             ['key' => 'visibility', 'label' => 'Visibilidad'],
             ['key' => 'featured', 'label' => 'Destacado'],
@@ -94,11 +96,19 @@ new class extends Component {
         //->limit($this->perPage)->get();
     }
 
+    public function openDrawer()
+    {
+        $this->drawer = true;
+        // if selected products are not empty, show the load description_html into the editor
+        if (!empty($this->selected)) {
+            $this->htmldescription = Product::find($this->selected[0])->description_html;
+        }
+    }
+
     public function applyPromotions()
     {
-        $this->drawer = false;
         // dd($this->tags_list);
-
+        $this->drawer = false;
         // Apply promotions to selected products
         foreach ($this->selected as $productId) {
             $product = Product::find($productId);
@@ -126,29 +136,66 @@ new class extends Component {
                 $product->save();
             }
         }
-        $this->reset('selected', 'tags_list');
-        $this->success('Atributos aplicados 👍');
-        $this->mount();
+
+        $this->success(
+            'Atributos aplicados',
+            'La página se recargará para mostrar los cambios...',
+            redirectTo: request()->header('Referer')
+        );
+    }
+
+    public function selectByDescriptionHtml()
+    {
+        if (empty($this->selected)) {
+            $this->warning('Seleccione al menos un producto para usar esta función.');
+            return;
+        }
+
+        // Get the description_html of the first selected product
+        $firstSelectedProductId = $this->selected[0];
+        $product = Product::find($firstSelectedProductId);
+
+        if (!$product || empty($product->description_html)) {
+            $this->warning('El producto seleccionado no tiene una descripción HTML para buscar.');
+            return;
+        }
+
+        $descriptionHtmlToMatch = $product->description_html;
+        $this->htmldescription = $descriptionHtmlToMatch;
+
+        // Find all products with the same description_html
+        $productsToSelect = Product::where('description_html', $descriptionHtmlToMatch)->pluck('id')->toArray();
+
+        // Update the selected property
+        $this->selected = $productsToSelect;
+
+        $this->success('Productos seleccionados y descripción cargada.');
     }
 
 }; ?>
 
 <div>
     <!-- HEADER -->
-    <x-header title="Productos" separator progress-indicator>
-        <x-slot:middle class="!justify-end">
-            <x-input placeholder="Search..." wire:model.live.debounce="search" clearable icon="o-magnifying-glass" />
-        </x-slot:middle>
-        <x-slot:actions>
-            <x-button label="Opciones" @click="$wire.drawer = true" responsive icon="o-bars-3" />
-        </x-slot:actions>
-    </x-header>
+    <div class="sticky top-0 z-50">
+        <x-header title="Productos" separator progress-indicator class="backdrop-blur-xl py-1">
+            <x-slot:middle class="!justify-end">
+                <x-input placeholder="Search..." wire:model.live.debounce="search" clearable
+                    icon="o-magnifying-glass" />
+            </x-slot:middle>
+            <x-slot:actions>
+                <x-button label="Opciones" wire:click="openDrawer()" responsive icon="o-bars-3" />
+            </x-slot:actions>
+        </x-header>
+    </div>
 
     <!-- TABLE  -->
     <x-table :headers="$headers" :rows="$products" :sort-by="$sortBy" with-pagination selectable
-        wire:model.live.debounce="selected">
+        wire:model.live.debounce="selected" row-key="id">
         @scope('cell_brand', $product)
         {{ $product->brand . ' » ' . $product->model . ' » ' . $product->description }}
+        @endscope
+        @scope('cell_description_html', $product)
+        {!! $product->description_html !!}
         @endscope
         @scope('cell_published', $product)
         {{ $product->published ? 'Si' : 'No' }}
@@ -163,46 +210,46 @@ new class extends Component {
 
     <!-- FILTER DRAWER -->
     <x-drawer wire:model="drawer" title="Atributos" right separator with-close-button class="lg:w-1/3">
-        @if(count($selected))
-            <x-form wire:submit="applyPromotions" id="promotion">
+        <x-form wire:submit="applyPromotions" id="promotion">
+            <div @if (!count($selected)) style="display: none;" @endif>
                 <div>
                     @foreach ($tags_list as $tag)
                         <div class="flex items-center gap-2">
-                            {{-- <x-checkbox label="{{ $tag['name'] }}" wire:model="tags_list.{{ $loop->index }}.value" /> --}}
                             <x-group wire:model="tags_list.{{ $loop->index }}.action" :options="$actions" option-value="name"
                                 option-label="value" class="[&:checked]:!btn-primary" />
                             {{ $tag['name'] }}
                         </div>
                     @endforeach
-
-                    @php
-                        // Configuración para el editor TinyMCE
-                        $config = [
-                            'license_key' => 'gpl',
-                            'plugins' => 'autoresize link image quickbars', // Añadido 'image' plugin
-                            'statusbar' => false,
-                            'toolbar' => 'undo redo | bold italic underline | forecolor backcolor | h1 h2 h3 h4 h5 h6 | removeformat', // Añadido 'image' a la toolbar
-                            'quickbars_selection_toolbar' => 'bold italic underline',
-                            // Opcional: Configuración para subida de imágenes en TinyMCE (si quieres esa funcionalidad)
-                            // 'images_upload_url' => '/your-image-upload-handler', // Define tu ruta de subida de imágenes
-                            // 'automatic_uploads' => true,
-                            // 'file_picker_types' => 'image',
-                        ];
-                    @endphp
-                    {{-- Editor de contenido --}}
-                    <x-editor wire:model="htmldescription" label="Descripción" :config="$config" />
-
-                    <x-slot:actions>
-                        <x-button label="Aplicar" icon="o-check" class="btn-primary mr-4" type="submit"
-                            spinner="applyPromotions" />
-                    </x-slot:actions>
                 </div>
-            </x-form>
-        @else
-            <x-input placeholder="Buscar..." wire:model.live.debounce="search" icon="o-magnifying-glass"
-                @keydown.enter="$wire.drawer = false" />
+
+                @php
+                    // Configuración para el editor TinyMCE
+                    $config = [
+                        'license_key' => 'gpl',
+                        'plugins' => 'autoresize link image quickbars',
+                        'statusbar' => false,
+                        'toolbar' => 'undo redo | bold italic underline | forecolor backcolor | h1 h2 h3 h4 h5 h6 | removeformat',
+                        'quickbars_selection_toolbar' => 'bold italic underline',
+                    ];
+                @endphp
+
+                {{-- Editor de contenido --}}
+                <x-editor wire:model="htmldescription" label="Descripción - Items Seleccionados: {{ count($selected) }}"
+                    :config="$config" />
+
+                <div class="grid grid-cols-2 gap-4 mt-4">
+                    <x-button label="Seleccionar por Descripción HTML" wire:click="selectByDescriptionHtml"
+                        class="btn-primary" />
+
+                    <x-button label="Aplicar" icon="o-check" class="btn-primary" type="submit"
+                        spinner="applyPromotions" />
+                </div>
+            </div>
+        </x-form>
+
+        @if (!count($selected))
             <x-alert title="NADA SELECCIONADO" description="Seleccione al menos un producto para aplicar promociones"
-                icon="o-exclamation-triangle" class="alert-info mt-2" />
+                icon="o-exclamation-triangle" class="alert-info mt-8" />
         @endif
     </x-drawer>
 
