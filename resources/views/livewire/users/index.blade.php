@@ -17,17 +17,7 @@ new class extends Component {
 
     protected string $modelClass = User::class; // Configure the model for the trait
     
-
-    public bool $drawer = false;
     public array $sortBy = ['column' => 'id', 'direction' => 'asc'];
-
-    // Clear filters
-    public function clear(): void
-    {
-        $this->reset('search');
-        $this->resetPage();
-        $this->success('Filters cleared.', position: 'toast-bottom');
-    }
 
     // --- delete() is now handled by ManagesModelIndex trait ---
 
@@ -73,27 +63,14 @@ new class extends Component {
     <!-- HEADER -->
     <x-header title="Usuarios" separator progress-indicator>
         <x-slot:middle class="!justify-end">
-            <x-input placeholder="Search..." wire:model.live.debounce="search" clearable icon="o-magnifying-glass" />
+            <x-input placeholder="Buscar..." wire:model.live.debounce="search" clearable icon="o-magnifying-glass" />
         </x-slot:middle>
         <x-slot:actions>
-            <x-button label="Filters" @click="$wire.drawer = true" responsive icon="o-funnel" />
+        {{-- // placeholder --}}
         </x-slot:actions>
     </x-header>
 
     <!-- TABLE  -->
     <x-table :headers="$headers" :rows="$users" :sort-by="$sortBy" striped with-pagination link="/user/{id}" >
-        @scope('actions', $user)
-            <x-button icon="o-trash" wire:click="delete({{ $user->id }})" spinner class="btn-ghost btn-sm text-red-500" />
-        @endscope
     </x-table>
-
-    <!-- FILTER DRAWER -->
-    <x-drawer wire:model="drawer" title="Filters" right separator with-close-button class="lg:w-1/3">
-        <x-input placeholder="Search..." wire:model.live.debounce="search" icon="o-magnifying-glass" @keydown.enter="$wire.drawer = false" />
-
-        <x-slot:actions>
-            <x-button label="Reset" icon="o-x-mark" wire:click="clear" spinner />
-            <x-button label="Done" icon="o-check" class="btn-primary" @click="$wire.drawer = false" />
-        </x-slot:actions>
-    </x-drawer>
 </div>

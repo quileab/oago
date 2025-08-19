@@ -7,6 +7,19 @@
     themes: dark --default, light --preferslight;
     /* themes: dark --default, light --prefersdark; */
 }
+@plugin "daisyui/theme" {
+    default: true;
+}
+[data-theme="light"] {
+    --color-primary: #002b6b;
+    --color-secondary: #8a053c;
+    --color-success: #3c8e26;
+}
+[data-theme="dark"] {
+    --color-primary: #002b6b;
+    --color-secondary: #8a053c;
+    --color-success: #3c8e26;
+}
 
 @source "../../vendor/robsontenorio/mary/src/View/Components/**/*.php";
 @custom-variant dark (&:where(.dark, .dark *));

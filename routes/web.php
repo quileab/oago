@@ -51,6 +51,7 @@ Route::middleware('auth')->group(function () {
     Volt::route('/user/{id?}', 'users.crud')->middleware('is_admin');
     Volt::route('/guests', 'users.guests.index')->middleware('is_admin');
     Volt::route('/guest/{id?}', 'users.guests.crud')->middleware('is_admin');
+    Volt::route('/guest-users/create', 'users.guests.crud')->middleware('is_admin'); // New route for adding guest user
     Volt::route('/products', 'products.index')->middleware('is_admin');
     Volt::route('/products/extras', 'products.extras')->middleware('is_admin');
     Volt::route('/product/{id?}', 'products.crud')->middleware('is_admin');

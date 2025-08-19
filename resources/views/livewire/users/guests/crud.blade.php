@@ -7,6 +7,7 @@ use App\Models\ListName; // Ensure ListName is imported
 use Illuminate\Support\Facades\Hash; // Ensure Hash is imported
 use Illuminate\Support\Facades\Mail; // Ensure Mail is imported
 use Carbon\Carbon; // Ensure Carbon is imported
+use Illuminate\Validation\Rule; // Ensure Rule is imported
 
 new class extends Component {
     use Toast;
@@ -46,16 +47,24 @@ new class extends Component {
 
     protected function rules()
     {
-        return [
+        $rules = [
             'formData.name' => 'required',
             'formData.lastname' => 'required',
             'formData.address' => 'required',
             'formData.city' => 'required',
             'formData.postal_code' => 'required',
             'formData.phone' => 'required',
-            'formData.email' => 'required|email',
             'formData.list_id' => 'required|numeric',
         ];
+
+        // Add unique email validation
+        $rules['formData.email'] = [
+            'required',
+            'email',
+            Rule::unique('guest_users', 'email')->ignore($this->formData['id'] ?? null),
+        ];
+
+        return $rules;
     }
 
     protected function messages()
@@ -69,6 +78,7 @@ new class extends Component {
             'formData.phone.required' => 'El teléfono es requerido.',
             'formData.email.required' => 'El e-mail es requerido.',
             'formData.email.email' => 'El e-mail no es válido.',
+            'formData.email.unique' => 'El e-mail ya existe.', // New message
             'formData.list_id.required' => 'La lista de precios es requerida.',
         ];
     }

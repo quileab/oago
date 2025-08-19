@@ -28,6 +28,11 @@ trait ManagesModelIndex
             });
         }
 
+        // Order by role descending
+        if (property_exists($this, 'modelClass') && $this->modelClass === \App\Models\GuestUser::class) {
+            $query->orderBy('role', 'desc');
+        }
+
         return $query->paginate($paginate);
     }
 

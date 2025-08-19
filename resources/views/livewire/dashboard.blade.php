@@ -1,6 +1,11 @@
 <div>
     <div class="grid grid-cols-1 gap-4">
         <h2 class="text-lg font-semibold">VENTAS SEMANALES: ${{ number_format($totalWeeklySales, 2, ',', '.') }}</h2>
+
+        <div class="max-w-xs">
+            <x-select label="Seleccionar Semana" :options="$weekOptions" wire:model.live="selectedWeek" />
+        </div>
+
         <div id="weeklySalesChart"></div>
     </div>
     <div class="mt-4">
