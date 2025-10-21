@@ -82,7 +82,7 @@ new class extends Component {
                                 <x-icon name="s-battery-100" label="En stock" class="text-green-600 text-md h-4" />
                             @endif
                             <br>
-                            <x-icon name="o-cube" label="{{ $product->qtty_package }} ({{ $product->qtty?unit }} unid.)" class="text-gray-600 text-md h-4" />
+                            <x-icon name="o-cube" label="{{ $product->qtty_package }} ({{ $product->qtty_unit }} unid.)" class="text-gray-600 text-md h-4" />
                         </div>
                     </div>
                 </div>
