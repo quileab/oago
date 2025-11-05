@@ -17,12 +17,13 @@ new class extends Component {
             );
 
         // use ProductSearchService to get related products
-        $this->related_products = app(\App\Services\ProductSearchService::class)
-            ->searchRelatedProducts(
-                $this->product,
-                30
-            );
-
+        if ($this->product) {
+            $this->related_products = app(\App\Services\ProductSearchService::class)
+                ->searchRelatedProducts(
+                    $this->product,
+                    30
+                );
+        }
     }
 }; ?>
 
