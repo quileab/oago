@@ -31,7 +31,7 @@ new class extends Component {
     <x-button label="Volver" icon="o-arrow-left" class="btn-primary btn-ghost relative top-0 left-2"
         onclick="window.history.back()" />
     <div class="grid grid-cols-1 md:grid-cols-2">
-        <x-image-proxy url="{{ $product->image_url }}" class="w-full h-auto" />
+        <x-image-proxy url="{{ $product->image_url ?? asset('imgs/oago.png') }} }}" class="w-full h-auto" />
         {{-- // if product is featured show description above image --}}
         <div class="p-2 bg-white html-desc">
             <div class="w-full">
