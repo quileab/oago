@@ -51,7 +51,7 @@ new class extends Component {
         $query = Order::with('user');
 
         // Apply admin/customer filter
-        $isAdmin = Auth::user()->role == 'admin';
+        $isAdmin = Auth::user()->role->value == 'admin';
         if (!$isAdmin) {
             $query->where('user_id', Auth::user()->id);
         }

@@ -25,7 +25,7 @@ class Cart extends Component
     public function onAddToCart($product, int $quantity = 1): void
     {
         //if auth user role is guest or nor logged return
-        if (Auth::guest() || Auth::user()->role === 'guest') {
+        if (Auth::guest() || Auth::user()->role->value === 'guest') {
             return;
         }
 
@@ -76,7 +76,7 @@ class Cart extends Component
         // Actualizar la cantidad del producto en el carrito
         $cart = Session::get('cart', []);
         if (isset($cart[$productId])) {
-            $cart[$productId]['quantity'] = $quantity;
+            $cart[$productId]['quantity'] = (int) $quantity;
             Session::put('cart', $cart);
             $this->calculateTotal();
             $this->jsonCartUpdate();
@@ -89,7 +89,7 @@ class Cart extends Component
         $cart = Session::get('cart', []);
         $this->total = 0;
         foreach ($cart as $item) {
-            $this->total += $item['price'] * $item['quantity'];
+            $this->total += (float)$item['price'] * (int)$item['quantity'];
         }
     }
 

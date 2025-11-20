@@ -11,7 +11,7 @@
 
 <body class="min-h-screen font-sans antialiased bg-gray-200 text-gray-900">
   <livewire:web-navbar />
-  <livewire:users.guests.registration />
+  <livewire:users.alts.registration />
   <x-web-footer />
 </body>
 

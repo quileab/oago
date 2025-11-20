@@ -14,8 +14,15 @@ class OrderController extends Controller
     public function listPendingOrders()
     {
         $orders = Order::where('status', 'pending')->with('items.product')->get();
+
+        $filteredOrders = $orders->map(function ($order) {
+            $order->items = $order->items->filter(function ($item) {
+                return $item->quantity > 0 && $item->price > 0;
+            })->values(); // Re-index the collection after filtering
+            return $order;
+        });
         
-        return response()->json($orders, 200);
+        return response()->json($filteredOrders, 200);
     }
 
     // Actualizar el estado de un pedido

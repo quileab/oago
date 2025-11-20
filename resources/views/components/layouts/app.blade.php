@@ -47,26 +47,35 @@
                     </x-list-item>
                 @endif
 
-                @if($user->role == 'admin')
+                @if($user->role->value == 'admin')
                     <x-menu-item title="Sitio Principal" icon="o-sparkles" link="/" no-wire-navigate />
-                    <x-menu-item title="Dashboard" icon="o-chart-pie" link="/dashboard" />
+                    <x-menu-item title="Dashboard" icon="o-chart-pie" link="/dashboard" class="text-info" />
                     <x-menu-sub title="Usuarios" icon="o-user">
                         <x-menu-item title="Registrados" icon="s-users" link="/users" />
-                        <x-menu-item title="Invitados" icon="o-users" link="/guests" />
+                        <x-menu-item title="Invitados" icon="o-users" link="/alts" />
                     </x-menu-sub>
                     <x-menu-sub title="Productos" icon="o-cube">
-                        <x-menu-item title="Exportar Todo" icon="o-document-duplicate" link="/export/products" external />
-                        <x-menu-item title="Exportar Vista Clientes" icon="o-document-duplicate"
-                            link="/export/customers-products" external />
                         <x-menu-item title="Listas de Precios" icon="o-square-3-stack-3d" link="/products" />
                         <x-menu-item title="Atrib. Extras Web" icon="s-square-3-stack-3d" link="/products/extras" />
                     </x-menu-sub>
                     <x-menu-sub title="Web" icon="o-paint-brush">
                         <x-menu-item title="Slider" icon="o-photo" link="/slider" />
                     </x-menu-sub>
+                    <x-menu-sub title="Contenido" icon="o-document-text">
+                        <x-menu-item title="Logros" icon="o-star" link="/achievements" />
+                        <x-menu-item title="Asignar Logro" icon="o-plus-circle" link="/assign-achievement" />
+                    </x-menu-sub>
+                    <x-menu-sub title="Report/Export" icon="o-document-chart-bar">
+                        <x-menu-item title="Productos Todos" icon="o-cube" link="/export/products" external />
+                        <x-menu-item title="Productos Vista Clientes" icon="o-cube" link="/export/customers-products"
+                            external />
+                        <x-menu-item title="Usuarios ⇨ Ventas" icon="o-table-cells" link="/export/users-order-stats"
+                            external />
+                    </x-menu-sub>
+                    <x-menu-item title="Settings" icon="o-cog-8-tooth" link="/settings" />
                 @endif
-                @if($user->role != 'guest')
-                    <x-menu-item title="Pedidos" icon="o-clipboard-document-list" link="/orders" />
+                @if($user->role->value != 'guest')
+                    <x-menu-item title="Pedidos" icon="o-clipboard-document-list" link="/orders" class="text-warning" />
                     <x-menu-item title="Mi Perfil" icon="o-user" link="/user/profile" />
                 @endif
             </x-menu>

@@ -29,7 +29,7 @@ trait ManagesModelIndex
         }
 
         // Order by role descending
-        if (property_exists($this, 'modelClass') && $this->modelClass === \App\Models\GuestUser::class) {
+        if (property_exists($this, 'modelClass') && $this->modelClass === \App\Models\AltUser::class) {
             $query->orderBy('role', 'desc');
         }
 

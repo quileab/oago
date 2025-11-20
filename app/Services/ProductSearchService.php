@@ -14,8 +14,8 @@ class ProductSearchService
     $user = null;
     if (Auth::guard('web')->check()) {
         $user = Auth::guard('web')->user();
-    } elseif (Auth::guard('guest')->check()) {
-        $user = Auth::guard('guest')->user();
+    } elseif (Auth::guard('alt')->check()) {
+        $user = Auth::guard('alt')->user();
     }
 
     $query = Product::query()
@@ -92,8 +92,8 @@ class ProductSearchService
     $user = null;
     if (Auth::guard('web')->check()) {
         $user = Auth::guard('web')->user();
-    } elseif (Auth::guard('guest')->check()) {
-        $user = Auth::guard('guest')->user();
+    } elseif (Auth::guard('alt')->check()) {
+        $user = Auth::guard('alt')->user();
     }
 
     $query = Product::query()

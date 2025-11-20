@@ -3,6 +3,8 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Enums\Role;
+use App\Models\Achievement;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Notifications\Notifiable;
@@ -41,6 +43,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'role' => Role::class,
         ];
     }
 
@@ -67,6 +70,11 @@ class User extends Authenticatable
         return $this->hasMany(Order::class);
     }
 
+    public function latestOrder()
+    {
+        return $this->hasOne(Order::class)->latestOfMany();
+    }
+
     public function getFullNameAttribute()
     {
         if ($this->lastname && $this->name) {
@@ -74,6 +82,16 @@ class User extends Authenticatable
         }
 
         return '✨SYS: ' . $this->name;
+    }
+
+    public function achievements()
+    {
+        return $this->morphToMany(Achievement::class, 'achievable');
+    }
+
+    public function getTotalPointsAttribute()
+    {
+        return $this->achievements()->where('type', 'points')->get()->sum('data.amount');
     }
 
 }

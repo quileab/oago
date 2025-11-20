@@ -6,20 +6,16 @@ use Illuminate\Support\Facades\Storage;
 new class extends Component {
     public function images()
     {
-        $files = Storage::disk('public')->files('slider');
+        $disk = Storage::disk('public');
+        $jsonPath = 'slider/slider.json';
 
-        // Sort files by their numerical index if they follow the 'slide (X).jpg' pattern
-        usort($files, function ($a, $b) {
-            preg_match('/slide \((\d+)\)\./', basename($a), $matchesA);
-            preg_match('/slide \((\d+)\)\./', basename($b), $matchesB);
+        if (!$disk->exists($jsonPath)) {
+            return collect();
+        }
 
-            $numA = isset($matchesA[1]) ? (int) $matchesA[1] : PHP_INT_MAX;
-            $numB = isset($matchesB[1]) ? (int) $matchesB[1] : PHP_INT_MAX;
+        $imagePaths = json_decode($disk->get($jsonPath), true);
 
-            return $numA <=> $numB;
-        });
-
-        return collect($files)->map(fn($file) => asset('storage/' . $file));
+        return collect($imagePaths)->map(fn($file) => asset('storage/' . $file));
     }
 
     public function with(): array

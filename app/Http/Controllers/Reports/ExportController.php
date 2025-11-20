@@ -29,7 +29,7 @@ class ExportController extends Controller
             // "Expires" => "0"
         ];
 
-        $csv_headers = ['id', 'brand', 'model', 'description', 'price'];
+        $csv_headers = ['id', 'brand', 'model', 'description', 'description_html', 'tags', 'price'];
         foreach ($listPrices as $listPrice) {
             $csv_headers[] = 'list_' . $listPrice->list_id;
         }
@@ -41,6 +41,8 @@ class ExportController extends Controller
             $row[] = $product->brand;
             $row[] = $product->model;
             $row[] = $product->description;
+            $row[] = strip_tags($product->description_html);
+            $row[] = $product->tags;
             $row[] = $product->price;
             foreach ($listPrices as $listPrice) {
                 $row[] = $product->listPrices->where('list_id', $listPrice->list_id)->first()->price ?? '0';
@@ -77,7 +79,7 @@ class ExportController extends Controller
             // "Expires" => "0"
         ];
 
-        $csv_headers = ['id', 'brand', 'model', 'description', 'price'];
+        $csv_headers = ['id', 'brand', 'model', 'description', 'description_html', 'tags', 'price'];
         foreach ($listPrices as $listPrice) {
             $csv_headers[] = 'list_' . $listPrice->list_id;
         }
@@ -89,10 +91,48 @@ class ExportController extends Controller
             $row[] = $product->brand;
             $row[] = $product->model;
             $row[] = $product->description;
+            $row[] = strip_tags($product->description_html);
+            $row[] = $product->tags;
             $row[] = $product->price;
             foreach ($listPrices as $listPrice) {
                 $row[] = $product->listPrices->where('list_id', $listPrice->list_id)->first()->price ?? '0';
             }
+            fputcsv($handle, $row);
+        }
+
+        fclose($handle);
+
+        return response()->download($filename, $filename_download, $headers)->deleteFileAfterSend(true);
+    }
+
+    public function exportUsersOrderStats(): BinaryFileResponse
+    {
+        $filename = 'users_order_stats.csv';
+        $filename_download = 'users_order_stats_' . date("dmYHi") . '.csv';
+
+        $handle = fopen($filename, 'w+');
+
+        $users = \App\Models\User::withCount('orders')
+            ->with('latestOrder')
+            ->orderByDesc('orders_count')
+            ->get();
+
+        $headers = [
+            "Content-type" => "text/csv",
+            "Content-disposition" => "attachment; filename=/" . $filename_download,
+        ];
+
+        $csv_headers = ['ID', 'Nombre', 'Email', 'Teléfono', '# de Compras', 'Ultima compra'];
+        fputcsv($handle, $csv_headers);
+
+        foreach ($users as $user) {
+            $row = [];
+            $row[] = $user->id;
+            $row[] = $user->name . ' ' . $user->lastname;
+            $row[] = $user->email;
+            $row[] = $user->phone;
+            $row[] = $user->orders_count;
+            $row[] = $user->latestOrder?->created_at?->format('d/m/Y') ?? 'N/A';
             fputcsv($handle, $row);
         }
 

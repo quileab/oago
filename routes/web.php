@@ -32,7 +32,7 @@ Route::get('/logout', function () {
     request()->session()->invalidate();
     request()->session()->regenerateToken();
     request()->session()->flush();
-    request()->session()->forget('is_guest_login'); // Eliminar la bandera de invitado
+    request()->session()->forget('is_alt_login'); // Eliminar la bandera de alternativo
     return redirect('/');
 });
 
@@ -49,15 +49,21 @@ Route::middleware('auth')->group(function () {
     Volt::route('/order/{orderId}/edit', 'orderitems');
     Volt::route('/users', 'users.index')->middleware('is_admin');
     Volt::route('/user/{id?}', 'users.crud')->middleware('is_admin');
-    Volt::route('/guests', 'users.guests.index')->middleware('is_admin');
-    Volt::route('/guest/{id?}', 'users.guests.crud')->middleware('is_admin');
-    Volt::route('/guest-users/create', 'users.guests.crud')->middleware('is_admin'); // New route for adding guest user
+    Volt::route('/alts', 'users.alts.index')->middleware('is_admin');
+    Volt::route('/alt/{id?}', 'users.alts.crud')->middleware('is_admin');
+    Volt::route('/alt-users/create', 'users.alts.crud')->middleware('is_admin'); // New route for adding alt user
     Volt::route('/products', 'products.index')->middleware('is_admin');
     Volt::route('/products/extras', 'products.extras')->middleware('is_admin');
     Volt::route('/product/{id?}', 'products.crud')->middleware('is_admin');
     Volt::route('/product/details/{id?}', 'web-product-detail');
     Volt::route('/slider', 'slider')->middleware('is_admin');
     Volt::route('/dashboard', 'dashboard')->name('dashboard')->middleware('is_admin');
+    Volt::route('/achievements', 'achievements.index');
+    Volt::route('/achievement/create', 'achievements.crud');
+    Volt::route('/achievement/{achievement}/edit', 'achievements.crud');
+    Volt::route('/assign-achievement', 'assign-achievement');
+    Route::view('/settings', 'admin.settings')->name('admin.settings')->middleware('is_admin');
+
     // Users will be redirected to this route if not logged in
     // Volt::route('/register', 'register')->middleware('is_admin');
 
@@ -99,4 +105,5 @@ Route::middleware('auth')->group(function () {
     // using Reports/ExportController -> exportProducts with associated ListPrices
     Route::get('/export/products', [\App\Http\Controllers\Reports\ExportController::class, 'exportProducts'])->middleware('is_admin');
     Route::get('/export/customers-products', [\App\Http\Controllers\Reports\ExportController::class, 'exportCustomersProducts'])->middleware('is_admin');
+    Route::get('/export/users-order-stats', [\App\Http\Controllers\Reports\ExportController::class, 'exportUsersOrderStats'])->middleware('is_admin');
 });

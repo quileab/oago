@@ -8,6 +8,10 @@
 
         <div id="weeklySalesChart"></div>
     </div>
+    <div class="mt-8">
+        <h2 class="text-lg font-semibold">Ventas del último año por semana</h2>
+        <div id="lastYearSalesByWeekChart"></div>
+    </div>
     <div class="mt-4">
         PRODUCTOS MÁS VENDIDOS
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">

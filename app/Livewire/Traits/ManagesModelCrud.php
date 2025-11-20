@@ -10,7 +10,7 @@ trait ManagesModelCrud
     use Toast;
 
     // Properties to be defined by the component using this trait
-    // public $model; // The actual model instance (e.g., User $user or GuestUser $guestUser)
+    // public $model; // The actual model instance (e.g., User $user or AltUser $altUser)
     // protected string $modelClass; // The class name of the model (e.g., User::class)
     // protected string $successMessage = 'Registro guardado exitosamente.';
     // protected string $redirectRoute; // The route to redirect to after saving

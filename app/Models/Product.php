@@ -18,11 +18,8 @@ class Product extends Model
 
     public static function getTags()
     {
-        return [
-            'NUEVO',
-            'OFERTA',
-            'REMATE',
-            'IMPORTADOS',
-        ];
+        return ['NUEVO', 'OFERTA', 'REMATE', 'IMPORTADOS'];
     }
+
+    
 }

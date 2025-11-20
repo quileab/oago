@@ -1,5 +1,5 @@
 <?php
-use App\Models\GuestUser;
+use App\Models\AltUser;
 use Livewire\Volt\Component;
 use Livewire\WithPagination;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -11,7 +11,7 @@ new class extends Component {
     use WithPagination;
     use ManagesModelIndex; // Use the new trait
 
-    protected string $modelClass = GuestUser::class; // Configure the model for the trait
+    protected string $modelClass = AltUser::class; // Configure the model for the trait
 
     public array $sortBy = ['column' => 'created_at', 'direction' => 'desc'];
 
@@ -30,9 +30,9 @@ new class extends Component {
         ];
     }
 
-    public function guestUsers(): LengthAwarePaginator //Collection
+    public function altUsers(): LengthAwarePaginator //Collection
     {
-        return GuestUser::query()
+        return AltUser::query()
             ->when(
                 $this->search,
                 fn($q) => $q->where(DB::raw('concat(name, " ", lastname, " ", email)'), 'like', "%$this->search%")
@@ -43,7 +43,7 @@ new class extends Component {
     public function with(): array
     {
         return [
-            'guestUsers' => $this->guestUsers(),
+            'altUsers' => $this->altUsers(),
             'headers' => $this->headers()
         ];
     }
@@ -59,19 +59,19 @@ new class extends Component {
 
 <div>
     <!-- HEADER -->
-    <x-header title="Usuarios Invitados" separator progress-indicator>
+    <x-header title="Usuarios Alternativos" separator progress-indicator>
         <x-slot:middle class="!justify-end">
             <x-input placeholder="Buscar..." wire:model.live.debounce="search" clearable icon="o-magnifying-glass" />
         </x-slot:middle>
         <x-slot:actions>
-            <x-button label="Agregar" link="/guest-users/create" responsive icon="o-user-plus" class="btn-primary" />
+            <x-button label="Agregar" link="/alt-users/create" responsive icon="o-user-plus" class="btn-primary" />
         </x-slot:actions>
     </x-header>
 
     <!-- TABLE  -->
-    <x-table :headers="$headers" :rows="$guestUsers" :sort-by="$sortBy" striped with-pagination link="/guest/{id}">
-        @scope('cell_created_at', $guestUser)
-        {{ $guestUser->created_at->format('d/m/Y') }}
+    <x-table :headers="$headers" :rows="$altUsers" :sort-by="$sortBy" striped with-pagination link="/alt/{id}">
+        @scope('cell_created_at', $altUser)
+        {{ $altUser->created_at->format('d/m/Y') }}
         @endscope
     </x-table>
 

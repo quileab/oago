@@ -1,8 +1,9 @@
 <?php
 
+use App\Enums\Role;
 use Livewire\Volt\Component;
 use Mary\Traits\Toast;
-use App\Models\GuestUser; // Ensure GuestUser model is imported
+use App\Models\AltUser; // Ensure AltUser model is imported
 use App\Models\ListName; // Ensure ListName is imported
 use Illuminate\Support\Facades\Hash; // Ensure Hash is imported
 use Illuminate\Support\Facades\Mail; // Ensure Mail is imported
@@ -22,7 +23,7 @@ new class extends Component {
         $this->list_names = ListName::all();
 
         if ($id) {
-            $this->formData = GuestUser::findOrFail($id)->toArray();
+            $this->formData = AltUser::findOrFail($id)->toArray();
             // check if list_id is null and set it to 1
             if ($this->formData['list_id'] === null) {
                 $this->formData['list_id'] = 1;
@@ -61,7 +62,7 @@ new class extends Component {
         $rules['formData.email'] = [
             'required',
             'email',
-            Rule::unique('guest_users', 'email')->ignore($this->formData['id'] ?? null),
+            Rule::unique('alt_users', 'email')->ignore($this->formData['id'] ?? null),
         ];
 
         return $rules;
@@ -88,16 +89,16 @@ new class extends Component {
         // validate
         $this->validate($this->rules(), $this->messages()); // Use the rules() and messages() methods
         // update OR create
-        $user = GuestUser::updateOrCreate(
+        $user = AltUser::updateOrCreate(
             ['id' => $this->formData['id'] ?? null], // Use formData and handle new records
             $this->formData
         );
-        return redirect('guests');
+        return redirect('alts');
     }
 
     public function changePassword()
     {
-        $user = GuestUser::find($this->formData['id']);
+        $user = AltUser::find($this->formData['id']);
         $user->password = Hash::make($this->newPassword);
         $user->save();
         $this->newPassword = '';
@@ -106,41 +107,46 @@ new class extends Component {
 
     public function delete()
     {
-        $user = GuestUser::findOrFail($this->formData['id']);
+        $user = AltUser::findOrFail($this->formData['id']);
         $user->delete();
-        return redirect('guests');
+        return redirect('alts');
     }
 
     public function resetDate()
     {
-        $user = GuestUser::find($this->formData['id']);
-        $user->created_at = now();
+        $user = AltUser::find($this->formData['id']);
+        $user->created_at = $this->createdAtDate;
         $user->save();
         $this->createdAtDate = $user->created_at->format('Y-m-d'); // Update the displayed date
-        $this->success('Fecha de creación reiniciada.', position: 'toast-bottom');
+        $this->success('Fecha de creación reiniciada.');
     }
 
     public function sendWelcomeEmail()
     {
-        $user = GuestUser::find($this->formData['id']);
+        $user = AltUser::find($this->formData['id']);
         // update created_at and updated_at timestamps to current time
         $user->created_at = now();
         $user->updated_at = $user->created_at;
         // set user role to 'guest'
-        $user->role = 'guest';
+        $user->role = Role::GUEST;
         // create 8 characters password string with 4 letters and 4 numbers
         $password = substr(str_shuffle('abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'), 0, 8);
         // hash password
         $user->password = Hash::make($password);
         $user->save();
         // Assuming you have a default password or a way to generate one
-        Mail::to($user->email)->send(new \App\Mail\GuestUserWelcomeMail($user, $password));
+        Mail::to($user->email)->send(new \App\Mail\AltUserWelcomeMail($user, $password));
         $this->success('Correo de bienvenida enviado.', position: 'toast-bottom');
+    }
+
+    public function roles()
+    {
+        return array_map(fn($role) => ['name' => $role->value], Role::cases());
     }
 }; ?>
 
 <div>
-    <x-card title="Usuario Invitado" shadow separator class="mb-4">
+    <x-card title="Usuario Alternativo" shadow separator class="mb-4">
         <x-form wire:submit="save">
             <div class="grid grid-cols-1 gap-2 md:grid-cols-2">
                 <x-input label="Apellido" wire:model="formData.lastname" icon="o-user"
@@ -159,8 +165,8 @@ new class extends Component {
                 <x-input label="E-mail" wire:model="formData.email" icon="o-envelope" error-field="formData.email" />
             </div>
             <div class="grid grid-cols-1 gap-2 md:grid-cols-2">
-                <x-select label="Rol" icon="o-queue-list" :options="[['name' => 'none'], ['name' => 'guest']]"
-                    option-value="name" wire:model.lazy="formData.role" />
+                <x-select label="Rol" icon="o-queue-list" :options="$this->roles()" option-value="name"
+                    wire:model.lazy="formData.role" />
                 <x-select label="Lista de Precios" icon="o-queue-list" :options="$list_names"
                     wire:model="formData.list_id" error-field="list_id" option-value="id" option-label="name" />
             </div>

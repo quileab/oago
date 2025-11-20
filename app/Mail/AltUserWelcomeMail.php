@@ -8,9 +8,9 @@ use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
-use App\Models\GuestUser as User;
+use App\Models\AltUser as User;
 
-class GuestUserWelcomeMail extends Mailable
+class AltUserWelcomeMail extends Mailable
 {
     use Queueable, SerializesModels;
 
@@ -42,7 +42,7 @@ class GuestUserWelcomeMail extends Mailable
     public function content(): Content
     {
         return new Content(
-            view: 'emails.guest-user-welcome',
+            view: 'emails.alt-user-welcome',
         );
     }
 

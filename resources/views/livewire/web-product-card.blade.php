@@ -78,7 +78,7 @@
                     </small>
                 </p>
             @endif
-            @if($product->stock > 10 && !in_array(Auth::user()->role, ['none', 'guest']))
+            @if($product->stock >= 0 && !in_array(Auth::user()->role->value, ['none', 'guest']))
                 <div class="flex gap-0">
                     <button class="btn bg-red-600 border-2 hover:bg-red-500 hover:text-white grow-1"
                         onclick="decreaseQuantity({{ $product->id }}, 1)">
@@ -105,7 +105,7 @@
                         wire:click="searchSimilar({{$product}})" responsive />
                     <button class="btn btn-outline text-red-600 border-2 hover:bg-red-600 hover:text-white"
                         onclick="Livewire.dispatch('addToCart', {'product': {{ $product }}, 'quantity':
-                                                                                                                                                                                                                        document.getElementById('qtty-{{ $product->id }}').value})">
+                                                                                                                                                                                                                                        document.getElementById('qtty-{{ $product->id }}').value})">
                         <x-icon name="o-shopping-cart" label="AGREGAR" />
                     </button>
                 </div>

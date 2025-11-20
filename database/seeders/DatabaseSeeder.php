@@ -16,16 +16,23 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
 
-        User::factory()->create([
-            'name' => 'admin',
-            'lastname' => 'admin',
-            'role' => 'admin',
-            'address' => 'admin',
-            'city' => 'admin',
-            'postal_code' => '9999',
-            'phone' => '+5493482111111',
-            'email' => 'admin@admin.com',
-            'password' => Hash::make('Oagos2025'),
+        if (!User::where('email', 'admin@admin.com')->exists()) {
+            User::factory()->create([
+                'name' => 'admin',
+                'lastname' => 'admin',
+                'role' => 'admin',
+                'address' => 'admin',
+                'city' => 'admin',
+                'postal_code' => '9999',
+                'phone' => '+5493482111111',
+                'email' => 'admin@admin.com',
+                'password' => Hash::make('Oagos2025'),
+            ]);
+        }
+
+        $this->call([
+            SettingsSeeder::class,
+            AchievementSeeder::class,
         ]);
     }
 }

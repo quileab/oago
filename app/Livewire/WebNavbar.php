@@ -4,7 +4,7 @@ namespace App\Livewire;
 
 use Livewire\Component;
 
-use App\Models\GuestUser;
+use App\Models\AltUser;
 use Illuminate\Support\Facades\Auth;
 
 class WebNavbar extends Component
@@ -14,8 +14,8 @@ class WebNavbar extends Component
     public function mount()
     {
         $user = Auth::user();
-        if ($user && $user->role === 'guest') {
-            $guest = GuestUser::where('email', $user->email)->first();
+        if ($user && $user->role->value === 'guest') {
+            $guest = AltUser::where('email', $user->email)->first();
             if ($guest) {
                 $created_date = $guest->created_at;
                 $end_date = $created_date->copy()->addDays(10);
@@ -23,7 +23,7 @@ class WebNavbar extends Component
                 $expiration_date = $guest->created_at->addDays(10);
                 if (now()->isAfter($expiration_date)) {
                     // logout
-                    Auth::guard('guest')->logout();
+                    Auth::guard('alt')->logout();
                     return;
                 }
             }

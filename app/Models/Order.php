@@ -64,16 +64,21 @@ class Order extends Model
         // Remove old items from the order OrderItem where order_id at once
         OrderItem::where('order_id', $orderCreated->id)->delete();
 
-        // Add / Update items to the order 
+        // Add / Update items to the order
         foreach (Session::get('cart', []) as $item) {
-            // update or create
-            OrderItem::updateOrCreate([
-                'order_id' => $orderCreated->id,
-                'product_id' => $item['product_id'],
-            ], [
-                'quantity' => $item['quantity'],
-                'price' => $item['price'],
-            ]);
+            if (($item['price'] * $item['quantity']) > 0) {
+                // update or create
+                OrderItem::updateOrCreate(
+                    [
+                        'order_id' => $orderCreated->id,
+                        'product_id' => $item['product_id'],
+                    ],
+                    [
+                        'quantity' => $item['quantity'],
+                        'price' => $item['price'],
+                    ]
+                );
+            }
         }
 
         // Enviar correo de confirmación

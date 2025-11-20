@@ -81,7 +81,7 @@ new class extends Component {
             <h3 class="text-2xl"><small class="text-primary">Estado:</small>
                 {{ \App\Models\Order::orderStates($order->status) }}</h3>
             {{-- Si el estado no es completado poder cambiar el estado --}}
-            @if($order->status != 'completed' && Auth::user()->role == 'admin')
+            @if($order->status != 'completed' && Auth::user()->role->value == 'admin')
                 <x-dropdown label="Cambiar Estado" icon="o-arrow-path-rounded-square" class="btn-primary w-full mt-2">
                     @foreach(['pending', 'on-hold', 'cancelled'] as $statusOption)
                         @if($statusOption != $order->status)

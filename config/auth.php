@@ -44,9 +44,9 @@ return [
             'driver' => 'sanctum',
             'provider' => 'users',
         ],
-        'guest' => [
+        'alt' => [
             'driver' => 'session',
-            'provider' => 'guests',
+            'provider' => 'alts',
         ],
     ],
 
@@ -72,9 +72,9 @@ return [
             'driver' => 'eloquent',
             'model' => env('AUTH_MODEL', App\Models\User::class),
         ],
-        'guests' => [
+        'alts' => [
             'driver' => 'eloquent',
-            'model' => App\Models\GuestUser::class,
+            'model' => App\Models\AltUser::class,
         ],
         
 

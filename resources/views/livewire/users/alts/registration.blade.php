@@ -41,7 +41,7 @@ new class extends Component {
             'data.city' => 'required',
             'data.postal_code' => 'required',
             'data.phone' => 'required',
-            'data.email' => 'required|email|unique:guest_users,email',
+            'data.email' => 'required|email|unique:alt_users,email',
             'data.password' => 'required',
         ], [
             'data.name.required' => 'El nombre es requerido.',
@@ -56,7 +56,7 @@ new class extends Component {
             'data.password.required' => 'La contraseña es requerida.',
         ]);
         // toast messages
-        if (\App\Models\GuestUser::create($validated['data'])) {
+        if (\App\Models\AltUser::create($validated['data'])) {
             $this->reset('data');
             $this->message = true;
         } else {

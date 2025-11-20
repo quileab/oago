@@ -36,7 +36,7 @@ new class extends Component {
             ['name' => 'Publicado', 'value' => false, 'action' => 'nothing'],
             ['name' => 'Destacado', 'value' => false, 'action' => 'nothing'],
         ];
-        foreach (Product::getTags() as $key => $value) {
+        foreach (\App\Helpers\SettingsHelper::getProductTags() as $key => $value) {
             $this->tags_list[] = ['name' => $value, 'value' => false, 'action' => 'nothing'];
         }
     }
@@ -121,7 +121,7 @@ new class extends Component {
                     if ($tag['action'] != 'nothing' && $tag['name'] == 'Publicado') {
                         $product->published = $tag['action'] == 'apply' ? true : false;
                     }
-                    if (in_array($tag['name'], Product::getTags())) {
+                    if (in_array($tag['name'], \App\Helpers\SettingsHelper::getProductTags())) {
                         if ($tag['action'] == 'apply' && !in_array($tag['name'], $tags)) {
                             $tags[] = $tag['name'];
                         }
