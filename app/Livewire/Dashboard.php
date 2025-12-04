@@ -104,6 +104,16 @@ class Dashboard extends Component
             }
         }
 
+        // Chart 1: Yearly sales by week
+        $yearlySales = Order::query()
+            ->selectRaw('DATE(SUBDATE(created_at, WEEKDAY(created_at))) as week_start, SUM(total_price) as total')
+            ->where('status', 'completed')
+            ->whereBetween('created_at', [Carbon::now()->subYear(), Carbon::now()])
+            ->groupBy('week_start')
+            ->orderBy('week_start', 'asc')
+            ->get()
+            ->pluck('total', 'week_start');
+
         // Chart 2: Weekly sales
         $weeklySales = Order::query()
             ->selectRaw('DATE(created_at) as date, SUM(total_price) as total')
@@ -133,6 +143,7 @@ class Dashboard extends Component
             });
 
         $this->dispatch('updateCharts', [
+            'yearlySales' => $yearlySales,
             'weeklySales' => $weeklySales,
             'topProducts' => $topProducts,
         ]);

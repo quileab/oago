@@ -36,6 +36,22 @@ new #[Layout('components.layouts.empty')]
                 'password' => ['required'],
             ]
         );
+
+        $user = \App\Models\User::where('email', $credentials['email'])->first();
+
+        if ($user) {
+            $deniedRoles = ['none', null, ''];
+            if (in_array($user->role, $deniedRoles, true)) {
+                $this->addError('email', 'Usuario no activo');
+                return;
+            }
+
+            if ($user->role === 'other') {
+                $this->addError('email', 'Usuario no definido');
+                return;
+            }
+        }
+
         if (auth()->attempt($credentials)) {
             request()->session()->regenerate();
             // check if user has a temporarily cart JSON and load it

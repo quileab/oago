@@ -100,7 +100,7 @@ new class extends Component {
         <x-input label="E-mail" wire:model="formData.email" icon="o-envelope" error-field="formData.email" />
         </div>
         <div class="grid grid-cols-1 gap-2 md:grid-cols-2">
-        <x-select label="Rol" icon="o-queue-list" :options="[['name' => 'customer'],['name' => 'admin']]" option-value="name" wire:model.lazy="formData.role" />
+        <x-select label="Rol" icon="o-queue-list" :options="[['name' => 'customer'],['name' => 'admin'],['name' => 'none'],['name' => 'other']]" option-value="name" wire:model.lazy="formData.role" />
         <x-input label="Lista de Precios" wire:model="formData.list_id" type="number" icon="o-numbered-list" error-field="list_id" />
         </div>
         

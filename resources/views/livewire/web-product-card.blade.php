@@ -11,7 +11,7 @@
                 @endif
 
                 <x-image-proxy url="{{ $product->image_url }}"
-                    class="h-32 w-auto mx-auto object-cover {{ $product->stock < 10 ? 'opacity-50' : '' }}" />
+                    class="h-32 w-auto mx-auto object-cover {{ $product->stock == 0 ? 'opacity-50' : '' }}" />
 
             </div>
             {{-- // if product is featured show description above image --}}

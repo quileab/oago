@@ -49,6 +49,7 @@ Route::middleware('auth')->group(function () {
     Volt::route('/order/{orderId}/edit', 'orderitems');
     Volt::route('/users', 'users.index')->middleware('is_admin');
     Volt::route('/user/{id?}', 'users.crud')->middleware('is_admin');
+    Volt::route('/users/bulk-role-update', 'users.bulk-role-update')->middleware('is_admin');
     Volt::route('/guests', 'users.guests.index')->middleware('is_admin');
     Volt::route('/guest/{id?}', 'users.guests.crud')->middleware('is_admin');
     Volt::route('/guest-users/create', 'users.guests.crud')->middleware('is_admin'); // New route for adding guest user

@@ -52,7 +52,7 @@ class UserController extends Controller
             'phone' => 'nullable|string|max:50',
             'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:3', // Changed to min:3 as requested
-            'role' => 'required|string|in:admin,customer,other', // Ajustar según los roles permitidos
+            'role' => 'required|string|in:admin,customer,none,other', // Ajustar según los roles permitidos
             'list_id' => 'nullable|exists:list_names,id', // validar solo si el cliente pertenece a una lista de precios
         ]);
 
@@ -102,7 +102,7 @@ class UserController extends Controller
             'postal_code' => 'nullable|string|max:10',
             'phone' => 'nullable|string|max:50',
             'email' => 'email|unique:users,email,' . $user->id,
-            'role' => 'string|in:admin,customer,other',
+            'role' => 'string|in:admin,customer,none,other',
             'list_id' => 'nullable|exists:list_names,id',
         ]);
 

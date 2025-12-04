@@ -24,6 +24,13 @@ class AuthController extends Controller
             ], 400);
           }
         $user = User::where('email', $request->email)->first();
+
+        $deniedRoles = ['none', 'other', null, ''];
+        if (in_array($user->role, $deniedRoles, true)) {
+            $message = $user->role === 'other' ? 'Usuario no definido' : 'Usuario no activo';
+            return response()->json(['message' => $message], 401);
+        }
+
         if (!$user || !Hash::check($request->password, $user->password)) {
             return response()->json([
                 'message' => 'The provided credentials are incorrect.',

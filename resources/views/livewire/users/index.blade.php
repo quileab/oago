@@ -66,7 +66,8 @@ new class extends Component {
             <x-input placeholder="Buscar..." wire:model.live.debounce="search" clearable icon="o-magnifying-glass" />
         </x-slot:middle>
         <x-slot:actions>
-        {{-- // placeholder --}}
+            <x-button icon="o-plus" class="btn-primary" link="/user" />
+            <x-button icon="o-users" class="btn-secondary" link="/users/bulk-role-update" label="Actualización Masiva de Roles" />
         </x-slot:actions>
     </x-header>
 
