@@ -6,7 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
+use App\Enums\Role;
 
 class UserController extends Controller
 {
@@ -18,9 +19,12 @@ class UserController extends Controller
     {
         $query = User::query();
 
-        // Filtrar por rol (por ejemplo, "customer" o "admin")
-        if ($request->has('role')) {
+        if ($request->has('role') && auth()->user()->role === Role::ADMIN) {
             $query->where('role', $request->role);
+        }
+
+        if (auth()->user()->role !== Role::ADMIN) {
+            $query->where('id', auth()->id());
         }
 
         $users = $query->get();
@@ -29,49 +33,44 @@ class UserController extends Controller
 
     /**
      * Store a newly created resource in storage.
+     * This method assumes user creation is for self-registration or admin.
      */
     public function store(Request $request)
     {
-        // check if the user already exists
-        $user_exists = User::find($request->id);
-        if ($user_exists) {
-            // update the user
-            return $this->update($request, $user_exists->id);
-        }
+        $request->offsetUnset('id');
 
-        // create default password with user id
-        $request->merge(['password' => $request->id]);
-
-        $validator = Validator::make($request->all(), [
-            'id' => 'nullable',
+        $rules = [
             'name' => 'required|string|max:30',
             'lastname' => 'required|string|max:30',
             'address' => 'nullable|string|max:100',
             'city' => 'nullable|string|max:30',
             'postal_code' => 'nullable|string|max:10',
             'phone' => 'nullable|string|max:50',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:3', // Changed to min:3 as requested
-            'role' => 'required|string|in:none,guest,customer,sales,admin', // Ajustar según los roles permitidos
-            'list_id' => 'nullable|exists:list_names,id', // validar solo si el cliente pertenece a una lista de precios
-        ]);
+            'email' => ['required', 'email', Rule::unique('users', 'email')],
+            'password' => 'required|string|min:8',
+        ];
 
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+        if (auth()->user()->role === Role::ADMIN) {
+            $rules['role'] = ['required', 'string', Rule::in(array_map(fn($role) => $role->value, Role::cases()))];
+            $rules['list_id'] = 'nullable|exists:list_names,id';
+        } else {
+            $request->merge(['role' => Role::CUSTOMER->value]);
+            $request->merge(['list_id' => null]);
         }
 
+        $validatedData = $request->validate($rules);
+        
         $user = User::create([
-            'id' => $request->id,
-            'name' => $request->name,
-            'lastname' => $request->lastname,
-            'address' => $request->address,
-            'city' => $request->city,
-            'postal_code' => $request->postal_code,
-            'phone' => $request->phone,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'role' => $request->role,
-            'list_id' => $request->list_id,
+            'name' => $validatedData['name'],
+            'lastname' => $validatedData['lastname'],
+            'address' => $validatedData['address'] ?? null,
+            'city' => $validatedData['city'] ?? null,
+            'postal_code' => $validatedData['postal_code'] ?? null,
+            'phone' => $validatedData['phone'] ?? null,
+            'email' => $validatedData['email'],
+            'password' => Hash::make($validatedData['password']),
+            'role' => $validatedData['role'] ?? Role::CUSTOMER->value,
+            'list_id' => $validatedData['list_id'] ?? null,
         ]);
 
         return response()->json($user, 201);
@@ -83,6 +82,10 @@ class UserController extends Controller
     public function show($id)
     {
         $user = User::findOrFail($id);
+
+        if (auth()->id() !== $user->id && auth()->user()->role !== Role::ADMIN) {
+            abort(403, 'Unauthorized to view this user profile.');
+        }
         return response()->json($user, 200);
     }
 
@@ -93,29 +96,50 @@ class UserController extends Controller
     {
         $user = User::findOrFail($id);
 
-        $validator = Validator::make($request->all(), [
-            'id' => 'exists:users,id',
+        if (auth()->id() !== $user->id && auth()->user()->role !== Role::ADMIN) {
+            abort(403, 'Unauthorized to update this user profile.');
+        }
+
+        $rules = [
             'name' => 'string|max:30',
             'lastname' => 'string|max:30',
             'address' => 'nullable|string|max:100',
             'city' => 'nullable|string|max:30',
             'postal_code' => 'nullable|string|max:10',
             'phone' => 'nullable|string|max:50',
-            'email' => 'email|unique:users,email,' . $user->id,
-            'role' => 'string|in:none,guest,customer,sales,admin',
+            'email' => ['email', Rule::unique('users', 'email')->ignore($user->id)],
+            'password' => 'nullable|string|min:8',
             'list_id' => 'nullable|exists:list_names,id',
-        ]);
+        ];
 
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+        if (auth()->user()->role === Role::ADMIN) {
+            $rules['role'] = ['string', Rule::in(array_map(fn($role) => $role->value, Role::cases()))];
+        } else {
+             $request->offsetUnset('role');
         }
 
-        $data = $request->only(['name', 'lastname', 'address', 'city', 'postal_code', 'phone', 'email', 'role', 'list_id']);
-        if ($request->has('password')) {
-            $data['password'] = Hash::make($request->password);
+        $validatedData = $request->validate($rules);
+        
+        $dataToUpdate = [
+            'name' => $validatedData['name'] ?? $user->name,
+            'lastname' => $validatedData['lastname'] ?? $user->lastname,
+            'address' => $validatedData['address'] ?? $user->address,
+            'city' => $validatedData['city'] ?? $user->city,
+            'postal_code' => $validatedData['postal_code'] ?? $user->postal_code,
+            'phone' => $validatedData['phone'] ?? $user->phone,
+            'email' => $validatedData['email'] ?? $user->email,
+            'list_id' => $validatedData['list_id'] ?? $user->list_id,
+        ];
+
+        if (isset($validatedData['password'])) {
+            $dataToUpdate['password'] = Hash::make($validatedData['password']);
         }
 
-        $user->update($data);
+        if (auth()->user()->role === Role::ADMIN && isset($validatedData['role'])) {
+            $dataToUpdate['role'] = $validatedData['role'];
+        }
+        
+        $user->update($dataToUpdate);
         return response()->json($user, 200);
     }
 
@@ -125,6 +149,11 @@ class UserController extends Controller
     public function destroy($id)
     {
         $user = User::findOrFail($id);
+
+        if (auth()->id() !== $user->id && auth()->user()->role !== Role::ADMIN) {
+            abort(403, 'Unauthorized to delete this user profile.');
+        }
+
         $user->delete();
         return response()->json(['message' => 'Usuario eliminado correctamente'], 200);
     }

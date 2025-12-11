@@ -12,7 +12,20 @@ use Illuminate\Support\Facades\Session;
 class Order extends Model
 {
     //protected $fillable = ['status'];
-    protected $guarded = [];
+    protected $fillable = [
+        'user_id',
+        'total_price',
+        'sending_method',
+        'sending_address',
+        'sending_city',
+        'contact_name',
+        'contact_number',
+        'transport_detail',
+        'payment_method',
+        'payment_detail',
+        'information',
+        'status',
+    ];
     public function user()
     {
         return $this->belongsTo(User::class);
@@ -52,7 +65,7 @@ class Order extends Model
             return;
         }
         $shipping['total_price'] = $total;
-        $shipping['user_id'] = Auth::id();
+        $shipping['user_id'] = current_user()->id;
 
         $data = array_merge($order, $shipping);
         // Crear la orden

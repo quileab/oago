@@ -2,23 +2,25 @@
 
 use App\Enums\Role;
 use Livewire\Volt\Component;
+use Livewire\Attributes\Computed;
 use Mary\Traits\Toast;
-use App\Models\AltUser; // Ensure AltUser model is imported
-use App\Models\ListName; // Ensure ListName is imported
-use Illuminate\Support\Facades\Hash; // Ensure Hash is imported
-use Illuminate\Support\Facades\Mail; // Ensure Mail is imported
-use Carbon\Carbon; // Ensure Carbon is imported
-use Illuminate\Validation\Rule; // Ensure Rule is imported
+use App\Models\AltUser;
+use App\Models\ListName;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use Carbon\Carbon;
+use Illuminate\Validation\Rule;
+use App\Mail\AltUserWelcomeMail;
 
 new class extends Component {
     use Toast;
+
     public string $newPassword = '';
-    public array $formData = []; // Use array for form data
+    public array $formData = [];
     public $list_names = [];
+    public string $createdAtDate = '';
 
-    public $createdAtDate = '';
-
-    public function mount($id = null)
+    public function mount($id = null): void
     {
         $this->list_names = ListName::all();
 
@@ -28,7 +30,7 @@ new class extends Component {
             if ($this->formData['list_id'] === null) {
                 $this->formData['list_id'] = 1;
             }
-            $this->createdAtDate = $this->formData['created_at'] ? Carbon::parse($this->formData['created_at'])->format('Y-m-d') : null;
+            $this->createdAtDate = $this->formData['created_at'] ? Carbon::parse($this->formData['created_at'])->format('Y-m-d') : now()->format('Y-m-d');
         } else {
             $this->formData = [
                 'name' => '',
@@ -38,7 +40,6 @@ new class extends Component {
                 'postal_code' => '',
                 'phone' => '',
                 'email' => '',
-                'password' => '',
                 'role' => 'customer',
                 'list_id' => 1,
             ];
@@ -46,16 +47,23 @@ new class extends Component {
         }
     }
 
-    protected function rules()
+    #[Computed]
+    public function roles(): array
+    {
+        return array_map(fn($role) => ['id' => $role->value, 'name' => $role->value], Role::cases());
+    }
+
+    protected function rules(): array
     {
         $rules = [
-            'formData.name' => 'required',
-            'formData.lastname' => 'required',
-            'formData.address' => 'required',
-            'formData.city' => 'required',
-            'formData.postal_code' => 'required',
-            'formData.phone' => 'required',
+            'formData.name' => 'required|string|max:255',
+            'formData.lastname' => 'required|string|max:255',
+            'formData.address' => 'required|string|max:255',
+            'formData.city' => 'required|string|max:255',
+            'formData.postal_code' => 'required|string|max:20',
+            'formData.phone' => 'required|string|max:50',
             'formData.list_id' => 'required|numeric',
+            'formData.role' => 'required|string',
         ];
 
         // Add unique email validation
@@ -68,7 +76,7 @@ new class extends Component {
         return $rules;
     }
 
-    protected function messages()
+    protected function messages(): array
     {
         return [
             'formData.name.required' => 'El nombre es requerido.',
@@ -79,51 +87,56 @@ new class extends Component {
             'formData.phone.required' => 'El teléfono es requerido.',
             'formData.email.required' => 'El e-mail es requerido.',
             'formData.email.email' => 'El e-mail no es válido.',
-            'formData.email.unique' => 'El e-mail ya existe.', // New message
+            'formData.email.unique' => 'El e-mail ya existe.',
             'formData.list_id.required' => 'La lista de precios es requerida.',
+            'formData.role.required' => 'El rol es requerido.',
         ];
     }
 
-    public function save()
+    public function save(): void
     {
-        // validate
-        $this->validate($this->rules(), $this->messages()); // Use the rules() and messages() methods
-        // update OR create
-        $user = AltUser::updateOrCreate(
-            ['id' => $this->formData['id'] ?? null], // Use formData and handle new records
-            $this->formData
+        $validated = $this->validate($this->rules(), $this->messages());
+
+        AltUser::updateOrCreate(
+            ['id' => $this->formData['id'] ?? null],
+            $validated['formData']
         );
-        return redirect('alts');
+
+        $this->success('Usuario Alternativo guardado correctamente.', position: 'toast-bottom');
+        $this->redirect('/alts', navigate: true);
     }
 
-    public function changePassword()
+    public function changePassword(): void
     {
-        $user = AltUser::find($this->formData['id']);
-        $user->password = Hash::make($this->newPassword);
-        $user->save();
-        $this->newPassword = '';
-        $this->success('Password updated.', position: 'toast-bottom');
-    }
-
-    public function delete()
-    {
+        $this->validate(['newPassword' => 'required|min:6']);
+        
         $user = AltUser::findOrFail($this->formData['id']);
-        $user->delete();
-        return redirect('alts');
+        $user->update(['password' => Hash::make($this->newPassword)]);
+        
+        $this->newPassword = '';
+        $this->success('Clave actualizada.', position: 'toast-bottom');
     }
 
-    public function resetDate()
+    public function delete(): void
     {
-        $user = AltUser::find($this->formData['id']);
+        AltUser::findOrFail($this->formData['id'])->delete();
+        $this->redirect('/alts');
+    }
+
+    public function resetDate(): void
+    {
+        $this->validate(['createdAtDate' => 'required|date']);
+
+        $user = AltUser::findOrFail($this->formData['id']);
         $user->created_at = $this->createdAtDate;
         $user->save();
-        $this->createdAtDate = $user->created_at->format('Y-m-d'); // Update the displayed date
+        $this->createdAtDate = $user->created_at->format('Y-m-d');
         $this->success('Fecha de creación reiniciada.');
     }
 
-    public function sendWelcomeEmail()
+    public function sendWelcomeEmail(): void
     {
-        $user = AltUser::find($this->formData['id']);
+        $user = AltUser::findOrFail($this->formData['id']);
         // update created_at and updated_at timestamps to current time
         $user->created_at = now();
         $user->updated_at = $user->created_at;
@@ -134,70 +147,79 @@ new class extends Component {
         // hash password
         $user->password = Hash::make($password);
         $user->save();
-        // Assuming you have a default password or a way to generate one
-        Mail::to($user->email)->send(new \App\Mail\AltUserWelcomeMail($user, $password));
+        Mail::to($user->email)->send(new AltUserWelcomeMail($user, $password));
         $this->success('Correo de bienvenida enviado.', position: 'toast-bottom');
-    }
-
-    public function roles()
-    {
-        return array_map(fn($role) => ['name' => $role->value], Role::cases());
     }
 }; ?>
 
 <div>
     <x-card title="Usuario Alternativo" shadow separator class="mb-4">
         <x-form wire:submit="save">
-            <div class="grid grid-cols-1 gap-2 md:grid-cols-2">
-                <x-input label="Apellido" wire:model="formData.lastname" icon="o-user"
-                    error-field="formData.lastname" />
-                <x-input label="Nombre/s" wire:model="formData.name" icon="o-user" error-field="formData.name" />
-            </div>
-            <div class="grid grid-cols-1 gap-2 md:grid-cols-3">
-                <x-input label="Dirección" wire:model="formData.address" icon="o-map-pin"
-                    error-field="formData.address" />
-                <x-input label="Ciudad" wire:model="formData.city" icon="o-map-pin" error-field="formData.city" />
-                <x-input label="Código Postal" wire:model="formData.postal_code" icon="o-hashtag"
-                    error-field="formData.postal_code" />
-            </div>
-            <div class="grid grid-cols-1 gap-2 md:grid-cols-2">
-                <x-input label="Teléfono" wire:model="formData.phone" icon="o-phone" error-field="formData.phone" />
-                <x-input label="E-mail" wire:model="formData.email" icon="o-envelope" error-field="formData.email" />
-            </div>
-            <div class="grid grid-cols-1 gap-2 md:grid-cols-2">
-                <x-select label="Rol" icon="o-queue-list" :options="$this->roles()" option-value="name"
-                    wire:model.lazy="formData.role" />
-                <x-select label="Lista de Precios" icon="o-queue-list" :options="$list_names"
-                    wire:model="formData.list_id" error-field="list_id" option-value="id" option-label="name" />
+            <!-- Estructura Grid Simplificada -->
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-6">
+                <div class="lg:col-span-3">
+                    <x-input label="Apellido" wire:model="formData.lastname" icon="o-user" />
+                </div>
+                <div class="lg:col-span-3">
+                    <x-input label="Nombre/s" wire:model="formData.name" icon="o-user" />
+                </div>
+
+                <div class="lg:col-span-3">
+                    <x-input label="Dirección" wire:model="formData.address" icon="o-map-pin" />
+                </div>
+                <div class="lg:col-span-2">
+                    <x-input label="Ciudad" wire:model="formData.city" icon="o-map-pin" />
+                </div>
+                <div class="lg:col-span-1">
+                    <x-input label="C.P." wire:model="formData.postal_code" icon="o-hashtag" />
+                </div>
+
+                <div class="lg:col-span-3">
+                    <x-input label="Teléfono" wire:model="formData.phone" icon="o-phone" />
+                </div>
+                <div class="lg:col-span-3">
+                    <x-input label="E-mail" wire:model="formData.email" icon="o-envelope" />
+                </div>
+
+                <div class="lg:col-span-3">
+                    <x-select label="Rol" icon="o-queue-list" :options="$this->roles" option-value="id" option-label="name" wire:model="formData.role" />
+                </div>
+                <div class="lg:col-span-3">
+                    <x-select label="Lista de Precios" icon="o-queue-list" :options="$list_names" wire:model="formData.list_id" option-value="id" option-label="name" />
+                </div>
             </div>
 
             <x-slot:actions>
-                <x-button wire:click="save" icon="o-check" class="btn-primary" type="submit" spinner="save"
-                    label="Guardar" />
+                <x-button label="Guardar" icon="o-check" class="btn-primary" type="submit" spinner="save" />
             </x-slot:actions>
         </x-form>
     </x-card>
 
-    {{-- reset created_at to today --}}
     <x-card title="Acciones" shadow separator>
         <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-            <x-input label="RESET Fecha" type="date" wire:model="createdAtDate">
-                <x-slot:append>
-                    <x-button label="RESET" icon="o-clock" wire:click="resetDate" class="join-item btn-primary" />
-                </x-slot:append>
-            </x-input>
+            <div class="md:col-span-1">
+                <x-input label="RESET Fecha" type="date" wire:model="createdAtDate">
+                    <x-slot:append>
+                        <x-button label="RESET" icon="o-clock" wire:click="resetDate" class="join-item btn-primary" spinner="resetDate" />
+                    </x-slot:append>
+                </x-input>
+            </div>
 
-            <x-input label="Password" wire:model="newPassword" type="text" icon="o-key" error-field="newPassword">
-                <x-slot:append>
-                    <x-button label="Cambiar Clave" icon="o-check" class="btn-primary join-item"
-                        wire:click="changePassword" spinner="changePassword" />
-                </x-slot:append>
-            </x-input>
-            <x-dropdown label="Eliminar Usuario" class="btn-error mt-8">
-                <x-menu-item title="Confirmar" wire:click.stop="delete" spinner="delete" icon="o-trash"
-                    class="bg-red-500" />
-            </x-dropdown>
-            <div class="flex align-middle justify-between w-full border border-gray-300/50 rounded-md p-2 gap-2">
+            <div class="md:col-span-1">
+                <x-input label="Password" wire:model="newPassword" type="password" icon="o-key">
+                    <x-slot:append>
+                        <x-button label="Cambiar Clave" icon="o-check" class="btn-primary join-item" wire:click="changePassword" spinner="changePassword" />
+                    </x-slot:append>
+                </x-input>
+            </div>
+            
+            <div class="md:col-span-1">
+                <x-dropdown label="Eliminar Usuario" class="btn-error w-full mt-8">
+                    <x-menu-item title="Confirmar" wire:click="delete" spinner="delete" icon="o-trash" class="text-red-500" />
+                </x-dropdown>
+            </div>
+            
+            <div class="md:col-span-3 flex flex-col sm:flex-row align-middle justify-between w-full border border-gray-300/50 rounded-md p-2 gap-2">
                 <p>Enviar correo de bienvenida con <br><b>· contraseña autogenerada<br>· rol: invitado<br>· reseteo de
                         fecha</b>.
                 </p>

@@ -14,7 +14,17 @@ class AltUser extends Authenticatable
 
     protected $table = 'alt_users';
 
-    protected $guarded = [];
+    protected $fillable = [
+        'name',
+        'lastname',
+        'address',
+        'city',
+        'postal_code',
+        'phone',
+        'email',
+        'password',
+        'list_id',
+    ];
 
     protected $hidden = [
         'password',
@@ -49,5 +59,10 @@ class AltUser extends Authenticatable
     public function getTotalPointsAttribute()
     {
         return $this->achievements()->where('type', 'points')->get()->sum('data.amount');
+    }
+
+    public function assignedCustomers()
+    {
+        return $this->morphMany(CustomerSalesAgent::class, 'sales_agent');
     }
 }

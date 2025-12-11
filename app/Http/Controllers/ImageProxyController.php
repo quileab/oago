@@ -18,6 +18,27 @@ class ImageProxyController extends Controller
             return response()->file($fallback);
         }
 
+        // Validar esquema (solo http y https)
+        $scheme = parse_url($remoteUrl, PHP_URL_SCHEME);
+        if (!in_array($scheme, ['http', 'https'])) {
+             return response()->file($fallback);
+        }
+
+        // Validar que no sea una IP privada o local (SSRF)
+        $host = parse_url($remoteUrl, PHP_URL_HOST);
+        $ips = gethostbynamel($host);
+
+        if ($ips) {
+            foreach ($ips as $ip) {
+                if ($this->isPrivateIp($ip)) {
+                    return response()->file($fallback);
+                }
+            }
+        } else {
+             // Si no se puede resolver el host, también fallamos
+             return response()->file($fallback);
+        }
+
         try {
             $response = Http::timeout(5)->get($remoteUrl);
 
@@ -45,5 +66,13 @@ class ImageProxyController extends Controller
 
         // Si no se pudo obtener la imagen remota, servir imagen por defecto
         return response()->file($fallback);
+    }
+
+    /**
+     * Comprueba si una IP es privada o reservada.
+     */
+    private function isPrivateIp($ip)
+    {
+        return !filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE);
     }
 }
