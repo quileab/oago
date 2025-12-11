@@ -47,7 +47,7 @@ class UserController extends Controller
             'postal_code' => 'nullable|string|max:10',
             'phone' => 'nullable|string|max:50',
             'email' => ['required', 'email', Rule::unique('users', 'email')],
-            'password' => 'required|string|min:8',
+            'password' => 'required|string|min:3',
         ];
 
         if (auth()->user()->role === Role::ADMIN) {
@@ -108,7 +108,7 @@ class UserController extends Controller
             'postal_code' => 'nullable|string|max:10',
             'phone' => 'nullable|string|max:50',
             'email' => ['email', Rule::unique('users', 'email')->ignore($user->id)],
-            'password' => 'nullable|string|min:8',
+            'password' => 'nullable|string|min:3',
             'list_id' => 'nullable|exists:list_names,id',
         ];
 

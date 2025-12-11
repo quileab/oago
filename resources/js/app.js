@@ -1,6 +1,9 @@
 import './bootstrap';
 import './carousel';
 import ApexCharts from 'apexcharts';
+import Sortable from 'sortablejs';
+
+window.Sortable = Sortable;
 
 var weeklySalesChart = null;
 var topProductsChart = null;

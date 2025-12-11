@@ -50,7 +50,7 @@ class SettingsSeeder extends Seeder
         Setting::updateOrCreate(
             ['key' => 'product_tags'],
             [
-                'value' => ['NUEVO', 'OFERTA', 'REMATE', 'IMPORTADOS'], // Array, will be json_encoded by update_setting
+                'value' => json_encode(['NUEVO', 'OFERTA', 'REMATE', 'IMPORTADOS', 'DESTACADO', 'LIQUIDACION', 'ULTIMAS_UNIDADES']), // Array, will be json_encoded by update_setting
                 'type' => 'json',
                 'text' => 'Tags de Productos',
                 'description' => 'Lista de tags de productos separados por comas (ej. NUEVO,OFERTA,REMATE).'

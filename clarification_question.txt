@@ -1,0 +1,3 @@
+Pregunta de aclaración:
+
+Para "crear la interfaz de usuario para la administración de configuraciones", ¿te refieres a una nueva interfaz que permita a los administradores **añadir, editar o eliminar los propios tipos de configuración** (por ejemplo, añadir una nueva clave de configuración con su tipo, texto de etiqueta y descripción), en lugar de solo modificar los valores de las configuraciones existentes?

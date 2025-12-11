@@ -113,7 +113,7 @@ new class extends Component {
 ?>
 
 <div x-data="{}" x-init="$nextTick(() => {
-    new Sortable($refs.imageList, {
+    new window.Sortable($refs.imageList, {
         animation: 200,
         handle: '.handle', // Drag handle
         onEnd: function (evt) {
@@ -165,7 +165,3 @@ new class extends Component {
         @endif
     </x-form>
 </div>
-
-@push('scripts')
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-@endpush

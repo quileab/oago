@@ -58,4 +58,14 @@ class SettingsHelper
 
         Cache::forget('settings.' . $key);
     }
+
+    /**
+     * Get the list of product tags from settings.
+     *
+     * @return array
+     */
+    public static function getProductTags()
+    {
+        return self::settings('product_tags', []);
+    }
 }

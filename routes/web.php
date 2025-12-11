@@ -64,7 +64,7 @@ Route::middleware('auth')->group(function () {
     Volt::route('/achievement/create', 'achievements.crud');
     Volt::route('/achievement/{achievement}/edit', 'achievements.crud');
     Volt::route('/assign-achievement', 'assign-achievement');
-    Route::view('/settings', 'admin.settings')->name('admin.settings')->middleware('is_admin');
+    Volt::route('/settings', 'settings.crud')->middleware('is_admin');
 
     // Users will be redirected to this route if not logged in
     // Volt::route('/register', 'register')->middleware('is_admin');
