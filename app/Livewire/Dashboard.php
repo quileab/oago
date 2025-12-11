@@ -132,22 +132,20 @@ class Dashboard extends Component
                 return [$item->product->description => $item->total_quantity];
             });
 
-        $lastYearSalesByWeek = Order::query()
-            ->selectRaw('YEAR(created_at) as year, WEEK(created_at, 1) as week, SUM(total_price) as total')
+        // Chart 1: Yearly sales by week
+        $yearlySales = Order::query()
+            ->selectRaw('DATE(SUBDATE(created_at, WEEKDAY(created_at))) as week_start, SUM(total_price) as total')
             ->where('status', 'completed')
             ->whereBetween('created_at', [Carbon::now()->subYear(), Carbon::now()])
-            ->groupBy('year', 'week')
-            ->orderBy('year', 'asc')
-            ->orderBy('week', 'asc')
+            ->groupBy('week_start')
+            ->orderBy('week_start', 'asc')
             ->get()
-            ->mapWithKeys(function ($item) {
-                return [$item->year . '-W' . str_pad($item->week, 2, '0', STR_PAD_LEFT) => $item->total];
-            });
+            ->pluck('total', 'week_start');
 
         $this->dispatch('updateCharts', [
+            'yearlySales' => $yearlySales,
             'weeklySales' => $weeklySales,
             'topProducts' => $topProducts,
-            'lastYearSalesByWeek' => $lastYearSalesByWeek,
         ]);
 
         return view('livewire.dashboard');

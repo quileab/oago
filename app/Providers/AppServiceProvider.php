@@ -11,7 +11,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // para NGROK
+        // if (config('app.env') === 'local') {
+        //     $this->app['request']->server->set('HTTPS', true);
+        // }
     }
 
     /**

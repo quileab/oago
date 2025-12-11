@@ -64,8 +64,9 @@ new class extends Component {
         }
 
         // data address & city take from auth user
-        $this->data['sending_address'] = auth()->user()->address;
-        $this->data['sending_city'] = auth()->user()->city . ' (' . auth()->user()->postal_code . ')';
+        $currentUser = current_user();
+        $this->data['sending_address'] = $currentUser->address;
+        $this->data['sending_city'] = $currentUser->city . ' (' . $currentUser->postal_code . ')';
     }
 
     public function save()

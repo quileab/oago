@@ -52,7 +52,7 @@
                     <x-menu-item title="Dashboard" icon="o-chart-pie" link="/dashboard" class="text-info" />
                     <x-menu-sub title="Usuarios" icon="o-user">
                         <x-menu-item title="Registrados" icon="s-users" link="/users" />
-                        <x-menu-item title="Invitados" icon="o-users" link="/alts" />
+                        <x-menu-item title="Alternativos" icon="o-users" link="/alts" />
                     </x-menu-sub>
                     <x-menu-sub title="Productos" icon="o-cube">
                         <x-menu-item title="Listas de Precios" icon="o-square-3-stack-3d" link="/products" />
@@ -76,6 +76,9 @@
                 @endif
                 @if($user->role->value != 'guest')
                     <x-menu-item title="Pedidos" icon="o-clipboard-document-list" link="/orders" class="text-warning" />
+                    @if($user->role->value === 'customer')
+                        <x-menu-item title="Mis Vendedores" icon="o-users" link="/my-sales-agents" />
+                    @endif
                     <x-menu-item title="Mi Perfil" icon="o-user" link="/user/profile" />
                 @endif
             </x-menu>

@@ -4,7 +4,7 @@ import ApexCharts from 'apexcharts';
 
 var weeklySalesChart = null;
 var topProductsChart = null;
-var lastYearSalesByWeekChart = null;
+var yearlySalesChart = null;
 
 document.addEventListener('livewire:navigated', () => {
     // Destroy charts on navigation to allow re-creation
@@ -16,9 +16,9 @@ document.addEventListener('livewire:navigated', () => {
         topProductsChart.destroy();
         topProductsChart = null;
     }
-    if(lastYearSalesByWeekChart) {
-        lastYearSalesByWeekChart.destroy();
-        lastYearSalesByWeekChart = null;
+    if(yearlySalesChart) {
+        yearlySalesChart.destroy();
+        yearlySalesChart = null;
     }
 });
 
@@ -29,9 +29,56 @@ document.addEventListener('livewire:init', () => {
     });
 
     Livewire.on('updateCharts', (data) => {
+        const chartData = data[0] || data;
+
+        // Chart 1: Yearly Sales
+        var yearlySalesDataRaw = chartData.yearlySales || {};
+        var yearlySalesData = Object.values(yearlySalesDataRaw);
+        var yearlySalesCategories = Object.keys(yearlySalesDataRaw);
+
+        var yearlySalesOptions = {
+            chart: {
+                type: 'line',
+                height: 350
+            },
+            tooltip: {
+                theme: 'dark',
+                y: {
+                    formatter: function (value) {
+                        return currencyFormatter.format(value);
+                    }
+                }
+            },
+            series: [{
+                name: 'Sales',
+                data: yearlySalesData.length > 0 ? yearlySalesData : [0]
+            }],
+            xaxis: {
+                categories: yearlySalesCategories.length > 0 ? yearlySalesCategories : ['No Data']
+            },
+            yaxis: {
+                labels: {
+                    formatter: function (value) {
+                        return currencyFormatter.format(value);
+                    }
+                }
+            }
+        };
+
+        if (yearlySalesChart) {
+            yearlySalesChart.updateOptions(yearlySalesOptions);
+        }
+        else {
+            if (document.querySelector("#yearlySalesChart")) {
+                yearlySalesChart = new ApexCharts(document.querySelector("#yearlySalesChart"), yearlySalesOptions);
+                yearlySalesChart.render();
+            }
+        }
+
         // Chart 2: Weekly sales
-        var weeklySalesData = Object.values(data[0].weeklySales);
-        var weeklySalesCategories = Object.keys(data[0].weeklySales);
+        var weeklySalesDataRaw = chartData.weeklySales || {};
+        var weeklySalesData = Object.values(weeklySalesDataRaw);
+        var weeklySalesCategories = Object.keys(weeklySalesDataRaw);
 
         var weeklySalesOptions = {
             chart: {
@@ -71,8 +118,9 @@ document.addEventListener('livewire:init', () => {
         }
 
         // Chart 3: Top 5 most sold products
-        var topProductsData = Object.values(data[0].topProducts);
-        var topProductsCategories = Object.keys(data[0].topProducts);
+        var topProductsDataRaw = chartData.topProducts || {};
+        var topProductsData = Object.values(topProductsDataRaw);
+        var topProductsCategories = Object.keys(topProductsDataRaw);
 
         var topProductsOptions = {
             chart: {
@@ -86,7 +134,10 @@ document.addEventListener('livewire:init', () => {
                 data: topProductsData.length > 0 ? topProductsData : [0] // Ensure data is not empty
             }],
             xaxis: {
-                categories: topProductsCategories.length > 0 ? topProductsCategories : ['No Data'] // Ensure categories are not empty
+                categories: topProductsCategories.length > 0 ? topProductsCategories : ['No Data'], // Ensure categories are not empty
+                labels: {
+                    show: false
+                }
             },
             plotOptions: {
                 bar: {
@@ -101,47 +152,6 @@ document.addEventListener('livewire:init', () => {
             if (document.querySelector("#topProductsChart")) {
                 topProductsChart = new ApexCharts(document.querySelector("#topProductsChart"), topProductsOptions);
                 topProductsChart.render();
-            }
-        }
-
-        // Last Year Sales By Week Chart
-        var lastYearSalesByWeekData = Object.values(data[0].lastYearSalesByWeek);
-        var lastYearSalesByWeekCategories = Object.keys(data[0].lastYearSalesByWeek);
-
-        var lastYearSalesByWeekOptions = {
-            chart: {
-                type: 'line'
-            },
-            tooltip: {
-                theme: 'dark',
-                y: {
-                    formatter: function (value) {
-                        return currencyFormatter.format(value);
-                    }
-                }
-            },
-            series: [{
-                name: 'Sales',
-                data: lastYearSalesByWeekData.length > 0 ? lastYearSalesByWeekData : [0]
-            }],
-            xaxis: {
-                categories: lastYearSalesByWeekCategories.length > 0 ? lastYearSalesByWeekCategories : ['No Data']
-            },
-            yaxis: {
-                labels: {
-                    formatter: function (value) {
-                        return currencyFormatter.format(value);
-                    }
-                }
-            }
-        };
-
-        if (lastYearSalesByWeekChart) {
-            lastYearSalesByWeekChart.updateOptions(lastYearSalesByWeekOptions);
-        } else {
-            if (document.querySelector("#lastYearSalesByWeekChart")) {
-                lastYearSalesByWeekChart = new ApexCharts(document.querySelector("#lastYearSalesByWeekChart"), lastYearSalesByWeekOptions);
-                lastYearSalesByWeekChart.render();
             }
         }
 
