@@ -4,6 +4,13 @@
 
 This is a web application built with Laravel, Livewire, and other modern web technologies. It´s an e-commerce platform with features like product management, orders, user authentication, and an API (mainly).
 
+## Project Overview and Documentation
+
+For a detailed breakdown of the project's architecture, technology stack, and conventions, please refer to the [Project Characteristics Document](project_characteristics.md).
+
+To review the changes and feature updates across different versions, consult the [Changelog](CHANGELOG.md).
+
+
 ## Built With
 
 -   [Laravel](https://laravel.com/)
@@ -59,14 +66,18 @@ To get a local copy up and running follow these simple steps.
 
 The database schema is defined by the migration files in `database/migrations`. The main tables are:
 
--   **`users`**: Stores user information, including name, email, password, and role.
+-   **`users`**: Stores main user information, including name, email, password, and role.
+-   **`alt_users`**: Stores alternative user accounts, often used for guests or specific access scenarios.
 -   **`products`**: Stores product information, such as name, description, price, and stock.
 -   **`orders`**: Stores order information, including total price, status, and user.
 -   **`order_items`**: Stores the items for each order.
 -   **`list_names`**: Stores the names of the price lists.
 -   **`list_prices`**: Stores the prices for each product in a specific price list.
--   **`guest_users`**: Stores information about guest users.
 -   **`shipping_details`**: Stores shipping details for each order.
+-   **`settings`**: Stores application-wide settings and configurations.
+-   **`achievements`**: Defines achievements or badges available in the system.
+-   **`achievables`**: Polymorphic table linking achievements to users or other entities.
+-   **`customer_sales_agents`**: Manages the relationship between customers and their assigned sales agents.
 
 ## Web Routes
 
