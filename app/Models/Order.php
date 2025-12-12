@@ -96,7 +96,11 @@ class Order extends Model
 
         // Enviar correo de confirmación
         //Mail::to('' . Auth::user()->email)->send(new OrderMail($orderCreated));
-        Mail::to('gmenaker@oagostini.com.ar')->send(new OrderMail($orderCreated->id));
+        try {
+            Mail::to('gmenaker@oagostini.com.ar')->send(new OrderMail($orderCreated->id));
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error enviando correo de orden: ' . $e->getMessage());
+        }
 
         // Limpiar el carrito
         Session::forget('cart');

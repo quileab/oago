@@ -30,6 +30,7 @@ new class extends Component {
                 'password' => '',
                 'role' => 'customer',
                 'list_id' => 0,
+                'is_internal' => false,
             ];
         }
     }
@@ -52,6 +53,7 @@ new class extends Component {
             'formData.email' => 'required|email|max:255',
             'formData.role' => 'required',
             'formData.list_id' => 'nullable|integer',
+            'formData.is_internal' => 'boolean',
         ]);
 
         User::updateOrCreate(
@@ -115,11 +117,14 @@ new class extends Component {
                     <x-input label="E-mail" wire:model="formData.email" icon="o-envelope" />
                 </div>
 
-                <div class="lg:col-span-3">
+                <div class="lg:col-span-2">
                     <x-select label="Rol" icon="o-queue-list" :options="$this->roles" option-value="id" option-label="name" wire:model="formData.role" />
                 </div>
-                <div class="lg:col-span-3">
+                <div class="lg:col-span-2">
                     <x-input label="Lista de Precios" wire:model="formData.list_id" type="number" icon="o-numbered-list" />
+                </div>
+                <div class="lg:col-span-2 flex items-center pt-4">
+                     <x-toggle label="Personal Interno" wire:model="formData.is_internal" hint="Acceso a todos los clientes" class="toggle-primary" />
                 </div>
             </div>
 

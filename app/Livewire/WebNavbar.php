@@ -7,9 +7,13 @@ use Livewire\Component;
 use App\Models\AltUser;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use App\Enums\Role; // Importar el Enum Role
+use Mary\Traits\Toast;
 
 class WebNavbar extends Component
 {
+    use Toast;
+
     public $trial_days_remaining = null;
     public $salesCustomers = [];
     public $actingAsId = null;
@@ -18,17 +22,17 @@ class WebNavbar extends Component
 
     public function mount()
     {
-        $user = Auth::user();
-        if (!$user && Auth::guard('alt')->check()) {
-            $user = Auth::guard('alt')->user();
+        $loggedInUser = Auth::user();
+        if (!$loggedInUser && Auth::guard('alt')->check()) {
+            $loggedInUser = Auth::guard('alt')->user();
         }
 
-        if ($user && $user->role->value === 'sales') {
+        if ($loggedInUser && $loggedInUser->role === Role::SALES) { // Usar el enum
             // Auto-assign if not set
             if (!session('sales_acting_as_customer_id')) {
-                 $first = $user->assignedCustomers()->where('is_active', true)->first();
-                 if ($first) {
-                     session(['sales_acting_as_customer_id' => $first->customer_id]);
+                 $firstCustomer = $loggedInUser->getManagedCustomersQuery()->first();
+                 if ($firstCustomer) {
+                     session(['sales_acting_as_customer_id' => $firstCustomer->id]);
                  }
             }
 
@@ -41,8 +45,8 @@ class WebNavbar extends Component
              $this->loadCustomers();
         }
 
-        if ($user && $user->role->value === 'guest') {
-            $guest = AltUser::where('email', $user->email)->first();
+        if ($loggedInUser && $loggedInUser->role === Role::GUEST) { // Usar el enum
+            $guest = AltUser::where('email', $loggedInUser->email)->first();
             if ($guest) {
                 $created_date = $guest->created_at;
                 $end_date = $created_date->copy()->addDays(10);
@@ -64,33 +68,48 @@ class WebNavbar extends Component
 
     public function loadCustomers()
     {
-        $user = Auth::user() ?? Auth::guard('alt')->user();
-        if ($user && $user->role->value === 'sales') {
-            $query = $user->assignedCustomers()
-               ->where('is_active', true)
-               ->with('customer');
+        $loggedInUser = Auth::user() ?? Auth::guard('alt')->user();
+        if ($loggedInUser && $loggedInUser->role === Role::SALES) { // Usar el enum
+            $customerQuery = $loggedInUser->getManagedCustomersQuery();
             
             if ($this->searchCustomer) {
-                $query->whereHas('customer', function($q) {
+                $customerQuery->where(function ($q) {
                     $q->where('name', 'like', '%' . $this->searchCustomer . '%')
                       ->orWhere('lastname', 'like', '%' . $this->searchCustomer . '%');
                 });
             }
-            $this->salesCustomers = $query->take(10)->get()->pluck('customer');
+            $this->salesCustomers = $customerQuery->take(10)->get();
+
+            if ($this->actingAsId) {
+                $actingUser = User::find($this->actingAsId);
+                // Si el cliente actual no está en la lista de los que puede manejar el vendedor, 
+                // o si la lista ha cambiado y ya no lo puede ver, desasigna.
+                if (!$loggedInUser->getManagedCustomersQuery()->where('id', $this->actingAsId)->exists()) {
+                     session()->forget('sales_acting_as_customer_id');
+                     $this->actingAsId = null;
+                     $this->actingAsName = null;
+                } else {
+                     $this->actingAsName = $actingUser ? $actingUser->full_name : 'Unknown';
+                }
+            }
         }
     }
 
     public function setActingCustomer($id) {
-        $user = Auth::user() ?? Auth::guard('alt')->user();
+        $loggedInUser = Auth::user() ?? Auth::guard('alt')->user();
         
         if ($id) {
-            // Verify ownership
-            $valid = $user->assignedCustomers()
-                ->where('customer_id', $id)
-                ->where('is_active', true)
+            // Verify ownership using the new method
+            $valid = $loggedInUser->getManagedCustomersQuery()
+                ->where('id', $id)
                 ->exists();
+
             if ($valid) {
                  session(['sales_acting_as_customer_id' => $id]);
+            } else {
+                session()->forget('sales_acting_as_customer_id');
+                $this->warning('No tiene acceso a este cliente.');
+                return;
             }
         } else {
             session()->forget('sales_acting_as_customer_id');

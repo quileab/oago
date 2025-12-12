@@ -31,6 +31,7 @@ class User extends Authenticatable
         'email',
         'password',
         'list_id',
+        'is_internal',
     ];
 
     /**
@@ -54,6 +55,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'role' => Role::class,
+            'is_internal' => 'boolean',
         ];
     }
 
@@ -112,6 +114,23 @@ class User extends Authenticatable
     public function assignedCustomers()
     {
         return $this->morphMany(CustomerSalesAgent::class, 'sales_agent');
+    }
+
+    /**
+     * Get the query for customers managed by this user.
+     *
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function getManagedCustomersQuery()
+    {
+        if ($this->is_internal || $this->role === Role::ADMIN) {
+            return User::where('role', Role::CUSTOMER);
+        }
+
+        return User::whereHas('assignedSalesAgents', function ($query) {
+            $query->where('sales_agent_id', $this->id)
+                  ->where('sales_agent_type', self::class);
+        });
     }
 
 }

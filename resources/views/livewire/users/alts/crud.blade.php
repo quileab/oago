@@ -42,6 +42,7 @@ new class extends Component {
                 'email' => '',
                 'role' => 'customer',
                 'list_id' => 1,
+                'is_internal' => false,
             ];
             $this->createdAtDate = now()->format('Y-m-d');
         }
@@ -64,6 +65,7 @@ new class extends Component {
             'formData.phone' => 'required|string|max:50',
             'formData.list_id' => 'required|numeric',
             'formData.role' => 'required|string',
+            'formData.is_internal' => 'boolean',
         ];
 
         // Add unique email validation
@@ -181,11 +183,14 @@ new class extends Component {
                     <x-input label="E-mail" wire:model="formData.email" icon="o-envelope" />
                 </div>
 
-                <div class="lg:col-span-3">
+                <div class="lg:col-span-2">
                     <x-select label="Rol" icon="o-queue-list" :options="$this->roles" option-value="id" option-label="name" wire:model="formData.role" />
                 </div>
-                <div class="lg:col-span-3">
+                <div class="lg:col-span-2">
                     <x-select label="Lista de Precios" icon="o-queue-list" :options="$list_names" wire:model="formData.list_id" option-value="id" option-label="name" />
+                </div>
+                <div class="lg:col-span-2 flex items-center pt-4">
+                     <x-toggle label="Personal Interno" wire:model="formData.is_internal" hint="Acceso a todos los clientes" class="toggle-primary" />
                 </div>
             </div>
 
