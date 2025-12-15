@@ -45,7 +45,7 @@ Route::middleware('auth')->group(function () {
 
     Volt::route('/user/profile', 'users.profile');
 
-    Volt::route('/orders', 'orders')->middleware('is_role:admin,customer');
+    Volt::route('/orders', 'orders')->middleware('is_role:admin,customer,sales');
     Volt::route('/order/{orderId}/edit', 'orderitems');
     Volt::route('/users', 'users.index')->middleware('is_admin');
     Volt::route('/users/{id}/sales-assign', 'users.sales-assign')->middleware('is_admin'); // New route

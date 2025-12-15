@@ -15,9 +15,9 @@ return new class extends Migration
             $table->id();
             $table->string('name', 30);
             $table->string('lastname', 30);
-            $table->string('address', 100);
-            $table->string('city', 30);
-            $table->string('postal_code', 10);
+            $table->string('address', 100)->nullable();
+            $table->string('city', 30)->nullable();
+            $table->string('postal_code', 10)->nullable();
             $table->string('phone', 50);
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
@@ -27,6 +27,7 @@ return new class extends Migration
             $table->foreignId('list_id')->nullable()
                 ->constrained('list_names') // Referencia a la tabla de listas de precios
                 ->onDelete('set null'); // En caso de eliminar la lista, deja el campo como null
+            $table->boolean('is_internal')->default(false);
 
             $table->rememberToken();
             $table->timestamps();

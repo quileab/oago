@@ -101,6 +101,7 @@ To ensure queued tasks are processed in a production environment (example for Ub
         priority=999
         ```
         *   **Important:** Replace `/path/to/your/project` with the actual absolute path to your Laravel project.
+        *   **Tip:** Ensure `user=` matches the owner of the project files (e.g., `oagostini`) to avoid permission issues.
         *   `--sleep=3`: Number of seconds to sleep when no jobs are available.
         *   `--tries=3`: Number of times to attempt a job before marking it as failed.
         *   `--max-time=3600`: Max lifetime of a worker in seconds before it restarts to prevent memory leaks.
@@ -123,9 +124,9 @@ To ensure queued tasks are processed in a production environment (example for Ub
 
 The database schema is defined by the migration files in `database/migrations`. The main tables are:
 
--   **`users`**: Stores main user information, including name, email, password, and role.
--   **`alt_users`**: Stores alternative user accounts, often used for guests or specific access scenarios.
--   **`products`**: Stores product information, such as name, description, price, and stock.
+-   **`users`**: Stores main user information, including name, email, password, role, and the **`is_internal`** flag (designates internal staff with global access).
+-   **`alt_users`**: Stores alternative user accounts, often used for guests or specific access scenarios. Also includes the **`is_internal`** flag.
+-   **`products`**: Stores product information, such as name, description, price, and stock. Includes **`bonus_threshold`** and **`bonus_amount`** for quantity-based offers.
 -   **`orders`**: Stores order information, including total price, status, and user.
 -   **`order_items`**: Stores the items for each order.
 -   **`list_names`**: Stores the names of the price lists.
@@ -142,7 +143,8 @@ The web routes are defined in `routes/web.php`. They include routes for:
 
 -   Authentication (login, logout, register)
 -   Static pages (about, contact)
--   Product and order management (for admins)
+-   Product and order management (for admins and sales agents)
+-   Global Settings management (admin only)
 -   User profile
 -   Checkout process
 

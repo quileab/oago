@@ -26,6 +26,7 @@ class AltUser extends Authenticatable
         'password',
         'list_id',
         'is_internal',
+        'role',
     ];
 
     protected $hidden = [

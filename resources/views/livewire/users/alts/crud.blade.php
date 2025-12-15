@@ -61,7 +61,7 @@ new class extends Component {
             'formData.lastname' => 'required|string|max:255',
             'formData.address' => 'required|string|max:255',
             'formData.city' => 'required|string|max:255',
-            'formData.postal_code' => 'required|string|max:20',
+            'formData.postal_code' => 'required|string|max:10',
             'formData.phone' => 'required|string|max:50',
             'formData.list_id' => 'required|numeric',
             'formData.role' => 'required|string',
@@ -99,9 +99,15 @@ new class extends Component {
     {
         $validated = $this->validate($this->rules(), $this->messages());
 
+        $data = $validated['formData'];
+
+        if (empty($this->formData['id'])) {
+            $data['password'] = Hash::make(\Illuminate\Support\Str::random(16));
+        }
+
         AltUser::updateOrCreate(
             ['id' => $this->formData['id'] ?? null],
-            $validated['formData']
+            $data
         );
 
         $this->success('Usuario Alternativo guardado correctamente.', position: 'toast-bottom');

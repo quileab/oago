@@ -21,6 +21,7 @@ This is a web application built with the TALL stack (Tailwind CSS, Alpine.js, La
 -   **Database:** Use Laravel Migrations for schema changes (`database/migrations`). Use Eloquent for database interaction.
 -   **Routes:** Web routes are in `routes/web.php`, API routes in `routes/api.php`.
 -   **Configuration:** Use `.env` for environment-specific variables. Do not commit `.env` files. Use `config/*.php` files for application configuration.
+-   **User Retrieval:** When retrieving the authenticated user in contexts where role-based logic or impersonation (Sales Agents) might be involved, prefer using the helper `current_user()` instead of `Auth::user()`. This helper correctly resolves the user instance (User or AltUser) and handles sales agent impersonation logic.
 
 ## Frontend
 

@@ -29,6 +29,8 @@ new class extends Component {
     ];
 
     public $htmldescription = '';
+    public ?int $bonus_threshold = null;
+    public ?int $bonus_amount = null;
 
     public function mount()
     {
@@ -99,9 +101,15 @@ new class extends Component {
     public function openDrawer()
     {
         $this->drawer = true;
-        // if selected products are not empty, show the load description_html into the editor
         if (!empty($this->selected)) {
-            $this->htmldescription = Product::find($this->selected[0])->description_html;
+            $firstSelectedProduct = Product::find($this->selected[0]);
+            $this->htmldescription = $firstSelectedProduct->description_html;
+            $this->bonus_threshold = $firstSelectedProduct->bonus_threshold;
+            $this->bonus_amount = $firstSelectedProduct->bonus_amount;
+        } else {
+            $this->htmldescription = '';
+            $this->bonus_threshold = null;
+            $this->bonus_amount = null;
         }
     }
 
@@ -133,6 +141,15 @@ new class extends Component {
                 }
                 $product->tags = implode('|', $tags);
                 $product->description_html = $this->htmldescription;
+
+                // Apply bonus threshold and amount
+                if (!is_null($this->bonus_threshold)) {
+                    $product->bonus_threshold = $this->bonus_threshold;
+                }
+                if (!is_null($this->bonus_amount)) {
+                    $product->bonus_amount = $this->bonus_amount;
+                }
+                
                 $product->save();
             }
         }
@@ -172,6 +189,18 @@ new class extends Component {
         $this->success('Productos seleccionados y descripción cargada.');
     }
 
+    public function cycleTagAction($index)
+    {
+        $currentAction = $this->tags_list[$index]['action'];
+        $nextAction = match ($currentAction) {
+            'nothing' => 'apply',
+            'apply' => 'remove',
+            'remove' => 'nothing',
+            default => 'nothing',
+        };
+        $this->tags_list[$index]['action'] = $nextAction;
+    }
+
 }; ?>
 
 <div>
@@ -209,15 +238,17 @@ new class extends Component {
     </x-table>
 
     <!-- FILTER DRAWER -->
-    <x-drawer wire:model="drawer" title="Atributos" right separator with-close-button class="lg:w-1/3">
+    <x-drawer wire:model="drawer" title="Atributos" right separator with-close-button class="lg:w-1/2">
         <x-form wire:submit="applyPromotions" id="promotion">
             <div @if (!count($selected)) style="display: none;" @endif>
-                <div>
+                <div class="grid grid-cols-2 gap-2 mb-4">
                     @foreach ($tags_list as $tag)
-                        <div class="flex items-center gap-2">
-                            <x-group wire:model="tags_list.{{ $loop->index }}.action" :options="$actions" option-value="name"
-                                option-label="value" class="[&:checked]:!btn-primary" />
-                            {{ $tag['name'] }}
+                        <div class="flex items-center justify-between p-2 border border-base-200 rounded-lg">
+                            <span class="font-bold text-sm">{{ $tag['name'] }}</span>
+                            <x-button wire:click="cycleTagAction({{ $loop->index }})"
+                                :label="$tag['action'] === 'nothing' ? 'Ignorar' : ($tag['action'] === 'apply' ? 'Aplicar' : 'Remover')"
+                                :class="$tag['action'] === 'nothing' ? 'btn-ghost btn-xs' : ($tag['action'] === 'apply' ? 'btn-success text-white btn-xs' : 'btn-error text-white btn-xs')"
+                                :icon="$tag['action'] === 'nothing' ? 'o-minus' : ($tag['action'] === 'apply' ? 'o-plus' : 'o-trash')" />
                         </div>
                     @endforeach
                 </div>
@@ -236,6 +267,14 @@ new class extends Component {
                 {{-- Editor de contenido --}}
                 <x-editor wire:model="htmldescription" label="Descripción - Items Seleccionados: {{ count($selected) }}"
                     :config="$config" />
+
+                <hr class="my-4" />
+
+                <h3 class="text-lg font-bold mb-2">Descuento por Cantidad (Bonificación)</h3>
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <x-input label="Umbral de Bonificación (Cantidad)" wire:model="bonus_threshold" type="number" min="0" placeholder="Ej: 23" />
+                    <x-input label="Cantidad de Bonificación (Regalo)" wire:model="bonus_amount" type="number" min="0" placeholder="Ej: 1" />
+                </div>
 
                 <div class="grid grid-cols-2 gap-4 mt-4">
                     <x-button label="Seleccionar por Descripción HTML" wire:click="selectByDescriptionHtml"

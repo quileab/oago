@@ -4,6 +4,37 @@ Este documento resume los cambios significativos entre la rama `v1` y la rama `m
 
 ## Cambios Recientes (Actualizaciones de Seguridad y Funcionalidad)
 
+### ⚙️ Sistema y Configuración
+
+*   **Colas de Trabajo (Queues):** Se corrigió la configuración de Supervisor en producción (`user=oagostini`) y se estableció la rotación de logs para evitar el consumo excesivo de disco.
+
+### 🛍️ Productos y Ofertas
+
+*   **Sistema de Bonificaciones (Descuento por Cantidad):**
+    *   Se implementó la lógica para manejar ofertas tipo "23 + 1 de regalo".
+    *   Nuevos campos `bonus_threshold` y `bonus_amount` en la tabla `products`.
+    *   Cálculo automático en el carrito de compras (`Cart.php`) para reflejar las unidades bonificadas en el total.
+    *   Visualización de etiquetas de oferta en el listado del carrito.
+    *   Gestión de estos campos desde el panel de administración (`products.extras`).
+
+### 🎨 Mejoras de Interfaz (UI/UX)
+
+*   **Gestión de Atributos de Producto:**
+    *   Se rediseñó el panel de "Atributos" (`products.extras`) para usar un botón cíclico de 3 estados (Ignorar -> Aplicar -> Remover) en lugar de grupos de radio buttons, mejorando la usabilidad y el espacio.
+    *   Se amplió el ancho del drawer de atributos (`lg:w-1/2`) para mayor comodidad.
+
+### 👥 Roles y Permisos
+
+*   **Acceso de Vendedores a Pedidos:**
+    *   Se habilitó el acceso a la ruta `/orders` para el rol `sales` (Vendedores).
+    *   Se actualizó la lógica de filtrado de pedidos para soportar la **impersonación** de clientes por parte de vendedores, utilizando el helper `current_user()` para resolver correctamente la identidad del usuario activo.
+
+### 🐛 Correcciones de Errores
+
+*   **Creación de Usuarios Alternativos (AltUser):** Se solucionó un error SQL (`Field 'password' doesn't have a default value`) al crear nuevos usuarios alternativos, generando ahora una contraseña aleatoria segura automáticamente si no se proporciona una.
+
+---
+
 ### 🛡️ Seguridad (API y Modelos)
 
 *   **Protección contra Escalada de Privilegios:**

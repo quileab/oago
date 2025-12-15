@@ -51,9 +51,10 @@ new class extends Component {
         $query = Order::with('user');
 
         // Apply admin/customer filter
-        $isAdmin = Auth::user()->role->value == 'admin';
+        $user = current_user();
+        $isAdmin = $user->role->value == 'admin';
         if (!$isAdmin) {
-            $query->where('user_id', Auth::user()->id);
+            $query->where('user_id', $user->id);
         }
 
         // Apply search filter (moved to DB query)
@@ -116,7 +117,7 @@ new class extends Component {
             'bg-purple-500/25' => fn(Order $order) => $order->status === 'processing',
         ]]">
         @scope('cell_order_date', $order)
-        {{ $order->created_at->format('d-m-Y') }}
+        {{ $order->created_at->format('d-m-Y H:i') }}
         @endscope
         @scope('cell_status', $order)
         {{ Order::orderStates($order->status) }}

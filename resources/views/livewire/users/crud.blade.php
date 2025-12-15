@@ -48,7 +48,7 @@ new class extends Component {
             'formData.lastname' => 'required|string|max:255',
             'formData.address' => 'required|string|max:255',
             'formData.city' => 'required|string|max:255',
-            'formData.postal_code' => 'required|string|max:20',
+            'formData.postal_code' => 'required|string|max:10',
             'formData.phone' => 'required|string|max:50',
             'formData.email' => 'required|email|max:255',
             'formData.role' => 'required',

@@ -26,6 +26,8 @@ return new class extends Migration
             $table->string('visibility', 10);
             $table->date('offer_start')->nullable();
             $table->date('offer_end')->nullable();
+            $table->integer('bonus_threshold')->nullable()->comment('Cantidad requerida para activar el bono (ej: 23)');
+            $table->integer('bonus_amount')->nullable()->default(0)->comment('Cantidad regalada (ej: 1)');
             $table->string('tax_status', 10);
             $table->boolean('in_stock')->default(1);
             $table->integer('stock')->default(0);

@@ -34,7 +34,14 @@
                                 <x-image-proxy url="http://190.183.254.154/regente_img/{{ $item['product_id'] . '.jpg' }}"
                                     alt="{{ $item['product_id'] }}" class="w-16 h-16 object-cover" />
                             </td>
-                            <td>{{ $item['name'] }}</td>
+                            <td>
+                                {{ $item['name'] }}
+                                @if (isset($item['product_model']) && $item['product_model']->hasBonus())
+                                    <div class="text-xs font-bold text-red-500 mt-1">
+                                        {{ $item['product_model']->bonus_label }}
+                                    </div>
+                                @endif
+                            </td>
                             <td class="text-right">${{ number_format($item['price'], 2) }}</td>
                             <td class="px-2 w-[8rem]">
                                 <x-input type="number" min="{{ $item['bulkQuantity'] }}" step="{{ $item['bulkQuantity'] }}"

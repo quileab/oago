@@ -5,6 +5,7 @@ namespace App\Livewire;
 use App\Models\Order;
 use Livewire\Component;
 use Livewire\Attributes\On;
+use App\Models\Product;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
 use Mary\Traits\Toast;
@@ -89,14 +90,34 @@ class Cart extends Component
         $cart = Session::get('cart', []);
         $this->total = 0;
         foreach ($cart as $item) {
-            $this->total += (float)$item['price'] * (int)$item['quantity'];
+            $product = Product::find($item['product_id']); // Fetch product to get bonus info
+
+            $effectiveQuantity = (int)$item['quantity'];
+
+            if ($product && $product->hasBonus()) {
+                $timesBonusApplies = floor($effectiveQuantity / $product->bonus_threshold);
+                $effectiveQuantity += ($timesBonusApplies * $product->bonus_amount);
+            }
+
+            $this->total += (float)$item['price'] * $effectiveQuantity;
         }
     }
 
     public function render()
     {
+        $cart = Session::get('cart', []);
+        $enrichedCart = [];
+
+        foreach ($cart as $productId => $item) {
+            $product = Product::find($productId);
+            if ($product) {
+                $item['product_model'] = $product;
+            }
+            $enrichedCart[$productId] = $item;
+        }
+
         return view('livewire.cart', [
-            'cart' => Session::get('cart', []),
+            'cart' => $enrichedCart,
         ]);
     }
 

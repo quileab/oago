@@ -15,6 +15,22 @@ El proyecto se basa en el **TALL stack**, una combinación de tecnologías popul
 *   **L**aravel: Un potente framework de PHP para el desarrollo backend.
 *   **L**ivewire: Un framework de pila completa para Laravel que permite construir interfaces dinámicas usando PHP.
 
+## 🛍️ Gestión de Productos
+
+*   **Atributos y Etiquetas:** Sistema flexible de etiquetas para gestionar estados como "Destacado", "Publicado" y otros atributos personalizados.
+*   **Ofertas por Cantidad:** Funcionalidad nativa para configurar bonificaciones por volumen (ej: "Compra 23 y lleva 1 de regalo"). El sistema calcula automáticamente las unidades bonificadas en el carrito sin afectar el precio unitario base.
+
+## 👥 Roles y Permisos
+
+La aplicación maneja roles definidos (`admin`, `sales`, `customer`, `guest`) para controlar el acceso:
+
+*   **Admin:** Acceso total al sistema.
+*   **Sales (Vendedores):**
+    *   Pueden gestionar sus propios clientes asignados.
+    *   Capacidad de "impersonar" (actuar en nombre de) sus clientes para realizar pedidos o revisar su historial.
+    *   Acceso a rutas de pedidos filtradas según el cliente que están gestionando.
+*   **Customer:** Acceso a su propio catálogo, precios personalizados y pedidos.
+
 ## 📦 Backend (Laravel)
 
 El backend de la aplicación se construye con Laravel, siguiendo sus convenciones idiomáticas:

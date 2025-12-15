@@ -21,5 +21,16 @@ class Product extends Model
         return \App\Helpers\SettingsHelper::getProductTags();
     }
 
-    
+    public function hasBonus(): bool
+    {
+        return $this->bonus_threshold > 0 && $this->bonus_amount > 0;
+    }
+
+    public function getBonusLabelAttribute(): string
+    {
+        if (!$this->hasBonus()) {
+            return '';
+        }
+        return "{$this->bonus_threshold} + {$this->bonus_amount} off !!";
+    }
 }
