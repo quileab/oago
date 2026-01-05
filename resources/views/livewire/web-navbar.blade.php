@@ -1,6 +1,6 @@
 <div class="w-full bg-gray-800 text-gray-100 flex justify-between items-center px-2 py-0 my-0 sticky z-20">
-  <img src="{{ asset('imgs/oago-big.png') }}" class="w-auto h-16 p-2 mx-3 hidden md:block" />
-  <img src="{{ asset('imgs/oago.png') }}" class="w-auto h-16 p-2 mx-3 md:hidden" />
+  <img src="{{ asset('imgs/brand.webp') }}" class="w-auto h-16 p-2 mx-3 hidden md:block" />
+  <img src="{{ asset('imgs/brand-logo.webp') }}" class="w-auto h-16 p-2 mx-3 md:hidden" />
 
   <div>
     <div class="inline-flex flex-wrap items-right align-middle justify-end">

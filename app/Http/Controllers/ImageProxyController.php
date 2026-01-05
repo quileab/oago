@@ -11,7 +11,7 @@ class ImageProxyController extends Controller
     public function show(Request $request)
     {
         $remoteUrl = $request->query('url');
-        $fallback = public_path('imgs/oago.webp');
+        $fallback = public_path('imgs/fallback.webp');
 
         // Validar que la URL sea válida
         if (!filter_var($remoteUrl, FILTER_VALIDATE_URL)) {
@@ -21,7 +21,7 @@ class ImageProxyController extends Controller
         // Validar esquema (solo http y https)
         $scheme = parse_url($remoteUrl, PHP_URL_SCHEME);
         if (!in_array($scheme, ['http', 'https'])) {
-             return response()->file($fallback);
+            return response()->file($fallback);
         }
 
         // Validar que no sea una IP privada o local (SSRF)
@@ -35,8 +35,8 @@ class ImageProxyController extends Controller
                 }
             }
         } else {
-             // Si no se puede resolver el host, también fallamos
-             return response()->file($fallback);
+            // Si no se puede resolver el host, también fallamos
+            return response()->file($fallback);
         }
 
         try {

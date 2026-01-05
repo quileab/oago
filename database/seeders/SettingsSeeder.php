@@ -56,5 +56,16 @@ class SettingsSeeder extends Seeder
                 'description' => 'Lista de tags de productos separados por comas (ej. NUEVO,OFERTA,REMATE).'
             ]
         );
+
+        // Copyright
+        Setting::updateOrCreate(
+            ['key' => 'copyright'],
+            [
+                'value' => '© InnoDesign - 2025',
+                'type' => 'string',
+                'text' => 'Texto de Copyright',
+                'description' => 'Texto que aparece en el pie de página.'
+            ]
+        );
     }
 }

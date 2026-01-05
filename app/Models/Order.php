@@ -95,9 +95,19 @@ class Order extends Model
         }
 
         // Enviar correo de confirmación
-        //Mail::to('' . Auth::user()->email)->send(new OrderMail($orderCreated));
         try {
-            Mail::to('gmenaker@oagostini.com.ar')->send(new OrderMail($orderCreated->id));
+            $adminEmail = \App\Helpers\SettingsHelper::settings('order_placed_mail');
+            $userEmail = current_user()?->email;
+
+            if ($userEmail) {
+                $mail = Mail::to($userEmail);
+                if ($adminEmail) {
+                    $mail->cc($adminEmail);
+                }
+                $mail->send(new OrderMail($orderCreated->id));
+            } elseif ($adminEmail) {
+                Mail::to($adminEmail)->send(new OrderMail($orderCreated->id));
+            }
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Error enviando correo de orden: ' . $e->getMessage());
         }

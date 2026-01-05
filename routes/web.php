@@ -102,7 +102,7 @@ Route::middleware('auth')->group(function () {
             }
         }
         return "<pre>" . print_r($logs, true) . "</pre><hr />";
-    });
+    })->middleware('is_admin');
 
     // using Reports/ExportController -> exportProducts with associated ListPrices
     Route::get('/export/products', [\App\Http\Controllers\Reports\ExportController::class, 'exportProducts'])->middleware('is_admin');

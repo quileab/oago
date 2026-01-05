@@ -57,10 +57,10 @@ new class extends Component {
     protected function rules(): array
     {
         $rules = [
-            'formData.name' => 'required|string|max:255',
-            'formData.lastname' => 'required|string|max:255',
-            'formData.address' => 'required|string|max:255',
-            'formData.city' => 'required|string|max:255',
+            'formData.name' => 'required|string|max:30',
+            'formData.lastname' => 'required|string|max:30',
+            'formData.address' => 'required|string|max:100',
+            'formData.city' => 'required|string|max:30',
             'formData.postal_code' => 'required|string|max:10',
             'formData.phone' => 'required|string|max:50',
             'formData.list_id' => 'required|numeric',
@@ -166,24 +166,24 @@ new class extends Component {
             <!-- Estructura Grid Simplificada -->
             <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-6">
                 <div class="lg:col-span-3">
-                    <x-input label="Apellido" wire:model="formData.lastname" icon="o-user" />
+                    <x-input label="Apellido" wire:model="formData.lastname" icon="o-user" maxlength="30" />
                 </div>
                 <div class="lg:col-span-3">
-                    <x-input label="Nombre/s" wire:model="formData.name" icon="o-user" />
+                    <x-input label="Nombre/s" wire:model="formData.name" icon="o-user" maxlength="30" />
                 </div>
 
                 <div class="lg:col-span-3">
-                    <x-input label="Dirección" wire:model="formData.address" icon="o-map-pin" />
+                    <x-input label="Dirección" wire:model="formData.address" icon="o-map-pin" maxlength="100" />
                 </div>
                 <div class="lg:col-span-2">
-                    <x-input label="Ciudad" wire:model="formData.city" icon="o-map-pin" />
+                    <x-input label="Ciudad" wire:model="formData.city" icon="o-map-pin" maxlength="30" />
                 </div>
                 <div class="lg:col-span-1">
-                    <x-input label="C.P." wire:model="formData.postal_code" icon="o-hashtag" />
+                    <x-input label="C.P." wire:model="formData.postal_code" icon="o-hashtag" maxlength="10" />
                 </div>
 
                 <div class="lg:col-span-3">
-                    <x-input label="Teléfono" wire:model="formData.phone" icon="o-phone" />
+                    <x-input label="Teléfono" wire:model="formData.phone" icon="o-phone" maxlength="50" />
                 </div>
                 <div class="lg:col-span-3">
                     <x-input label="E-mail" wire:model="formData.email" icon="o-envelope" />

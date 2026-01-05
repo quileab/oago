@@ -37,9 +37,10 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
-        $request->offsetUnset('id');
+        // $request->offsetUnset('id'); // Allow ID to be passed
 
         $rules = [
+            'id' => 'required|integer|unique:users,id',
             'name' => 'required|string|max:30',
             'lastname' => 'required|string|max:30',
             'address' => 'nullable|string|max:100',
@@ -47,7 +48,7 @@ class UserController extends Controller
             'postal_code' => 'nullable|string|max:10',
             'phone' => 'nullable|string|max:50',
             'email' => ['required', 'email', Rule::unique('users', 'email')],
-            'password' => 'required|string|min:3',
+            'password' => 'nullable|string|min:3',
         ];
 
         if (auth()->user()->role === Role::ADMIN) {
@@ -60,7 +61,12 @@ class UserController extends Controller
 
         $validatedData = $request->validate($rules);
         
+        $password = !empty($validatedData['password']) 
+            ? Hash::make($validatedData['password']) 
+            : Hash::make((string)$validatedData['id']);
+
         $user = User::create([
+            'id' => $validatedData['id'],
             'name' => $validatedData['name'],
             'lastname' => $validatedData['lastname'],
             'address' => $validatedData['address'] ?? null,
@@ -68,7 +74,7 @@ class UserController extends Controller
             'postal_code' => $validatedData['postal_code'] ?? null,
             'phone' => $validatedData['phone'] ?? null,
             'email' => $validatedData['email'],
-            'password' => Hash::make($validatedData['password']),
+            'password' => $password,
             'role' => $validatedData['role'] ?? Role::CUSTOMER->value,
             'list_id' => $validatedData['list_id'] ?? null,
         ]);
