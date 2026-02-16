@@ -41,6 +41,17 @@ class ImportV1Data extends Command
 
         DB::statement('SET FOREIGN_KEY_CHECKS=0;');
 
+        // Handle guest_users to alt_users renaming/cleanup
+        if (\Illuminate\Support\Facades\Schema::hasTable('guest_users')) {
+            if (!\Illuminate\Support\Facades\Schema::hasTable('alt_users')) {
+                \Illuminate\Support\Facades\Schema::rename('guest_users', 'alt_users');
+                $this->info("Renamed guest_users to alt_users.");
+            } else {
+                \Illuminate\Support\Facades\Schema::drop('guest_users');
+                $this->info("Dropped obsolete guest_users table.");
+            }
+        }
+
         $targetTables = [
             'users',
             'products',
@@ -75,9 +86,9 @@ class ImportV1Data extends Command
 
                 // Start of a new statement
                 if (!$insideInsert) {
-                    if (str_starts_with($trimmedLine, 'INSERT INTO')) {
+                    if (stripos($trimmedLine, 'INSERT INTO') === 0) {
                         // Extract table name
-                        if (preg_match('/INSERT INTO `?(\w+)`?/', $trimmedLine, $matches)) {
+                        if (preg_match('/INSERT INTO `?(\w+)`?/i', $trimmedLine, $matches)) {
                             $table = $matches[1];
                             if (in_array($table, $targetTables)) {
                                 $insideInsert = true;
@@ -92,13 +103,10 @@ class ImportV1Data extends Command
                 }
 
                 // Check for end of statement (;)
-                // Only if we are inside a relevant INSERT and the line ends with ;
-                // Note: This is a simple heuristic. It assumes the statement ends with ; followed by newline.
                 if ($insideInsert && str_ends_with($trimmedLine, ';')) {
                     // Map guest_users to alt_users
                     if ($currentTable === 'guest_users') {
-                        $buffer = str_replace('INSERT INTO `guest_users`', 'INSERT INTO `alt_users`', $buffer);
-                        $buffer = str_replace('INSERT INTO guest_users', 'INSERT INTO alt_users', $buffer);
+                        $buffer = preg_replace('/INSERT INTO `?guest_users`?/i', 'INSERT INTO `alt_users`', $buffer);
                     }
 
                     try {
