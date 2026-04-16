@@ -17,10 +17,16 @@ class SecurityService
     /**
      * Valida si un host está permitido basándose en una whitelist opcional.
      */
-    public static function isAllowedHost(string $url, array $allowedHosts = []): bool
+    public static function isAllowedHost(string $url, $allowedHosts = []): bool
     {
-        if (empty($allowedHosts)) {
-            return true; // Si no hay whitelist, permitimos todos (protegido por SSRF check)
+        // Si es un string (posible JSON o lista separada por comas), intentar normalizar
+        if (is_string($allowedHosts)) {
+            $decoded = json_decode($allowedHosts, true);
+            $allowedHosts = (json_last_error() === JSON_ERROR_NONE) ? $decoded : explode(',', $allowedHosts);
+        }
+
+        if (empty($allowedHosts) || !is_array($allowedHosts)) {
+            return true; // Si no hay whitelist válida, permitimos todos (protegido por SSRF check)
         }
 
         $host = parse_url($url, PHP_URL_HOST);

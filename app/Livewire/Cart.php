@@ -25,9 +25,23 @@ class Cart extends Component
     #[On('addToCart')]
     public function onAddToCart($product, int $quantity = 1): void
     {
-        //if auth user role is guest or nor logged return
+        // if auth user role is guest or nor logged return
         if (Auth::guest() || Auth::user()->role->value === 'guest') {
             return;
+        }
+
+        // Si recibimos solo el ID, buscar el producto
+        if (is_numeric($product)) {
+            $productModel = Product::find($product);
+            if (!$productModel) return;
+            
+            // Adaptar al formato esperado por el resto de la función
+            $product = [
+                'id' => $productModel->id,
+                'description' => $productModel->description,
+                'user_price' => current_user()->getProductPrice($productModel),
+                'qtty_package' => $productModel->qtty_package,
+            ];
         }
 
         $productId = $product['id'];

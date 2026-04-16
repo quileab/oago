@@ -39,21 +39,6 @@
     <x-toast />
 </body>
 <script>
-    function increaseQuantity(id, qtty) {
-        var inputElement = document.getElementById('qtty-' + id);
-        var currentValue = parseInt(inputElement.value);
-        inputElement.value = currentValue + qtty;
-    }
-    function decreaseQuantity(id, qtty) {
-        var inputElement = document.getElementById('qtty-' + id);
-        var currentValue = parseInt(inputElement.value);
-        // ensure currentValue is a number and greater than qtty
-        if (isNaN(currentValue) || currentValue - qtty < 1) {
-            inputElement.value = 1; // Reset to 1 if current value is less than 1
-            return;
-        }
-        inputElement.value = currentValue - qtty;
-    }
     // const animationName = 'animar-rebote';
     const animationName = "cart-wiggle-animation";
     const cartIconEffect = document.getElementById("cart-highlight");
