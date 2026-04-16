@@ -4,17 +4,22 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Enums\Role;
-use App\Models\Achievement;
+use App\Traits\HasAchievements;
+use App\Traits\HasProfileData;
+use App\Traits\ManagesCustomers;
 use Laravel\Sanctum\HasApiTokens;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable, HasApiTokens;
+    use HasProfileData, HasAchievements, ManagesCustomers;
 
     /**
      * The attributes that are mass assignable.
@@ -61,78 +66,31 @@ class User extends Authenticatable
         ];
     }
 
-    // create tokens for the user
-    // public function createToken(string $name, array $abilities = []): Token
-    // {
-    //     return $this->tokens()->create([
-    //         'name' => $name,
-    //         'abilities' => $abilities,
-    //     ]);
-    // }
-
-    public function list()
+    public function list(): BelongsTo
     {
         return $this->belongsTo(ListName::class); // Un usuario pertenece a una lista de precios
     }
 
-    public function getProductPrice(Product $product)
+    public function getProductPrice(Product $product): ?float
     {
         return $this->list->listPrices()->where('product_id', $product->id)->first()->price ?? null;
     }
-    public function orders()
+
+    public function orders(): HasMany
     {
         return $this->hasMany(Order::class);
     }
 
-    public function latestOrder()
+    public function latestOrder(): HasOne
     {
         return $this->hasOne(Order::class)->latestOfMany();
     }
 
-    public function getFullNameAttribute()
-    {
-        if ($this->lastname && $this->name) {
-            return $this->lastname . ', ' . $this->name;
-        }
-
-        return '✨SYS: ' . $this->name;
-    }
-
-    public function achievements()
-    {
-        return $this->morphToMany(Achievement::class, 'achievable');
-    }
-
-    public function getTotalPointsAttribute()
-    {
-        return $this->achievements()->where('type', 'points')->get()->sum('data.amount');
-    }
-
-    public function assignedSalesAgents()
+    /**
+     * Relationships specific to normal users as customers.
+     */
+    public function assignedSalesAgents(): HasMany
     {
         return $this->hasMany(CustomerSalesAgent::class, 'customer_id');
     }
-
-    public function assignedCustomers()
-    {
-        return $this->morphMany(CustomerSalesAgent::class, 'sales_agent');
-    }
-
-    /**
-     * Get the query for customers managed by this user.
-     *
-     * @return \Illuminate\Database\Eloquent\Builder
-     */
-    public function getManagedCustomersQuery()
-    {
-        if ($this->is_internal || $this->role === Role::ADMIN) {
-            return User::where('role', Role::CUSTOMER);
-        }
-
-        return User::whereHas('assignedSalesAgents', function ($query) {
-            $query->where('sales_agent_id', $this->id)
-                  ->where('sales_agent_type', self::class);
-        });
-    }
-
 }

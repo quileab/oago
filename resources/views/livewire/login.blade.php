@@ -57,23 +57,15 @@ new #[Layout('components.layouts.empty')]
         }
 
         // If normal login fails, try alternative user
-        $guest = \App\Models\AltUser::where('email', $credentials['email'])->first();
-
-        if ($guest && \Illuminate\Support\Facades\Hash::check($credentials['password'], $guest->password)) {
-            $expiration_days = SettingsHelper::settings('guest_access_ttl_days', 10);
-            $expiration_date = $guest->created_at->addDays($expiration_days);
-
-            if (now()->isAfter($expiration_date)) {
-                $this->addError('email', 'Su período de invitado ha caducado.');
-                return;
-            }
+        if (Auth::guard('alt')->attempt($credentials, true)) {
+            $guest = Auth::guard('alt')->user();
 
             if ($guest->role->value == 'none') {
+                Auth::guard('alt')->logout();
                 $this->addError('email', 'La cuenta está en revisión o desactivada.');
                 return;
             }
 
-            Auth::guard('alt')->login($guest, true);
             request()->session()->put('is_alt_login', true);
 
             return redirect()->intended('/');

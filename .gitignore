@@ -5,6 +5,7 @@
 /public/storage
 /storage/*.key
 /vendor
+/quileab
 .env
 .env.backup
 .env.production
@@ -21,3 +22,7 @@ yarn-error.log
 /.vscode
 /.zed
 *.zip
+
+# Cache y archivos temporales de Laravel
+/bootstrap/cache/*.php
+/storage/framework/cache/data/

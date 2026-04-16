@@ -72,7 +72,10 @@
                         <x-menu-item title="Usuarios ⇨ Ventas" icon="o-table-cells" link="/export/users-order-stats"
                             external />
                     </x-menu-sub>
-                    <x-menu-item title="Configuración" icon="o-cog-6-tooth" link="/settings" />
+                    <x-menu-sub title="Configuración" icon="o-cog-6-tooth">
+                        <x-menu-item title="Parámetros" icon="o-adjustments-horizontal" link="/settings" />
+                        <x-menu-item title="Logs" icon="o-document-magnifying-glass" link="/logs" />
+                    </x-menu-sub>
                 @endif
                 @if($user->role->value != 'guest')
                     <x-menu-item title="Pedidos" icon="o-clipboard-document-list" link="/orders" class="text-warning" />

@@ -32,6 +32,10 @@ class Cart extends Component
 
         $productId = $product['id'];
         $cart = Session::get('cart', []);
+        
+        // Ensure qtty_package is at least 1 to avoid division by zero
+        $qttyPackage = max(1, $product['qtty_package'] ?? 1);
+
         // If the product is already in the cart, increase the quantity
         if (isset($cart[$productId])) {
             $cart[$productId]['quantity'] += $quantity;
@@ -41,21 +45,21 @@ class Cart extends Component
                 'product_id' => $product['id'],
                 'name' => $product['description'],
                 'price' => $product['user_price'],
-                'bulkQuantity' => $product['qtty_package'],
+                'bulkQuantity' => $qttyPackage,
                 'quantity' => $quantity,
             ];
         }
 
         // Determine if the product is being purchased by bulk
         $cart[$productId]['byBulk'] =
-            $cart[$productId]['quantity'] % $product['qtty_package'] == 0;
+            $cart[$productId]['quantity'] % $qttyPackage == 0;
+
         // Save the cart to the session
         Session::put('cart', $cart);
+        
         // Recalculate the total
         $this->calculateTotal();
-        // save temporarily the cart to JSON using User-id in storage as filename user_id_cart.json.json
-        $this->jsonCartUpdate();
-        //$this->info('Agregado', icon: 'o-shopping-cart', position: 'bottom-end', timeout: 1000);
+        
         // Informar al usuario que el producto se ha agregado al carrito
         $this->dispatch('cart-updated');
     }
@@ -68,7 +72,6 @@ class Cart extends Component
             unset($cart[$productId]);
             Session::put('cart', $cart);
             $this->calculateTotal();
-            $this->jsonCartUpdate();
         }
     }
 
@@ -80,7 +83,6 @@ class Cart extends Component
             $cart[$productId]['quantity'] = (int) $quantity;
             Session::put('cart', $cart);
             $this->calculateTotal();
-            $this->jsonCartUpdate();
         }
     }
 
@@ -90,16 +92,22 @@ class Cart extends Component
         $cart = Session::get('cart', []);
         $this->total = 0;
         foreach ($cart as $item) {
-            $product = Product::find($item['product_id']); // Fetch product to get bonus info
+            $product = Product::find($item['product_id']);
 
-            $effectiveQuantity = (int)$item['quantity'];
+            $orderedQuantity = (int)$item['quantity'];
+            $billableQuantity = $orderedQuantity;
 
-            if ($product && $product->hasBonus()) {
-                $timesBonusApplies = floor($effectiveQuantity / $product->bonus_threshold);
-                $effectiveQuantity += ($timesBonusApplies * $product->bonus_amount);
+            // Bonus logic: If the threshold is met, the bonus_amount units are free.
+            // Current logic was ADDING them to the total to pay, which is wrong.
+            // We should keep the ordered quantity and NOT charge for the bonus units.
+            if ($product && $product->hasBonus() && $product->bonus_threshold > 0) {
+                $timesBonusApplies = floor($orderedQuantity / ($product->bonus_threshold + $product->bonus_amount));
+                // The user gets ($timesBonusApplies * $product->bonus_amount) units for free.
+                $freeUnits = $timesBonusApplies * $product->bonus_amount;
+                $billableQuantity = $orderedQuantity - $freeUnits;
             }
 
-            $this->total += (float)$item['price'] * $effectiveQuantity;
+            $this->total += (float)$item['price'] * $billableQuantity;
         }
     }
 
@@ -128,17 +136,6 @@ class Cart extends Component
         $this->total = 0;
         $this->showCart = false;
         $this->info('Carrito vacío');
-        /// delete JSON cart
-        if (file_exists(storage_path('app/private/' . Auth::id() . '_cart.json'))) {
-            unlink(storage_path('app/private/' . Auth::id() . '_cart.json'));
-        }
-    }
-
-    public function jsonCartUpdate()
-    {
-        // save session cart to json
-        $jsonCart = json_encode(Session::get('cart'));
-        file_put_contents(storage_path('app/private/' . Auth::id() . '_cart.json'), $jsonCart);
     }
 
     public function saveCart()

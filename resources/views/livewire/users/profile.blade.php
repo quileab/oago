@@ -15,19 +15,19 @@ new class extends Component {
     #[Rule('required|string|max:255')]
     public string $name = '';
 
-    #[Rule('nullable|string|max:255')]
+    #[Rule('required|string|max:255')]
     public string $lastname = '';
 
-    #[Rule('nullable|string|max:255')]
+    #[Rule('required|string|max:255')]
     public string $address = '';
 
-    #[Rule('nullable|string|max:255')]
+    #[Rule('required|string|max:255')]
     public string $city = '';
 
-    #[Rule('nullable|string|max:20')]
+    #[Rule('required|string|max:20')]
     public string $postal_code = '';
 
-    #[Rule('nullable|string|max:20')]
+    #[Rule('required|string|max:50')]
     public string $phone = '';
 
     #[Rule('required|email|max:255')]
@@ -64,11 +64,11 @@ new class extends Component {
     {
         $validated = $this->validate([
             'name' => 'required|string|max:255',
-            'lastname' => 'nullable|string|max:255',
-            'address' => 'nullable|string|max:255',
-            'city' => 'nullable|string|max:255',
-            'postal_code' => 'nullable|string|max:20',
-            'phone' => 'nullable|string|max:20',
+            'lastname' => 'required|string|max:255',
+            'address' => 'required|string|max:255',
+            'city' => 'required|string|max:255',
+            'postal_code' => 'required|string|max:20',
+            'phone' => 'required|string|max:50',
             'email' => 'required|email|max:255|unique:users,email,' . $this->user->id,
         ]);
 
@@ -102,7 +102,7 @@ new class extends Component {
         $validated = $this->validate($rules);
 
         $this->user->update([
-            'password' => Hash::make($validated['password']),
+            'password' => $validated['password'],
         ]);
 
         $this->reset('current_password', 'password', 'password_confirmation');

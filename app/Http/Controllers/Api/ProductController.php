@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Product;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
@@ -12,6 +13,14 @@ use function Pest\Laravel\json;
 
 class ProductController extends Controller
 {
+    private function deleteImageCache($url)
+    {
+        if (!$url) return;
+        $hash = md5($url);
+        $part1 = substr($hash, 0, 2);
+        $part2 = substr($hash, 2, 2);
+        Storage::disk('public')->delete("image_cache/{$part1}/{$part2}/{$hash}.webp");
+    }
     /**
      * Display a listing of the resource.
      */
@@ -26,6 +35,12 @@ class ProductController extends Controller
      */
     public function store(Request $request)
     {
+        if ($request->has('qtty_package') && (int) $request->qtty_package < 1) {
+            $old_qtty = $request->qtty_package;
+            $request->merge(['qtty_package' => 1]);
+            Log::warning("API Warning: qtty_package corregido de {$old_qtty} a 1 para el producto SKU: " . ($request->sku ?? 'N/A'));
+        }
+
         $validator = Validator::make(
             $request->all(),
             [
@@ -73,6 +88,11 @@ class ProductController extends Controller
 
         //create new product
         $product = Product::create($request->all());
+
+        if ($request->has('image_url') && $request->image_url) {
+            $this->deleteImageCache($request->image_url);
+        }
+
         return response()->json($product, 201);
     }
 
@@ -91,6 +111,12 @@ class ProductController extends Controller
     // Actualizar un producto
     public function update(Request $request, Product $product)
     {
+        if ($request->has('qtty_package') && (int) $request->qtty_package < 1) {
+            $old_qtty = $request->qtty_package;
+            $request->merge(['qtty_package' => 1]);
+            Log::warning("API Warning: qtty_package corregido de {$old_qtty} a 1 para el producto SKU: " . ($product->sku ?? $request->sku ?? 'N/A'));
+        }
+
         $validator = Validator::make(
             $request->all(),
             [
@@ -130,6 +156,13 @@ class ProductController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
+        if ($request->has('image_url') && $request->image_url) {
+            $this->deleteImageCache($request->image_url);
+        }
+        if ($product->image_url) {
+            $this->deleteImageCache($product->image_url);
+        }
+
         $product->update($request->all());
         // return response()->json($product, 200);
         // just return ok when no errors
@@ -139,6 +172,9 @@ class ProductController extends Controller
     // Eliminar un producto
     public function destroy(Product $product)
     {
+        if ($product->image_url) {
+            $this->deleteImageCache($product->image_url);
+        }
         $product->delete();
         return response()->json(['message' => 'Producto eliminado correctamente'], 200);
     }
@@ -154,6 +190,7 @@ class ProductController extends Controller
             // Eliminar imagen anterior si existe
             if ($product->image_url) {
                 Storage::delete($product->image_url);
+                $this->deleteImageCache($product->image_url);
             }
 
             // Almacenar la nueva imagen

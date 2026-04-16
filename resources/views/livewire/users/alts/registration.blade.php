@@ -33,7 +33,7 @@ new class extends Component {
 
     public function register()
     {
-        $this->data['password'] = Hash::make(strtolower($this->data['lastname']));
+        $this->data['password'] = strtolower($this->data['lastname']);
         $validated = $this->validate([
             'data.name' => 'required',
             'data.lastname' => 'required',

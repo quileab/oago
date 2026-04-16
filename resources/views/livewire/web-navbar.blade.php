@@ -17,7 +17,7 @@
                 class="input-sm" />
             </div>
             @foreach($salesCustomers as $customer)
-              <x-menu-item title="{{ $customer->full_name }}" wire:click="setActingCustomer({{ $customer->id }})" />
+              <x-menu-item title="{{ is_object($customer) ? $customer->full_name : 'ID: ' . $customer }}" wire:click="setActingCustomer({{ is_object($customer) ? $customer->id : $customer }})" />
             @endforeach
           </x-dropdown>
         @endif
@@ -27,15 +27,16 @@
           <span class="opacity-50">|</span>
           <x-button label="REGISTRARSE" icon="o-check-circle" class="btn btn-ghost ml-1" link="/register" />
         @else
-          <x-dropdown label="{{ Auth::user()->name }}" class="btn-ghost" title="{{ Auth::user()->role->value }}">
+          @php $user = current_user(); @endphp
+          <x-dropdown label="{{ $user->name }}" class="btn-ghost" title="{{ $user->role->value }}">
             <x-menu-item title="Ordenes de Compra" icon="o-archive-box" link="/orders" />
-            @if(Auth::user()->role->value === 'customer')
+            @if($user->role->value === 'customer')
               <x-menu-item title="Mis Vendedores" icon="o-users" link="/my-sales-agents" />
             @endif
             <x-menu-item title="SALIR" icon="o-arrow-right-start-on-rectangle" link="/logout" no-wire-navigate />
           </x-dropdown>
         @endif
-        @if(Auth::check() && Auth::user()->role->value == 'guest')
+        @if(Auth::check() && current_user()->role->value == 'guest')
           @if($trial_days_remaining)
             <span class="text-sm opacity-50">Dias pendientes: {{ $trial_days_remaining }}</span>
           @endif

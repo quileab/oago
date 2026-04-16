@@ -102,7 +102,7 @@ new class extends Component {
         $data = $validated['formData'];
 
         if (empty($this->formData['id'])) {
-            $data['password'] = Hash::make(\Illuminate\Support\Str::random(16));
+            $data['password'] = \Illuminate\Support\Str::random(16);
         }
 
         AltUser::updateOrCreate(
@@ -119,7 +119,7 @@ new class extends Component {
         $this->validate(['newPassword' => 'required|min:6']);
         
         $user = AltUser::findOrFail($this->formData['id']);
-        $user->update(['password' => Hash::make($this->newPassword)]);
+        $user->update(['password' => $this->newPassword]);
         
         $this->newPassword = '';
         $this->success('Clave actualizada.', position: 'toast-bottom');
@@ -150,10 +150,10 @@ new class extends Component {
         $user->updated_at = $user->created_at;
         // set user role to 'guest'
         $user->role = Role::GUEST;
-        // create 8 characters password string with 4 letters and 4 numbers
-        $password = substr(str_shuffle('abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'), 0, 8);
-        // hash password
-        $user->password = Hash::make($password);
+        // create 8 characters password string
+        $password = \Illuminate\Support\Str::random(8);
+        // set password (will be hashed automatically by the model cast)
+        $user->password = $password;
         $user->save();
         Mail::to($user->email)->send(new AltUserWelcomeMail($user, $password));
         $this->success('Correo de bienvenida enviado.', position: 'toast-bottom');

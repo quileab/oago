@@ -13,12 +13,14 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->api(prepend: [
+            \App\Http\Middleware\ApiLoggerMiddleware::class,
             \Illuminate\Session\Middleware\StartSession::class,
         ]);
 
         $middleware->alias([
             'is_admin' => \App\Http\Middleware\IsAdminMiddleware::class,
             'is_role' => \App\Http\Middleware\IsRoleMiddleware::class,
+            'check_guest' => \App\Http\Middleware\CheckGuestExpiration::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

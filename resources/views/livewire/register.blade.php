@@ -11,8 +11,23 @@ new
     #[Title('Registrarse')]
     class extends Component {
 
-    #[Rule('required')]
+    #[Rule('required|max:30')]
     public string $name = '';
+
+    #[Rule('required|max:30')]
+    public string $lastname = '';
+
+    #[Rule('required|max:50')]
+    public string $address = '';
+
+    #[Rule('required|max:30')]
+    public string $city = '';
+
+    #[Rule('required|max:10')]
+    public string $postal_code = '';
+
+    #[Rule('required|max:50')]
+    public string $phone = '';
 
     #[Rule('required|email|unique:users')]
     public string $email = '';
@@ -37,6 +52,7 @@ new
 
         $data['avatar'] = '/empty-user.jpg';
         $data['password'] = Hash::make($data['password']);
+        $data['role'] = 'customer'; // Default role for registration
 
         $user = User::create($data);
         $token = $user->createToken('auth_token')->plainTextToken;

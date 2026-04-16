@@ -3,15 +3,16 @@
 namespace App\Models;
 
 use App\Enums\Role;
-use App\Models\Achievement;
-use App\Models\User;
-use Illuminate\Database\Eloquent\Model;
+use App\Traits\HasAchievements;
+use App\Traits\HasProfileData;
+use App\Traits\ManagesCustomers;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 class AltUser extends Authenticatable
 {
     use Notifiable;
+    use HasProfileData, HasAchievements, ManagesCustomers;
 
     protected $table = 'alt_users';
 
@@ -41,49 +42,9 @@ class AltUser extends Authenticatable
     protected function casts(): array
     {
         return [
+            'password' => 'hashed',
             'role' => Role::class,
             'is_internal' => 'boolean',
         ];
-    }
-
-    public function getFullNameAttribute()
-    {
-        if ($this->lastname && $this->name) {
-            return $this->lastname . ', ' . $this->name;
-        }
-
-        return '✨SYS: ' . $this->name;
-    }
-
-    public function achievements()
-    {
-        return $this->morphToMany(Achievement::class, 'achievable');
-    }
-
-    public function getTotalPointsAttribute()
-    {
-        return $this->achievements()->where('type', 'points')->get()->sum('data.amount');
-    }
-
-    public function assignedCustomers()
-    {
-        return $this->morphMany(CustomerSalesAgent::class, 'sales_agent');
-    }
-
-    /**
-     * Get the query for customers managed by this alt user.
-     *
-     * @return \Illuminate\Database\Eloquent\Builder
-     */
-    public function getManagedCustomersQuery()
-    {
-        if ($this->is_internal || $this->role === Role::ADMIN) {
-            return User::where('role', Role::CUSTOMER);
-        }
-
-        return User::whereHas('assignedSalesAgents', function ($query) {
-            $query->where('sales_agent_id', $this->id)
-                  ->where('sales_agent_type', self::class);
-        });
     }
 }

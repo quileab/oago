@@ -54,17 +54,17 @@ class WebSearchFilter extends Component
     }
     public function goSearch()
     {
-        if (strlen($this->category)) {
+        if ($this->category && strlen($this->category)) {
             session()->put('category', $this->category);
         } else {
             session()->forget('category');
         }
-        if (strlen($this->brand)) {
+        if ($this->brand && strlen($this->brand)) {
             session()->put('brand', $this->brand);
         } else {
             session()->forget('brand');
         }
-        if (strlen($this->search)) {
+        if ($this->search && strlen($this->search)) {
             session()->put('search', $this->search);
         } else {
             session()->forget('search');
@@ -100,9 +100,10 @@ class WebSearchFilter extends Component
     public function addTag($tag)
     {
         // clear other filters
-        session()->forget('search');
-        session()->forget('category');
-        session()->forget('brand');
+        $this->search = null;
+        $this->category = null;
+        $this->brand = null;
+        session()->forget(['search', 'category', 'brand']);
 
         // if session has tag is the same, remove it
         if (session()->has('tag') && session('tag') == $tag) {

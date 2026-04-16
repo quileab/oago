@@ -12,6 +12,7 @@ new class extends Component {
 
     public $items = 30;
     public $featured = false;
+    public $filter; // for data passed to the component
 
     // # //[ Inject]
     protected ProductSearchService $productSearchService;
@@ -31,7 +32,12 @@ new class extends Component {
             'tag' => session()->get('tag'),
         ];
 
-        $products = $this->productSearchService->searchProducts($params, $this->items, $this->featured);
+        // if there's a filter, merge it with params
+        if (is_array($this->filter)) {
+            $params = array_merge($params, $this->filter);
+        }
+
+        $products = $this->productSearchService->searchProducts($params, (int) $this->items, $this->featured);
 
         $products->map(function ($product) {
             $product->qtty = $product->qtty_package;

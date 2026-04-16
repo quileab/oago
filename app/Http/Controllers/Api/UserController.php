@@ -32,24 +32,29 @@ class UserController extends Controller
     }
 
     /**
-     * Store a newly created resource in storage.
-     * This method assumes user creation is for self-registration or admin.
+     * Store a newly created resource in storage or update an existing one.
      */
     public function store(Request $request)
     {
-        // $request->offsetUnset('id'); // Allow ID to be passed
+        // Buscamos si el usuario ya existe por ID
+        $existingUser = User::find($request->id);
 
         $rules = [
-            'id' => 'required|integer|unique:users,id',
+            'id' => 'required|integer',
             'name' => 'required|string|max:30',
             'lastname' => 'required|string|max:30',
             'address' => 'nullable|string|max:100',
             'city' => 'nullable|string|max:30',
             'postal_code' => 'nullable|string|max:10',
             'phone' => 'nullable|string|max:50',
-            'email' => ['required', 'email', Rule::unique('users', 'email')],
+            'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($existingUser?->id)],
             'password' => 'nullable|string|min:3',
         ];
+
+        // Solo validamos ID único si NO existe el usuario
+        if (!$existingUser) {
+            $rules['id'] .= '|unique:users,id';
+        }
 
         if (auth()->user()->role === Role::ADMIN) {
             $rules['role'] = ['required', 'string', Rule::in(array_map(fn($role) => $role->value, Role::cases()))];
@@ -61,25 +66,55 @@ class UserController extends Controller
 
         $validatedData = $request->validate($rules);
         
-        $password = !empty($validatedData['password']) 
-            ? Hash::make($validatedData['password']) 
-            : Hash::make((string)$validatedData['id']);
+        $warnings = [];
+        $defaults = [
+            'address' => 'S/D',
+            'city' => 'S/D',
+            'postal_code' => '0000',
+            'phone' => '+54',
+        ];
 
-        $user = User::create([
-            'id' => $validatedData['id'],
+        foreach ($defaults as $field => $defaultValue) {
+            if (empty($validatedData[$field])) {
+                $validatedData[$field] = $defaultValue;
+                $warnings[] = "El campo '{$field}' estaba vacío y se asignó el valor por defecto: '{$defaultValue}'.";
+            }
+        }
+
+        $userData = [
             'name' => $validatedData['name'],
             'lastname' => $validatedData['lastname'],
-            'address' => $validatedData['address'] ?? null,
-            'city' => $validatedData['city'] ?? null,
-            'postal_code' => $validatedData['postal_code'] ?? null,
-            'phone' => $validatedData['phone'] ?? null,
+            'address' => $validatedData['address'],
+            'city' => $validatedData['city'],
+            'postal_code' => $validatedData['postal_code'],
+            'phone' => $validatedData['phone'],
             'email' => $validatedData['email'],
-            'password' => $password,
             'role' => $validatedData['role'] ?? Role::CUSTOMER->value,
             'list_id' => $validatedData['list_id'] ?? null,
-        ]);
+        ];
 
-        return response()->json($user, 201);
+        // Solo actualizamos el password si se envía uno nuevo
+        if (!empty($validatedData['password'])) {
+            $userData['password'] = Hash::make($validatedData['password']);
+        } elseif (!$existingUser) {
+            // Si es un usuario nuevo y no viene password, usamos el ID como password
+            $userData['password'] = Hash::make((string)$validatedData['id']);
+        }
+
+        // Usamos updateOrCreate para manejar ambos casos
+        $user = User::updateOrCreate(
+            ['id' => $validatedData['id']],
+            $userData
+        );
+
+        $status = $existingUser ? 200 : 201;
+        $message = $existingUser ? 'Usuario actualizado exitosamente.' : 'Usuario creado exitosamente.';
+
+        return response()->json([
+            'user' => $user,
+            'warnings' => $warnings,
+            'message' => $message
+        ], $status);
     }
 
     /**
@@ -126,6 +161,21 @@ class UserController extends Controller
 
         $validatedData = $request->validate($rules);
         
+        $warnings = [];
+        $defaults = [
+            'address' => 'S/D',
+            'city' => 'S/D',
+            'postal_code' => '0000',
+            'phone' => '+54',
+        ];
+
+        foreach ($defaults as $field => $defaultValue) {
+            if (array_key_exists($field, $validatedData) && empty($validatedData[$field])) {
+                $validatedData[$field] = $defaultValue;
+                $warnings[] = "El campo '{$field}' fue enviado vacío y se asignó el valor por defecto: '{$defaultValue}'.";
+            }
+        }
+
         $dataToUpdate = [
             'name' => $validatedData['name'] ?? $user->name,
             'lastname' => $validatedData['lastname'] ?? $user->lastname,
@@ -146,7 +196,12 @@ class UserController extends Controller
         }
         
         $user->update($dataToUpdate);
-        return response()->json($user, 200);
+        
+        return response()->json([
+            'user' => $user,
+            'warnings' => $warnings,
+            'message' => 'Usuario actualizado correctamente.'
+        ], 200);
     }
 
     /**

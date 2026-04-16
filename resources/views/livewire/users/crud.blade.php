@@ -70,7 +70,7 @@ new class extends Component {
         $this->validate(['newPassword' => 'required|min:6']);
         
         $user = User::findOrFail($this->formData['id']);
-        $user->update(['password' => Hash::make($this->newPassword)]);
+        $user->update(['password' => $this->newPassword]);
         
         $this->newPassword = '';
         $this->drawer = false;

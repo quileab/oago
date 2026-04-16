@@ -27,7 +27,7 @@ new class extends Component {
 }; ?>
 
 <div>
-    <div id='slider' class="z-0 transition-all duration-500" style="height: 0px;">
+    <div id='slider' class="z-0 transition-all duration-500" style="height: 0px;" wire:ignore>
         @foreach($images as $image)
             <img src="{{ $image }}" loading="lazy" />
         @endforeach

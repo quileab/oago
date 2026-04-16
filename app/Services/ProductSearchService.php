@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\DB;
 
 class ProductSearchService
 {
-  public function searchProducts(array $params, int $itemsPerPage): Product|LengthAwarePaginator|null
+  public function searchProducts(array $params, int $itemsPerPage = 15, bool $featured = false): Product|LengthAwarePaginator|null
   {
     $user = current_user();
 
@@ -17,6 +17,11 @@ class ProductSearchService
       ->where('published', 1)
       ->where('visibility', '!=', 'hidden')
       ->where('model', '!=', 'consumo interno');
+
+    // merge featured from parameter if set
+    if ($featured) {
+        $params['featured'] = true;
+    }
 
     // 🔍 Buscar por ID
     if (isset($params['id'])) {
