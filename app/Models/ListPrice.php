@@ -18,6 +18,6 @@ class ListPrice extends Model
 
     public function list()
     {
-        return $this->belongsTo(ListName::class); // Este precio pertenece a una lista de precios específica
+        return $this->belongsTo(ListName::class, 'list_id'); // Este precio pertenece a una lista de precios específica
     }
 }

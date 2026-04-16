@@ -12,7 +12,7 @@ use Illuminate\Notifications\Notifiable;
 class AltUser extends Authenticatable
 {
     use Notifiable;
-    use HasProfileData, HasAchievements, ManagesCustomers;
+    use HasProfileData, HasAchievements, ManagesCustomers, HasPricingList;
 
     protected $table = 'alt_users';
 

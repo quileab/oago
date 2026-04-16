@@ -19,7 +19,7 @@ class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable, HasApiTokens;
-    use HasProfileData, HasAchievements, ManagesCustomers;
+    use HasProfileData, HasAchievements, ManagesCustomers, HasPricingList;
 
     /**
      * The attributes that are mass assignable.
@@ -64,16 +64,6 @@ class User extends Authenticatable
             'role' => Role::class,
             'is_internal' => 'boolean',
         ];
-    }
-
-    public function list(): BelongsTo
-    {
-        return $this->belongsTo(ListName::class); // Un usuario pertenece a una lista de precios
-    }
-
-    public function getProductPrice(Product $product): ?float
-    {
-        return $this->list->listPrices()->where('product_id', $product->id)->first()->price ?? null;
     }
 
     public function orders(): HasMany
