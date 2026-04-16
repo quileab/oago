@@ -6,6 +6,7 @@ use App\Enums\Role;
 use App\Traits\HasAchievements;
 use App\Traits\HasProfileData;
 use App\Traits\ManagesCustomers;
+use App\Traits\HasPricingList;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 

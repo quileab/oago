@@ -7,6 +7,7 @@ use App\Enums\Role;
 use App\Traits\HasAchievements;
 use App\Traits\HasProfileData;
 use App\Traits\ManagesCustomers;
+use App\Traits\HasPricingList;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
