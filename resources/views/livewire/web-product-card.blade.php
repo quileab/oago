@@ -74,8 +74,8 @@
                     <div class="mb-2 text-right text-[10px] text-slate-400 italic">Precios solo usuarios</div>
                 @endif
                 
-                <div class="text-[11px] leading-relaxed text-gray-500 line-clamp-2 border-t border-gray-50 pt-1">
-                    {!! Str::limit(strip_tags($product->description_html), 100) !!}
+                <div class="text-[11px] leading-relaxed text-gray-600 line-clamp-3 border-t border-gray-50 pt-1 overflow-hidden">
+                    {!! $product->description_html !!}
                 </div>
             </div>
         </div>

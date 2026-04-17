@@ -9,6 +9,8 @@ new class extends Component {
     public $product;
     public $qtty = 1;
     public $related_products = [];
+    public $user_price = 0;
+    public $offer_price = 0;
 
     public function mount(Product $prod_id)
     {
@@ -32,6 +34,8 @@ new class extends Component {
             ]);
             $this->related_products = [];
         } else {
+            $this->user_price = $this->product->user_price ?? current_user()?->getProductPrice($this->product) ?? 0;
+            $this->offer_price = $this->product->offer_price ?? 0;
             $this->qtty = $this->product->qtty_package;
             $this->related_products = app(\App\Services\ProductSearchService::class)
                 ->searchRelatedProducts($this->product, 12);
@@ -94,37 +98,42 @@ new class extends Component {
                         {{ $product->description }}
                     </h1>
 
-                    <div class="flex items-center gap-4 mb-6">
+                    <div class="flex items-center gap-4 mb-4">
                         <span class="text-sm font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-lg border border-blue-100">
                             {{ $product->brand }}
                         </span>
                         <span class="text-sm text-slate-400 font-mono font-medium tracking-tighter">REF: {{ $product->id }}</span>
                     </div>
 
+                    <!-- Descripción HTML (Movida debajo de la marca) -->
+                    <div class="mb-8 prose prose-slate max-w-none text-gray-600 leading-relaxed text-sm">
+                        {!! $product->description_html !!}
+                    </div>
+
                     <!-- Bloque Precios -->
                     @if(!Auth::guest())
                         <div class="bg-slate-50 p-6 rounded-2xl mb-8 border border-slate-100">
                             <div class="flex flex-col">
-                                @if($product->offer_price > 0)
+                                @if($offer_price > 0)
                                     <span class="text-sm text-red-500 line-through font-bold mb-1">
-                                        Precio regular: $ {{ number_format($product->user_price, 2, ',', '.') }}
+                                        Precio regular: $ {{ number_format($user_price, 2, ',', '.') }}
                                     </span>
                                     <div class="flex items-baseline gap-2">
                                         <span class="text-5xl font-black text-green-700 tracking-tighter">
-                                            $ {{ number_format($product->offer_price, 2, ',', '.') }}
+                                            $ {{ number_format($offer_price, 2, ',', '.') }}
                                         </span>
                                         <span class="text-xs font-bold text-white bg-green-600 px-2 py-0.5 rounded uppercase">Oferta</span>
                                     </div>
                                 @else
                                     <span class="text-5xl font-black text-green-700 tracking-tighter">
-                                        $ {{ number_format($product->user_price, 2, ',', '.') }}
+                                        $ {{ number_format($user_price, 2, ',', '.') }}
                                     </span>
                                 @endif
                                 
                                 @if($product->qtty_unit > 1)
                                     <span class="text-sm font-bold text-slate-500 mt-2 flex items-center gap-1">
                                         <x-icon name="o-tag" class="w-4 h-4" />
-                                        Precio por unidad: $ {{ number_format(($product->offer_price > 0 ? $product->offer_price : $product->user_price) / $product->qtty_unit, 2, ',', '.') }}
+                                        Precio por unidad: $ {{ number_format(($offer_price > 0 ? $offer_price : $user_price) / $product->qtty_unit, 2, ',', '.') }}
                                     </span>
                                 @endif
                             </div>
@@ -189,12 +198,6 @@ new class extends Component {
                             <x-button label="Ingresar ahora" link="/login" class="mt-4 btn-sm btn-primary" />
                         </div>
                     @endif
-
-                    <!-- Descripción HTML -->
-                    <div class="mt-10 pt-10 border-t border-gray-100 prose prose-slate max-w-none text-gray-600 leading-relaxed">
-                        <h3 class="text-sm font-black text-gray-400 uppercase tracking-widest mb-4">Información del producto</h3>
-                        {!! $product->description_html !!}
-                    </div>
                 </div>
             </div>
         </div>

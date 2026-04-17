@@ -65,9 +65,15 @@ new class extends Component {
 
 <div class="mx-5 z-10 bg-gray-200">
     @if($featured)
-        <h2 class="text-3xl font-bold my-4">Productos Destacados</h2>
+        <h2 class="text-2xl font-black text-gray-900 my-8 flex items-center gap-3">
+            <span class="w-2 h-8 bg-blue-600 rounded-full"></span>
+            PRODUCTOS DESTACADOS
+        </h2>
     @else
-        <h2 class="text-3xl font-bold my-4">Productos</h2>
+        <h2 class="text-2xl font-black text-gray-900 my-8 flex items-center gap-3">
+            <span class="w-2 h-8 bg-blue-600 rounded-full"></span>
+            NUESTRO CATÁLOGO
+        </h2>
     @endif
     <div wire:ignore.self class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         @forelse ($products as $product)
