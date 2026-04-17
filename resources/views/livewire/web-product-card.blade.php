@@ -105,25 +105,15 @@
 
             @if($product->stock > 0 && !in_array(Auth::user()->role->value, ['none', 'guest']))
                 <div x-data="{ 
-                    qtty: @entangle('qtty'),
-                    step: {{ $product->qtty_package }},
-                    add(n) { this.qtty = parseInt(this.qtty) + n },
-                    sub(n) { if(this.qtty > n) this.qtty -= n; else this.qtty = 1 }
+                    step: {{ $product->qtty_package }}
                 }" class="space-y-2">
                     
-                    <!-- Barra de Control (Botones más anchos) -->
                     <div class="flex items-stretch h-10 shadow-sm rounded-lg overflow-hidden border border-slate-300">
-                        <button @click="sub(1)" class="w-14 bg-slate-200/50 hover:bg-slate-300 text-xl font-bold text-slate-700 transition-colors border-r border-slate-300">-</button>
-                        @if($product->qtty_package > 1)
-                            <button @click="sub(step)" class="w-16 bg-blue-100 hover:bg-blue-200 text-[10px] font-black text-blue-700 border-r border-slate-300">-{{ $product->qtty_package }}</button>
-                        @endif
+                        <button wire:click="decrementQtty" class="w-14 bg-slate-200/50 hover:bg-slate-300 text-xl font-bold text-slate-700 transition-colors border-r border-slate-300">-</button>
                         
-                        <input type="number" x-model="qtty" class="flex-grow text-center text-sm font-black bg-white focus:outline-none" min="1">
+                        <input type="number" wire:model="qtty" class="flex-grow text-center text-sm font-black bg-white focus:outline-none" min="1">
                         
-                        @if($product->qtty_package > 1)
-                            <button @click="add(step)" class="w-16 bg-blue-100 hover:bg-blue-200 text-[10px] font-black text-blue-700 border-l border-slate-300">+{{ $product->qtty_package }}</button>
-                        @endif
-                        <button @click="add(1)" class="w-14 bg-slate-200/50 hover:bg-slate-300 text-xl font-bold text-slate-700 transition-colors border-l border-slate-300">+</button>
+                        <button wire:click="incrementQtty" class="w-14 bg-slate-200/50 hover:bg-slate-300 text-xl font-bold text-slate-700 transition-colors border-l border-slate-300">+</button>
                     </div>
 
                     <div class="grid grid-cols-2 gap-2">

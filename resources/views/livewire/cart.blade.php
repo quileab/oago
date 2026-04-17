@@ -44,10 +44,10 @@
                             </td>
                             <td class="text-right">${{ number_format($item['price'], 2) }}</td>
                             <td class="px-2 w-[8rem]">
-                                <x-input type="number" min="{{ $item['bulkQuantity'] }}" step="{{ $item['bulkQuantity'] }}"
+                                <input type="number" min="{{ $item['bulkQuantity'] }}" step="{{ $item['bulkQuantity'] }}"
                                     wire:change="updateQuantity({{ $item['product_id'] }}, $event.target.value)"
-                                    wire:key="cart-{{ $item['product_id'] }}" id="cart-{{ $item['product_id'] }}"
-                                    value="{{ $item['quantity'] }}" class="input-control w-full text-center" />
+                                    wire:key="cart-{{ $item['product_id'] }}-{{ $item['quantity'] }}" id="cart-{{ $item['product_id'] }}-{{ $item['quantity'] }}"
+                                    value="{{ $item['quantity'] }}" class="input input-bordered w-full text-center" />
                                 @if($item['quantity'] % $item['bulkQuantity'] === 0)
                                     <x-icon name="o-squares-2x2"
                                         label="{{ $item['quantity'] / $item['bulkQuantity']}} x {{ $item['bulkQuantity'] }}" />

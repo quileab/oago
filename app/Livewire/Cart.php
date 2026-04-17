@@ -29,7 +29,6 @@ class Cart extends Component
             return;
         }
 
-        // Si recibimos solo el ID, buscar el producto
         if (is_numeric($product)) {
             $productModel = Product::find($product);
             if (!$productModel) return;
@@ -76,20 +75,19 @@ class Cart extends Component
         if (isset($cart[$productId])) {
             $cart[$productId]['quantity'] = max(1, (int)$quantity);
             $this->updateCartAndNotify($cart);
-            // Disparar evento para que los cards sincronicen su input
-            $this->dispatch('cart-updated');
         }
     }
 
     private function updateCartAndNotify($cart)
     {
-        // Calcular si es por bulto para cada item antes de guardar
         foreach ($cart as $id => $item) {
             $cart[$id]['byBulk'] = ($item['quantity'] % ($item['bulkQuantity'] ?? 1)) == 0;
         }
 
         Session::put('cart', $cart);
         $this->calculateTotal();
+        
+        // Notificar cambios para que la UI reaccione
         $this->dispatch('cart-updated');
     }
 

@@ -15,13 +15,12 @@ class WebProductCard extends Component
     public $user_price = 0;
     public $offer_price = 0;
 
+    // Escuchamos el evento solo para que el card se refresque y muestre el badge de "En Carrito" actualizado
     #[On('cart-updated')]
-    public function syncQuantity()
+    public function refreshCard()
     {
-        $cart = session()->get('cart', []);
-        if (isset($cart[$this->local_product['id']])) {
-            $this->qtty = $cart[$this->local_product['id']]['quantity'];
-        }
+        // No sincronizamos $this->qtty para que el usuario pueda seguir eligiendo cuánto agregar
+        $this->render();
     }
 
     public function mount($product)
@@ -38,8 +37,8 @@ class WebProductCard extends Component
         $this->user_price = $this->local_product['user_price'] ?? current_user()?->getProductPrice(Product::find($this->local_product['id'])) ?? 0;
         $this->offer_price = $this->local_product['offer_price'] ?? 0;
 
-        $cart = session()->get('cart', []);
-        $this->qtty = $cart[$this->local_product['id']]['quantity'] ?? ($this->local_product['qtty_package'] ?? 1);
+        // Inicializar siempre con el valor por defecto del bulto
+        $this->qtty = $this->local_product['qtty_package'] ?? 1;
     }
 
     public function render()
@@ -47,26 +46,33 @@ class WebProductCard extends Component
         return view('livewire.web-product-card', [
             'product' => (object) $this->local_product,
             'display_price' => $this->user_price,
-            'display_offer' => $this->offer_price
+            'display_offer' => $this->offer_price,
+            'cart' => session()->get('cart', []) // Pasamos el carrito actual para el badge visual
         ]);
     }
 
     public function decrementQtty()
     {
         $step = $this->local_product['qtty_package'] ?? 1;
-        if ($this->qtty > 1) {
+        if ($this->qtty > $step) {
+            $this->qtty -= $step;
+        } elseif ($this->qtty > 1) {
             $this->qtty--;
         }
     }
 
     public function incrementQtty()
     {
-        $this->qtty++;
+        $step = $this->local_product['qtty_package'] ?? 1;
+        $this->qtty += $step;
     }
 
     public function buy()
     {
         $this->dispatch('addToCart', product: $this->local_product['id'], quantity: (int)$this->qtty);
+        
+        // RESET: Volvemos a la cantidad base después de agregar
+        $this->qtty = $this->local_product['qtty_package'] ?? 1;
     }
 
     public function searchSimilar()
