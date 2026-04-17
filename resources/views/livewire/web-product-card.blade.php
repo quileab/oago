@@ -2,44 +2,80 @@
     class="card bg-white shadow-md shadow-slate-400 overflow-hidden hover:shadow-lg transition-shadow duration-300 flex flex-col h-full">
     
     <a href="./?product_id={{ $product->id }}" class="flex-grow">
-        <div class="grid grid-cols-2 h-full">
-            <div class="relative bg-gray-50 flex items-center justify-center overflow-hidden">
+        <div class="flex h-full">
+            <!-- Columna Imagen (Aumentada al 45%) -->
+            <div class="w-[45%] relative bg-gray-50 flex items-center justify-center overflow-hidden border-r border-gray-100">
                 @if($product->featured)
                     <div class="absolute top-0 left-0 z-10">
-                        <span class="text-[10px] font-bold px-2 py-1 text-white bg-red-600 rounded-br-lg shadow-sm">
-                            DESTACADO ⭐
+                        <span class="text-[9px] font-bold px-1.5 py-0.5 text-white bg-red-600 rounded-br-lg shadow-sm">
+                            ⭐
                         </span>
                     </div>
                 @endif
 
-                <div class="aspect-square w-full flex items-center justify-center p-2">
+                <div class="aspect-square w-full flex items-center justify-center p-2" id="prod-img-{{ $product->id }}">
                     <x-image-proxy url="{{ $product->image_url }}"
-                        class="max-h-32 w-auto object-contain transition-transform duration-500 hover:scale-110 {{ $product->stock == 0 ? 'grayscale opacity-50' : '' }}" />
+                        class="max-h-32 w-auto object-contain transition-transform duration-500 hover:scale-110 {{ $product->stock == 0 ? 'opacity-40' : '' }}" />
                 </div>
                 
                 @if($product->stock == 0)
-                    <div class="absolute inset-0 flex items-center justify-center bg-white/40 backdrop-blur-[1px]">
-                        <span class="bg-gray-800 text-white text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider">Sin Stock</span>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <span class="text-[8px] font-bold px-2 py-0.5 text-gray-500 uppercase tracking-widest border border-gray-300 rounded bg-white/80">Agotado</span>
                     </div>
                 @endif
             </div>
 
-            <div class="p-3 bg-white flex flex-col">
-                <div class="flex flex-wrap gap-1 mb-1">
+            <!-- Columna Contenido (Ajustada al 55%) -->
+            <div class="w-[55%] p-3 bg-white flex flex-col justify-start">
+                <div class="flex flex-wrap gap-1 mb-1.5">
                     @foreach (array_filter(explode('|', $product->tags)) as $tag)
-                        <span class="px-1.5 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-800 rounded uppercase border border-amber-200">
+                        <span class="px-1.5 py-0.5 text-[9px] font-black bg-amber-600 text-white rounded shadow-sm uppercase tracking-wider">
                             {{ $tag }}
                         </span>
                     @endforeach
                 </div>
                 
-                <h2 class="text-sm font-bold text-gray-900 line-clamp-2 leading-tight mb-1" title="{{ $product->description }}">
+                <h2 class="text-sm font-bold text-gray-900 line-clamp-2 leading-snug mb-1" title="{{ $product->description }}">
                     {{ $product->description }}
                 </h2>
-                <p class="text-[11px] text-gray-500 mb-2 italic">Marca: {{ $product->brand }}</p>
                 
-                <div class="mt-auto text-[11px] leading-tight text-gray-600">
-                    {!! Str::limit(strip_tags($product->description_html), 60) !!}
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-[10px] font-medium text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100">
+                        {{ $product->brand }}
+                    </span>
+                    <span class="text-[10px] text-slate-400 font-mono">#{{ $product->id }}</span>
+                </div>
+
+                {{-- Precio Alineado a la Derecha --}}
+                @if(!Auth::guest())
+                    <div class="flex flex-col items-end mb-2 pr-1">
+                        @if($display_offer > 0)
+                            <div class="flex flex-col items-end">
+                                <span class="text-[11px] text-red-500 line-through font-bold">
+                                    $ {{ number_format($display_price, 2, ',', '.') }}
+                                </span>
+                                <span class="text-2xl font-black text-green-700 leading-none">
+                                    $ {{ number_format($display_offer, 2, ',', '.') }}
+                                </span>
+                            </div>
+                        @else
+                            <span class="text-xl font-black text-green-700 leading-none">
+                                $ {{ number_format($display_price, 2, ',', '.') }}
+                            </span>
+                        @endif
+                        
+                        @if($product->qtty_unit > 1)
+                            <span class="text-[11px] font-bold text-slate-500 mt-0.5 text-right">
+                                $ {{ number_format(($display_offer > 0 ? $display_offer : $display_price) / $product->qtty_unit, 2, ',', '.') }} x un.
+                            </span>
+                        @endif
+                    </div>
+                @else
+                    <div class="mb-2 text-right text-[10px] text-slate-400 italic">Precios solo usuarios</div>
+                @endif
+                
+                <div class="text-[11px] leading-relaxed text-gray-500 line-clamp-2 border-t border-gray-50 pt-1">
+                    {!! Str::limit(strip_tags($product->description_html), 100) !!}
                 </div>
             </div>
         </div>
@@ -50,46 +86,23 @@
             <x-icon name="o-lock-closed" class="w-3 h-3 inline mr-1" /> Regístrese para ver precios
         </div>
     @else
-        <div class="p-3 bg-white border-t border-slate-100 grid grid-cols-2 items-end">
-            <div class="flex flex-col">
-                @if($product->offer_price > 0)
-                    <span class="text-[10px] text-red-500 line-through font-medium">
-                        $ {{ number_format($product->user_price, 2, ',', '.') }}
-                    </span>
-                    <span class="text-xl font-black text-green-700 leading-none">
-                        $ {{ number_format($product->offer_price, 2, ',', '.') }}
-                    </span>
-                @else
-                    <span class="text-xl font-black text-green-700 leading-none">
-                        $ {{ number_format($product->user_price, 2, ',', '.') }}
-                    </span>
-                @endif
-                
-                @if($product->qtty_unit > 1)
-                    <span class="text-[10px] font-semibold text-slate-400 mt-1">
-                        $ {{ number_format(($product->offer_price > 0 ? $product->offer_price : $product->user_price) / $product->qtty_unit, 2, ',', '.') }} x un.
-                    </span>
-                @endif
-            </div>
-
-            <div class="text-[10px] text-right text-slate-400 space-y-0.5">
-                <div class="font-mono bg-slate-100 inline-block px-1 rounded">REF: {{ $product->id }}</div>
+        <div class="p-2.5 bg-white border-t border-slate-100">
+            {{-- Stock y Bultos --}}
+            <div class="flex justify-between items-center text-[10px] mb-2 px-1">
                 <div>
                     @if($product->stock < 10)
-                        <span class="text-red-600 font-bold"><x-icon name="s-bolt" class="w-3 h-3 inline" /> Stock Bajo</span>
+                        <span class="text-red-600 font-bold"><x-icon name="s-bolt" class="w-3 h-3 inline" /> STOCK BAJO</span>
                     @elseif($product->stock < 100)
-                        <span class="text-amber-600 font-bold"><x-icon name="s-bolt" class="w-3 h-3 inline" /> Stock Medio</span>
+                        <span class="text-amber-600 font-bold"><x-icon name="s-bolt" class="w-3 h-3 inline" /> STOCK MEDIO</span>
                     @else
-                        <span class="text-green-600 font-bold"><x-icon name="s-check-circle" class="w-3 h-3 inline" /> En stock</span>
+                        <span class="text-green-600 font-bold"><x-icon name="s-check-circle" class="w-3 h-3 inline" /> EN STOCK</span>
                     @endif
                 </div>
-                <div class="flex items-center justify-end gap-1">
-                    <x-icon name="o-cube" class="w-3 h-3" /> Bulto: {{ $product->qtty_package }}
+                <div class="text-slate-500 font-bold bg-slate-100 px-2 py-0.5 rounded-full">
+                    <x-icon name="o-cube" class="w-3 h-3 inline mr-0.5" /> Bulto: {{ $product->qtty_package }}
                 </div>
             </div>
-        </div>
 
-        <div class="p-2 bg-slate-50 border-t border-slate-100">
             @if($product->stock > 0 && !in_array(Auth::user()->role->value, ['none', 'guest']))
                 <div x-data="{ 
                     qtty: @entangle('qtty'),
@@ -98,37 +111,39 @@
                     sub(n) { if(this.qtty > n) this.qtty -= n; else this.qtty = 1 }
                 }" class="space-y-2">
                     
-                    <div class="flex items-stretch h-9 shadow-sm rounded-lg overflow-hidden border border-slate-300">
-                        <button @click="sub(1)" class="w-10 bg-white hover:bg-slate-100 text-slate-600 transition-colors border-r">-</button>
+                    <!-- Barra de Control (Botones más anchos) -->
+                    <div class="flex items-stretch h-10 shadow-sm rounded-lg overflow-hidden border border-slate-300">
+                        <button @click="sub(1)" class="w-14 bg-slate-200/50 hover:bg-slate-300 text-xl font-bold text-slate-700 transition-colors border-r border-slate-300">-</button>
                         @if($product->qtty_package > 1)
-                            <button @click="sub(step)" class="w-12 bg-slate-100 hover:bg-slate-200 text-[10px] font-bold text-slate-700 border-r">-{{ $product->qtty_package }}</button>
+                            <button @click="sub(step)" class="w-16 bg-blue-100 hover:bg-blue-200 text-[10px] font-black text-blue-700 border-r border-slate-300">-{{ $product->qtty_package }}</button>
                         @endif
                         
-                        <input type="number" x-model="qtty" class="flex-grow text-center text-sm font-bold bg-white focus:outline-none" min="1">
+                        <input type="number" x-model="qtty" class="flex-grow text-center text-sm font-black bg-white focus:outline-none" min="1">
                         
                         @if($product->qtty_package > 1)
-                            <button @click="add(step)" class="w-12 bg-slate-100 hover:bg-slate-200 text-[10px] font-bold text-slate-700 border-l">+{{ $product->qtty_package }}</button>
+                            <button @click="add(step)" class="w-16 bg-blue-100 hover:bg-blue-200 text-[10px] font-black text-blue-700 border-l border-slate-300">+{{ $product->qtty_package }}</button>
                         @endif
-                        <button @click="add(1)" class="w-10 bg-white hover:bg-slate-100 text-slate-600 transition-colors border-l">+</button>
+                        <button @click="add(1)" class="w-14 bg-slate-200/50 hover:bg-slate-300 text-xl font-bold text-slate-700 transition-colors border-l border-slate-300">+</button>
                     </div>
 
                     <div class="grid grid-cols-2 gap-2">
                         <x-button label="Similares" icon="o-magnifying-glass"
-                            class="btn-sm btn-outline text-slate-500 border-slate-300 hover:bg-slate-100"
-                            wire:click="searchSimilar({{$product}})" />
+                            class="btn-sm bg-orange-500/80 text-white border-none hover:bg-orange-600/90 font-bold"
+                            wire:click="searchSimilar" />
                         
                         <x-button label="AGREGAR" icon="o-shopping-cart"
-                            class="btn-sm btn-primary shadow-md shadow-primary/20"
-                            wire:click="buy({{ $product->id }})"
+                            class="btn-sm btn-primary shadow-md shadow-primary/20 font-bold"
+                            wire:click="buy"
+                            onclick="flyToCart('prod-img-{{ $product->id }}')"
                             spinner="buy" />
                     </div>
                 </div>
             @endif
             
             @if(!empty($cart) && isset($cart[$product->id]))
-                <div class="mt-2 flex items-center justify-center gap-1 text-[10px] font-bold text-green-600 bg-green-50 py-1 rounded">
+                <div class="mt-2 flex items-center justify-center gap-1 text-[10px] font-bold text-green-600 bg-green-50 py-1 rounded shadow-inner">
                     <x-icon name="o-check-circle" class="w-3 h-3" />
-                    PRODUCTO EN CARRITO ({{ $cart[$product->id]['quantity'] }})
+                    EN CARRITO ({{ $cart[$product->id]['quantity'] }})
                 </div>
             @endif
         </div>

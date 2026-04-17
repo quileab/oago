@@ -3,57 +3,77 @@
 namespace App\Livewire;
 
 use Livewire\Component;
+use Mary\Traits\Toast;
+use Livewire\Attributes\On;
+use App\Models\Product;
 
 class WebProductCard extends Component
 {
-    public $local_product;
-
+    use Toast;
+    public array $local_product;
     public $qtty = 1;
+    public $user_price = 0;
+    public $offer_price = 0;
+
+    #[On('cart-updated')]
+    public function syncQuantity()
+    {
+        $cart = session()->get('cart', []);
+        if (isset($cart[$this->local_product['id']])) {
+            $this->qtty = $cart[$this->local_product['id']]['quantity'];
+        }
+    }
 
     public function mount($product)
     {
-        $this->local_product = $product;
-        $this->qtty = $product['qtty_package'] ?? 1;
+        if ($product instanceof \Illuminate\Database\Eloquent\Model) {
+            $this->local_product = $product->toArray();
+            if (isset($product->description_html)) {
+                $this->local_product['description_html'] = $product->description_html;
+            }
+        } else {
+            $this->local_product = (array) $product;
+        }
+        
+        $this->user_price = $this->local_product['user_price'] ?? current_user()?->getProductPrice(Product::find($this->local_product['id'])) ?? 0;
+        $this->offer_price = $this->local_product['offer_price'] ?? 0;
+
+        $cart = session()->get('cart', []);
+        $this->qtty = $cart[$this->local_product['id']]['quantity'] ?? ($this->local_product['qtty_package'] ?? 1);
     }
+
     public function render()
     {
-        return view('livewire.web-product-card', ['product' => $this->local_product]);
+        return view('livewire.web-product-card', [
+            'product' => (object) $this->local_product,
+            'display_price' => $this->user_price,
+            'display_offer' => $this->offer_price
+        ]);
     }
 
-    public function decrementQtty($product, $package = false)
+    public function decrementQtty()
     {
-        // if package true then set qtty to qtty_package and check stock
-        $qtty = $package ? $product['qtty_package'] : 1;
-        if ($this->qtty > $qtty) {
-            $this->qtty -= $qtty;
+        $step = $this->local_product['qtty_package'] ?? 1;
+        if ($this->qtty > 1) {
+            $this->qtty--;
         }
-        $this->skipRender();
     }
 
-    public function incrementQtty($product, $package = false)
+    public function incrementQtty()
     {
-        // if package true then set qtty to qtty_package and check stock
-        $qtty = $package ? $product['qtty_package'] : 1;
-        $this->qtty += $qtty;
-        $this->skipRender();
+        $this->qtty++;
     }
 
-    public function buy($product, $qtty = 1)
+    public function buy()
     {
-        //dd('buy', $product, $qtty);
-        $qtty = $this->qtty ?? $qtty;
-        $this->dispatch('addToCart', $product, $qtty);
-        $this->skipRender();
+        $this->dispatch('addToCart', product: $this->local_product['id'], quantity: (int)$this->qtty);
     }
 
-    public function searchSimilar($product)
+    public function searchSimilar()
     {
-        session()->forget('category');
-        session()->forget('brand');
-        session()->forget('search');
-        session()->put('similar', $product['model']);
+        session()->forget(['category', 'brand', 'search']);
+        session()->put('similar', $this->local_product['model']);
 
         $this->dispatch('updateProducts', ['resetPage' => true]);
-        $this->skipRender();
     }
 }

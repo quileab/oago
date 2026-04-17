@@ -1,27 +1,26 @@
 <?php
 use Livewire\Volt\Component;
-use \App\Models\Product;
+use App\Models\Product;
+use Illuminate\Support\Str;
+use Mary\Traits\Toast;
 
 new class extends Component {
+    use Toast;
     public $product;
     public $qtty = 1;
     public $related_products = [];
 
     public function mount(Product $prod_id)
     {
-        // use ProductSearchService to get product
         $this->product = app(\App\Services\ProductSearchService::class)
-            ->searchProducts(
-                ['id' => $prod_id->id],
-                1
-            );
+            ->searchProducts(['id' => $prod_id->id], 1);
 
         if (!$this->product) {
-            $this->product = new \App\Models\Product([
+            $this->product = new Product([
                 'id' => 0,
                 'brand' => 'Producto no encontrado',
                 'description' => 'El producto que busca no está disponible o no existe.',
-                'image_url' => asset('imgs/oago.png'), // a default image
+                'image_url' => asset('imgs/oago.png'),
                 'tags' => '',
                 'featured' => false,
                 'description_html' => '',
@@ -33,134 +32,192 @@ new class extends Component {
             ]);
             $this->related_products = [];
         } else {
-            // get related products
+            $this->qtty = $this->product->qtty_package;
             $this->related_products = app(\App\Services\ProductSearchService::class)
-                ->searchRelatedProducts(
-                    $this->product,
-                    30
-                );
+                ->searchRelatedProducts($this->product, 12);
         }
+    }
+
+    public function buy($productId)
+    {
+        $this->dispatch('addToCart', product: $productId, quantity: (int)$this->qtty);
+        
+        // Resetear cantidad al valor por bulto tras agregar
+        $this->qtty = $this->product->qtty_package ?? 1;
     }
 }; ?>
 
-<div>
-    <x-button label="Volver" icon="o-arrow-left" class="btn-primary btn-ghost relative top-0 left-2"
-        onclick="window.history.back()" />
-    @if ($product)
-        <div class="grid grid-cols-1 md:grid-cols-2">
-            <x-image-proxy url="{{ $product->image_url ?? asset('imgs/oago.png') }}" class="w-full h-auto" />
-            {{-- // if product is featured show description above image --}}
-            <div class="p-2 bg-white html-desc">
-                <div class="w-full">
-                    @if($product->featured)
-                        <h2 class="text-xs text-center text-white bg-red-700">
-                            PRODUCTO DESTACADO ⭐
-                        </h2>
-                    @endif
-                    {{-- split tags by | --}}
-                    @foreach (array_filter(explode('|', $product->tags)) as $tag)
-                        <x-badge value="{{ $tag }}" class="badge-warning" />
-                    @endforeach
-                </div>
-                <h2 class="text-2xl">{{ $product->brand }}</h2>
-                <p class="text-lg">{{ $product->description }}</p>
-                {!! $product->description_html !!}
+<div class="max-w-7xl mx-auto p-4 lg:p-6">
+    <!-- Botón Volver -->
+    <div class="mb-6">
+        <x-button label="Volver al catálogo" icon="o-arrow-left" class="btn-sm btn-ghost text-blue-600 font-bold"
+            onclick="window.history.back()" />
+    </div>
 
-                @if(Auth::guest())
-                    <div class="py-2 my-4 bg-slate-300 text-center text-sm">
-                        Regístrese para ver precios o realizar compras
-                    </div>
-                @else
-                    <div class="p-2 bg-white grid grid-cols-2">
-                        <div class="flex flex-col justify-center">
-                            <h3 @class([
-                                "text-2xl text-center font-bold text-green-700",
-                                "text-xl line-through" =>
-                                    $product->offer_price > 0
-                            ])>$ {{ number_format($product->user_price, 2, ',', '.') }}
-                            </h3>
-                            @if($product->qtty_unit > 1)
-                                <p class="text-xs text-center font-bold text-green-800">$
-                                    {{ number_format($product->user_price / $product->qtty_unit, 2, ',', '.') }} p/un.
-                                </p>
-                            @endif
-                            @if($product->offer_price > 0)
-                                <h3 class="text-2xl text-center font-bold text-green-700">$
-                                    {{number_format($product->offer_price, 2, ',', '.')}}
-                                </h3>
-                            @endif
+    @if ($product && $product->id !== 0)
+        <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
+            <div class="grid grid-cols-1 md:grid-cols-2">
+                <!-- Columna Imagen -->
+                <div class="relative bg-gray-50 flex items-center justify-center p-8 border-b md:border-b-0 md:border-r border-gray-100">
+                    @if($product->featured)
+                        <div class="absolute top-4 left-4 z-10">
+                            <span class="px-3 py-1 text-xs font-black text-white bg-red-600 rounded-full shadow-lg">
+                                PRODUCTO DESTACADO ⭐
+                            </span>
                         </div>
-                        <div>
-                            <div class="text-xs text-right">Cod. {{ $product->id }}<br>
-                                @if($product->stock < 10)
-                                    <x-icon name="s-battery-0" label="Stock Bajo" class="text-red-600 text-md h-4" />
-                                @elseif($product->stock < 100)
-                                    <x-icon name="s-battery-50" label="Stock Medio" class="text-yellow-600 text-md h-4" />
+                    @endif
+
+                    <div class="relative group" id="detail-img-{{ $product->id }}">
+                        <x-image-proxy url="{{ $product->image_url }}" 
+                            class="max-h-[400px] w-auto object-contain transition-transform duration-700 group-hover:scale-105 {{ $product->stock == 0 ? 'opacity-40 grayscale' : '' }}" />
+                        
+                        @if($product->stock == 0)
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <span class="px-6 py-2 bg-white/90 backdrop-blur text-gray-500 font-black rounded-xl border-2 border-gray-200 shadow-xl uppercase tracking-[0.2em]">Agotado</span>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+
+                <!-- Columna Información -->
+                <div class="p-6 lg:p-10 flex flex-col">
+                    <!-- Tags -->
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        @foreach (array_filter(explode('|', $product->tags)) as $tag)
+                            <span class="px-2.5 py-1 text-[10px] font-black bg-amber-600 text-white rounded-md shadow-sm uppercase tracking-wider">
+                                {{ $tag }}
+                            </span>
+                        @endforeach
+                    </div>
+
+                    <h1 class="text-3xl font-black text-gray-900 leading-tight mb-2">
+                        {{ $product->description }}
+                    </h1>
+
+                    <div class="flex items-center gap-4 mb-6">
+                        <span class="text-sm font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-lg border border-blue-100">
+                            {{ $product->brand }}
+                        </span>
+                        <span class="text-sm text-slate-400 font-mono font-medium tracking-tighter">REF: {{ $product->id }}</span>
+                    </div>
+
+                    <!-- Bloque Precios -->
+                    @if(!Auth::guest())
+                        <div class="bg-slate-50 p-6 rounded-2xl mb-8 border border-slate-100">
+                            <div class="flex flex-col">
+                                @if($product->offer_price > 0)
+                                    <span class="text-sm text-red-500 line-through font-bold mb-1">
+                                        Precio regular: $ {{ number_format($product->user_price, 2, ',', '.') }}
+                                    </span>
+                                    <div class="flex items-baseline gap-2">
+                                        <span class="text-5xl font-black text-green-700 tracking-tighter">
+                                            $ {{ number_format($product->offer_price, 2, ',', '.') }}
+                                        </span>
+                                        <span class="text-xs font-bold text-white bg-green-600 px-2 py-0.5 rounded uppercase">Oferta</span>
+                                    </div>
                                 @else
-                                    <x-icon name="s-battery-100" label="En stock" class="text-green-600 text-md h-4" />
+                                    <span class="text-5xl font-black text-green-700 tracking-tighter">
+                                        $ {{ number_format($product->user_price, 2, ',', '.') }}
+                                    </span>
                                 @endif
-                                <br>
-                                <x-icon name="o-cube" label="{{ $product->qtty_package }} " class="text-gray-600 text-md h-4" />
+                                
+                                @if($product->qtty_unit > 1)
+                                    <span class="text-sm font-bold text-slate-500 mt-2 flex items-center gap-1">
+                                        <x-icon name="o-tag" class="w-4 h-4" />
+                                        Precio por unidad: $ {{ number_format(($product->offer_price > 0 ? $product->offer_price : $product->user_price) / $product->qtty_unit, 2, ',', '.') }}
+                                    </span>
+                                @endif
                             </div>
                         </div>
-                    </div>
-                    @if($product->stock > 10)
-                        <div class="p-2 bg-slate-200 grid grid-cols-1 gap-2">
-                            @if($product->qtty_package > 1)
-                                <p class="text-xs"><small>Algunos productos se venden por bulto y no por unidades.
-                                    </small>
-                                </p>
-                            @endif
-                            {{-- if user role is guest no show buttons --}}
-                            @if(Auth::user()->role->value != 'guest')
-                                <div class="flex gap-0">
-                                    <button class="btn bg-red-600 border-2 hover:bg-red-500 hover:text-white grow-1"
-                                        onclick="decreaseQuantity({{ $product->id }}, 1)">
-                                        -1</button>
+
+                        <!-- Disponibilidad -->
+                        <div class="flex justify-between items-center mb-8 px-2">
+                            <div>
+                                @if($product->stock < 10)
+                                    <span class="text-red-600 font-black text-sm px-3 py-1.5 bg-red-50 rounded-full border border-red-100">
+                                        <x-icon name="s-bolt" class="w-4 h-4 inline mr-1" /> STOCK BAJO
+                                    </span>
+                                @elseif($product->stock < 100)
+                                    <span class="text-amber-600 font-black text-sm px-3 py-1.5 bg-amber-50 rounded-full border border-amber-100">
+                                        <x-icon name="s-bolt" class="w-4 h-4 inline mr-1" /> STOCK MEDIO
+                                    </span>
+                                @else
+                                    <span class="text-green-600 font-black text-sm px-3 py-1.5 bg-green-50 rounded-full border border-green-100">
+                                        <x-icon name="s-check-circle" class="w-4 h-4 inline mr-1" /> EN STOCK
+                                    </span>
+                                @endif
+                            </div>
+                            <div class="text-slate-600 font-black bg-white px-4 py-1.5 rounded-full border border-slate-200 shadow-sm text-sm">
+                                <x-icon name="o-cube" class="w-4 h-4 inline mr-1" /> Venta por bulto: {{ $product->qtty_package }} un.
+                            </div>
+                        </div>
+
+                        <!-- Acciones de Compra -->
+                        @if($product->stock > 0 && !in_array(Auth::user()->role->value, ['none', 'guest']))
+                            <div x-data="{ 
+                                qtty: @entangle('qtty'),
+                                step: {{ $product->qtty_package }},
+                                add(n) { this.qtty = parseInt(this.qtty) + n },
+                                sub(n) { if(this.qtty > n) this.qtty -= n; else this.qtty = 1 }
+                            }" class="space-y-4">
+                                
+                                <div class="flex items-stretch h-14 shadow-sm rounded-xl overflow-hidden border-2 border-slate-200">
+                                    <button @click="sub(1)" class="w-20 bg-slate-100 hover:bg-slate-200 text-2xl font-bold text-slate-700 transition-colors border-r-2 border-slate-200">-</button>
                                     @if($product->qtty_package > 1)
-                                        <button class="btn bg-red-600 border-2 hover:bg-red-500 hover:text-white grow-1"
-                                            onclick="decreaseQuantity('{{$product->id}}', {{ $product->qtty_package }})">
-                                            -{{ $product->qtty_package }}</button>
+                                        <button @click="sub(step)" class="w-24 bg-blue-50 hover:bg-blue-100 text-xs font-black text-blue-700 border-r-2 border-slate-200">-{{ $product->qtty_package }}</button>
                                     @endif
-                                    <input id="qtty-{{ $product->id }}" wire:key="{{ $product->id }}" type="number" wire:model="qtty"
-                                        min="1" step="1"
-                                        class="bg-slate-100 text-black border rounded-md border-gray-900 text-center w-16">
-                                    <button class="btn bg-red-600 border-2 hover:bg-red-500 hover:text-white grow-1"
-                                        onclick="document.getElementById('qtty-{{ $product->id }}').value = parseInt(document.getElementById('qtty-{{ $product->id }}').value)+1">+1</button>
+                                    
+                                    <input type="number" x-model="qtty" class="flex-grow text-center text-xl font-black bg-white focus:outline-none" min="1">
+                                    
                                     @if($product->qtty_package > 1)
-                                        <button class="btn bg-red-600 border-2 hover:bg-red-500 hover:text-white grow-1"
-                                            onclick="increaseQuantity('{{$product->id}}', {{ $product->qtty_package }})">
-                                            +{{ $product->qtty_package }}</button>
+                                        <button @click="add(step)" class="w-24 bg-blue-50 hover:bg-blue-100 text-xs font-black text-blue-700 border-l-2 border-slate-200">+{{ $product->qtty_package }}</button>
                                     @endif
+                                    <button @click="add(1)" class="w-20 bg-slate-100 hover:bg-slate-200 text-2xl font-bold text-slate-700 transition-colors border-l-2 border-slate-200">+</button>
                                 </div>
 
-                                <div class="grid grid-cols-2 gap-2">
-                                    <button class="btn btn-outline text-red-600 border-2 hover:bg-red-600 hover:text-white"
-                                        onclick="Livewire.dispatch('addToCart', {'product': {{ $product }}, 'quantity':
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        document.getElementById('qtty-{{ $product->id }}').value})">
-                                        <x-icon name="o-shopping-cart" label="AGREGAR" />
-                                    </button>
-                                </div>
-                            @endif
-                        </div>
+                                <x-button label="AGREGAR AL CARRITO" icon="o-shopping-cart"
+                                    class="w-full h-14 btn-primary text-lg font-black shadow-xl shadow-primary/30"
+                                    wire:click="buy({{ $product->id }})"
+                                    onclick="flyToCart('detail-img-{{ $product->id }}')"
+                                    spinner="buy" />
+                            </div>
+                        @endif
                     @else
-                        <h1 class="text-lg text-red-600">Sin stock</h1>
-                        Consulte abajo por productos similares
+                        <div class="mt-8 p-6 bg-blue-50 rounded-2xl border border-blue-100 text-center">
+                            <x-icon name="o-lock-closed" class="w-8 h-8 text-blue-400 mx-auto mb-2" />
+                            <p class="text-blue-700 font-bold">Inicie sesión para ver precios y comprar</p>
+                            <x-button label="Ingresar ahora" link="/login" class="mt-4 btn-sm btn-primary" />
+                        </div>
                     @endif
-                    <!-- if cart has products and product is in cart show cart icon -->
-                    @if(!empty($cart) && isset($cart[$product->id]))
-                        <x-icon name="o-shopping-cart" label="Producto en el carrito" class="text-success" />
-                    @endif
-                @endif
+
+                    <!-- Descripción HTML -->
+                    <div class="mt-10 pt-10 border-t border-gray-100 prose prose-slate max-w-none text-gray-600 leading-relaxed">
+                        <h3 class="text-sm font-black text-gray-400 uppercase tracking-widest mb-4">Información del producto</h3>
+                        {!! $product->description_html !!}
+                    </div>
+                </div>
             </div>
         </div>
     @else
-        <h1 class="text-2xl font-bold m-4 px-2">Producto no disponible</h1>
+        <div class="bg-white p-12 rounded-3xl shadow-xl text-center border-2 border-dashed border-gray-200">
+            <x-icon name="o-face-frown" class="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <h1 class="text-2xl font-black text-gray-400 uppercase">Producto no disponible</h1>
+            <x-button label="Volver a la tienda" link="/" class="mt-6 btn-primary" />
+        </div>
     @endif
-    <h1 class="text-2xl font-bold m-4 px-2">Relacionados</h1>
-    <div class="p-4 bg-slate-200 grid lg:grid-cols-3 gap-4">
-        @foreach ($related_products as $product)
-            <livewire:web-product-card :$product />
-        @endforeach
-    </div>
+
+    <!-- Productos Relacionados -->
+    @if(count($related_products) > 0)
+        <div class="mt-16">
+            <h2 class="text-2xl font-black text-gray-900 mb-8 px-2 flex items-center gap-3">
+                <span class="w-2 h-8 bg-blue-600 rounded-full"></span>
+                PRODUCTOS RELACIONADOS
+            </h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                @foreach ($related_products as $rel_product)
+                    <livewire:web-product-card :product="$rel_product" :key="'rel-'.$rel_product->id" />
+                @endforeach
+            </div>
+        </div>
+    @endif
 </div>
