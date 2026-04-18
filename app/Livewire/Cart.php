@@ -89,6 +89,9 @@ class Cart extends Component
         
         // Notificar cambios para que la UI reaccione
         $this->dispatch('cart-updated');
+
+        // Guardar temporalmente el carrito en un JSON
+        $this->jsonCartUpdate();
     }
 
     public function calculateTotal()
@@ -137,6 +140,22 @@ class Cart extends Component
         $this->showCart = false;
         $this->dispatch('cart-updated');
         $this->info('Carrito vacío');
+        $this->jsonCartDelete();
+    }
+
+    public function jsonCartUpdate()
+    {
+        if (Auth::check() || Auth::guard('alt')->check()) {
+            $jsonCart = json_encode(Session::get('cart'));
+            file_put_contents(storage_path('app/private/' . Auth::id() . '_cart.json'), $jsonCart);
+        }
+    }
+
+    public function jsonCartDelete()
+    {
+        if (file_exists(storage_path('app/private/' . Auth::id() . '_cart.json'))) {
+            unlink(storage_path('app/private/' . Auth::id() . '_cart.json'));
+        }
     }
 
     public function saveCart()

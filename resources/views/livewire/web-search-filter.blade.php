@@ -18,18 +18,20 @@
         <x-select wire:model.live="brand" placeholder="Marca" icon="o-clipboard-document-list" class="w-full mb-2"
             :options="$brands" option-label="brand" option-value="brand" class="bg-white text-black shadow-sm">
         </x-select>
-        <div>
+        <div class="join flex-wrap gap-y-1 justify-center">
             @foreach (\App\Models\Product::getTags() as $tag)
                 <x-button label="{{ $tag }}" icon="o-tag" wire:click="addTag('{{ $tag }}')" wire:key="tag-{{ $tag }}"
                     @class([
+                        'join-item',
                         'btn-outline text-primary' => $tag != session('tag'),
                         'btn-success' => $tag == session('tag'),
                         'hover:bg-primary hover:text-white' => $tag != session('tag'),
                     ]) />
             @endforeach
             @if($brand || $category || session()->has('tag'))
-                <x-button label="Limpiar Filtros" icon="o-eye-slash" class="btn-primary" wire:click="clearFilters()" />
+                <x-button icon="o-trash" class="btn-primary join-item" wire:click="clearFilters()" tooltip="Limpiar Filtros" />
             @endif
+        </div>
         </div>
     </div>
 </div>

@@ -2,17 +2,22 @@
 
 namespace App\Livewire;
 
+use App\Models\Product;
+use Illuminate\Database\Eloquent\Model;
+use Livewire\Attributes\On;
 use Livewire\Component;
 use Mary\Traits\Toast;
-use Livewire\Attributes\On;
-use App\Models\Product;
 
 class WebProductCard extends Component
 {
     use Toast;
+
     public array $local_product;
+
     public $qtty = 1;
+
     public $user_price = 0;
+
     public $offer_price = 0;
 
     // Escuchamos el evento solo para que el card se refresque y muestre el badge de "En Carrito" actualizado
@@ -25,7 +30,7 @@ class WebProductCard extends Component
 
     public function mount($product)
     {
-        if ($product instanceof \Illuminate\Database\Eloquent\Model) {
+        if ($product instanceof Model) {
             $this->local_product = $product->toArray();
             if (isset($product->description_html)) {
                 $this->local_product['description_html'] = $product->description_html;
@@ -33,7 +38,7 @@ class WebProductCard extends Component
         } else {
             $this->local_product = (array) $product;
         }
-        
+
         $this->user_price = $this->local_product['user_price'] ?? current_user()?->getProductPrice(Product::find($this->local_product['id'])) ?? 0;
         $this->offer_price = $this->local_product['offer_price'] ?? 0;
 
@@ -47,7 +52,7 @@ class WebProductCard extends Component
             'product' => (object) $this->local_product,
             'display_price' => $this->user_price,
             'display_offer' => $this->offer_price,
-            'cart' => session()->get('cart', []) // Pasamos el carrito actual para el badge visual
+            'cart' => session()->get('cart', []), // Pasamos el carrito actual para el badge visual
         ]);
     }
 
@@ -56,8 +61,6 @@ class WebProductCard extends Component
         $step = $this->local_product['qtty_package'] ?? 1;
         if ($this->qtty > $step) {
             $this->qtty -= $step;
-        } elseif ($this->qtty > 1) {
-            $this->qtty--;
         }
     }
 
@@ -67,10 +70,22 @@ class WebProductCard extends Component
         $this->qtty += $step;
     }
 
+    public function decrementUnit()
+    {
+        if ($this->qtty > 1) {
+            $this->qtty--;
+        }
+    }
+
+    public function incrementUnit()
+    {
+        $this->qtty++;
+    }
+
     public function buy()
     {
-        $this->dispatch('addToCart', product: $this->local_product['id'], quantity: (int)$this->qtty);
-        
+        $this->dispatch('addToCart', product: $this->local_product['id'], quantity: (int) $this->qtty);
+
         // RESET: Volvemos a la cantidad base después de agregar
         $this->qtty = $this->local_product['qtty_package'] ?? 1;
     }

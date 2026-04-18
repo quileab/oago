@@ -2,47 +2,69 @@
 
 namespace App\Livewire;
 
-//use Illuminate\Support\Facades\Cache;
-use Livewire\Component;
+// use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Livewire\Component;
 use Mary\Traits\Toast;
 
 class WebSearchFilter extends Component
 {
     use Toast;
+
     public $categories = [];
+
     public $category;
+
     public $brands = [];
+
     public $brand;
-    //public $tag;
+
+    // public $tag;
     public $search;
+
     public function mount()
     {
         // categories take unique values from products category attribute as id and name
-        $this->categories = //Cache::remember('categories', 60*60, function () {
+        $this->categories = // Cache::remember('categories', 60*60, function () {
             DB::table('products')->select('category')
-            ->where('published', 1)
-            ->where('category', '!=', '')
-            ->distinct()
-            ->orderBy('category')
-            ->get(['id', 'category']);
-        $this->brands = //Cache::remember('brands', 60*60, function () {
+                ->where('published', 1)
+                ->where('category', '!=', '')
+                ->distinct()
+                ->orderBy('category')
+                ->get(['id', 'category']);
+        $this->brands = // Cache::remember('brands', 60*60, function () {
             DB::table('products')->select('brand')
-            ->where('published', 1)
-            ->where('brand', '!=', '')
-            ->distinct()
-            ->orderBy('brand')
-            ->get(['id', 'brand']);
+                ->where('published', 1)
+                ->where('brand', '!=', '')
+                ->distinct()
+                ->orderBy('brand')
+                ->get(['id', 'brand']);
 
-        //});
+        // });
 
         $this->category = session()->get('category') ?: null;
         $this->search = session()->get('search') ?: null;
         $this->brand = session()->get('brand') ?: null;
     }
+
     public function render()
     {
         return view('livewire.web-search-filter');
+    }
+
+    private function handleRedirect()
+    {
+        $referer = request()->headers->get('referer');
+        if ($referer) {
+            $path = parse_url($referer, PHP_URL_PATH) ?? '/';
+            $basePath = parse_url(url('/'), PHP_URL_PATH) ?? '/';
+
+            if ($path === $basePath || $path === $basePath.'/') {
+                return; // Ya estamos en la página principal, no es necesario recargar
+            }
+        }
+
+        $this->redirect('/', navigate: true);
     }
 
     public function clearSearch()
@@ -50,8 +72,9 @@ class WebSearchFilter extends Component
         $this->search = null;
         session()->forget('search');
         $this->dispatch('updateProducts', ['resetPage' => true]);
-        return redirect('/');
+        $this->handleRedirect();
     }
+
     public function goSearch()
     {
         if ($this->category && strlen($this->category)) {
@@ -73,7 +96,7 @@ class WebSearchFilter extends Component
         $this->dispatch('updateProducts', ['resetPage' => true]);
         // set session noslider
         session()->put('noslider', true);
-        return redirect('/');
+        $this->handleRedirect();
     }
 
     public function updatedCategory()
@@ -82,6 +105,7 @@ class WebSearchFilter extends Component
         $this->brand = null;
         $this->goSearch();
     }
+
     public function updatedBrand()
     {
         $this->search = null;
@@ -109,10 +133,12 @@ class WebSearchFilter extends Component
         if (session()->has('tag') && session('tag') == $tag) {
             session()->forget('tag');
             $this->dispatch('updateProducts', ['resetPage' => true]);
+            $this->handleRedirect();
+
             return;
         }
         session()->put('tag', $tag);
         $this->dispatch('updateProducts', ['resetPage' => true]);
-        return redirect('/');
+        $this->handleRedirect();
     }
 }

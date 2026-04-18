@@ -68,6 +68,17 @@ new #[Layout('components.layouts.empty')]
 
             request()->session()->put('is_alt_login', true);
 
+            if (file_exists($cartFile = storage_path("app/private/" . Auth::guard('alt')->id() . "_cart.json"))) {
+                $cart = json_decode(file_get_contents($cartFile), true);
+                foreach ($cart as $item) {
+                    $prod = \App\Models\ListPrice::where('product_id', $item['product_id'])
+                        ->where('list_id', $guest->list_id)
+                        ->first();
+                    $cart[$item['product_id']]['price'] = $prod->price ?? $item['price'];
+                }
+                session()->put('cart', $cart);
+            }
+
             return redirect()->intended('/');
         }
 
