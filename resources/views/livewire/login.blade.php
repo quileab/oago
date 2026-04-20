@@ -86,34 +86,46 @@ new #[Layout('components.layouts.empty')]
     }
 }; ?>
 
-<div class="min-h-screen flex justify-center items-center">
+<div class="min-h-screen flex justify-center items-center bg-slate-200">
     <div data-theme="dark"
-        class="w-3/4 md:w-1/3 mx-auto bg-slate-900/80 backdrop-blur-xl rounded-lg shadow-lg shadow-black/50 p-4">
-        <x-header title="INGRESAR" />
-        <x-form wire:submit="login" no-separator>
-            <x-input label="E-mail" wire:model="email" icon="o-envelope" inline />
-            <div x-data="{ showPassword: false }">
+        class="w-11/12 sm:w-3/4 md:w-[400px] mx-auto bg-slate-900/90 backdrop-blur-2xl rounded-2xl shadow-2xl shadow-black/40 p-8 border border-white/10">
+        
+        <div class="flex flex-col items-center mb-8">
+            <img src="{{ asset('imgs/oago.png') }}" class="w-32 mb-4 drop-shadow-lg" alt="Logo">
+            <h2 class="text-2xl font-black tracking-tighter text-white uppercase">Ingresar</h2>
+            <p class="text-xs text-slate-400 mt-1 uppercase tracking-widest">Acceso Clientes</p>
+        </div>
+
+        <x-form wire:submit="login" no-separator class="space-y-4">
+            <x-input label="E-mail" wire:model="email" icon="o-envelope" 
+                class="bg-slate-800/50 border-white/5 focus:border-primary" />
+            
+            <div x-data="{ showPassword: false }" class="relative">
                 <div x-show="!showPassword">
-                    <x-input label="Password" wire:model="password" type="password" icon="o-lock-closed" inline>
+                    <x-input label="Contraseña" wire:model="password" type="password" icon="o-lock-closed" 
+                        class="bg-slate-800/50 border-white/5 focus:border-primary">
                         <x-slot:append>
-                            <x-button @click="showPassword = !showPassword" icon="o-eye-slash" class="join-item" />
+                            <x-button @click="showPassword = !showPassword" icon="o-eye-slash" 
+                                class="btn-ghost btn-sm text-slate-400 hover:text-white" />
                         </x-slot:append>
                     </x-input>
                 </div>
                 <div x-show="showPassword" style="display: none;">
-                    <x-input label="Password" wire:model="password" type="text" icon="o-lock-closed" inline>
+                    <x-input label="Contraseña" wire:model="password" type="text" icon="o-lock-closed" 
+                        class="bg-slate-800/50 border-white/5 focus:border-primary">
                         <x-slot:append>
-                            <x-button @click="showPassword = !showPassword" icon="o-eye" class="join-item" />
+                            <x-button @click="showPassword = !showPassword" icon="o-eye" 
+                                class="btn-ghost btn-sm text-primary" />
                         </x-slot:append>
                     </x-input>
                 </div>
             </div>
 
             <x-slot:actions>
-                <div class="flex justify-between w-full">
-                    <x-button label="Volver" @click="window.history.back()" icon="o-arrow-uturn-left"
-                        class="btn-neutral" />
-                    <x-button label="INGRESAR" type="submit" icon="o-key" class="btn-primary" spinner="login" />
+                <div class="flex flex-col gap-3 w-full mt-4">
+                    <x-button label="INGRESAR" type="submit" icon="o-key" class="btn-primary w-full font-bold" spinner="login" />
+                    <x-button label="Volver al catálogo" @click="window.history.back()" icon="o-arrow-uturn-left"
+                        class="btn-ghost btn-sm text-slate-400" />
                 </div>
             </x-slot:actions>
         </x-form>
