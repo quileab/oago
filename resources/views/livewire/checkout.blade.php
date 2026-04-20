@@ -71,13 +71,18 @@ new class extends Component {
 
     public function save()
     {
-        if (!Auth::check()) {
+        if (!current_user()) {
             return redirect()->route('login');
         }
         // remove tags & sanitize data from "information"
-        $this->data['information'] = strip_tags($this->data['information']);
+        $this->data['information'] = strip_tags($this->data['information'] ?? '');
+        
         // TODO: validate data
-        \App\Models\Order::placeOrder(shipping: $this->data);
+        if (Auth::guard('alt')->check()) {
+            \App\Models\AltOrder::placeOrder(shipping: $this->data);
+        } else {
+            \App\Models\Order::placeOrder(shipping: $this->data);
+        }
     }
 
 }; ?>
