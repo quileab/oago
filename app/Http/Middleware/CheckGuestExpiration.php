@@ -2,12 +2,12 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\Role;
+use App\Helpers\SettingsHelper;
 use Closure;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Support\Facades\Auth;
-use App\Helpers\SettingsHelper;
-use App\Enums\Role;
+use Symfony\Component\HttpFoundation\Response;
 
 class CheckGuestExpiration
 {
@@ -16,10 +16,10 @@ class CheckGuestExpiration
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $user = auth()->user();
+        $user = current_user();
 
         // Si no hay usuario o no es un invitado, continuamos
-        if (!$user || $user->role !== Role::GUEST) {
+        if (! $user || $user->role !== Role::GUEST) {
             return $next($request);
         }
 

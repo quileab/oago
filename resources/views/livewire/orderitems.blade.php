@@ -70,11 +70,40 @@ new class extends Component {
 }; ?>
 
 <div>
-    <div class="grid grid-cols-3 mb-2">
+    {{-- Encabezado de Impresión (Solo visible al imprimir) --}}
+    <div class="print-only print-header mb-8">
+        <div class="flex justify-between items-start">
+            <div>
+                <img src="{{ asset('imgs/brand-logo.webp') }}" class="w-32 mb-2" alt="Logo">
+                <p class="text-xs font-bold uppercase tracking-widest text-slate-500">Comprobante de Pedido API</p>
+            </div>
+            <div class="text-right">
+                <h1 class="text-2xl font-black uppercase">Pedido #{{ $order->id }}</h1>
+                <p class="font-bold">Fecha: {{ $order->created_at->format('d/m/Y H:i') }}</p>
+            </div>
+        </div>
+        
+        <div class="grid grid-cols-2 gap-8 mt-6 border-t pt-4">
+            <div>
+                <h3 class="font-black text-sm uppercase mb-1 border-b">Datos del Cliente</h3>
+                <p class="font-bold text-lg">{{ $order->user->lastname }}, {{ $order->user->name }}</p>
+                <p>{{ $order->user->address }}</p>
+                <p>{{ $order->user->city }} ({{ $order->user->postal_code }})</p>
+                <p>Tel: {{ $order->user->phone }}</p>
+            </div>
+            <div>
+                <h3 class="font-black text-sm uppercase mb-1 border-b">Detalles de Envío y Pago</h3>
+                <p><strong>Envío:</strong> {{ $order->sending_method }}</p>
+                <p><strong>Pago:</strong> {{ $order->payment_method }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 mb-2 no-print gap-4 items-start">
         <div>
-            <x-button label="Volver" icon="o-arrow-left" class="btn-primary" onclick="window.history.back()" />
-            <h3 class="text-2xl"><small class="text-primary">Pedido #</small> {{ $order->id }}</h3>
-            <h3 class="text-2xl"><small class="text-primary">Importe:</small>
+            <x-button label="Volver" icon="o-arrow-left" class="btn-outline btn-sm mb-4" onclick="window.history.back()" />
+            <h3 class="text-2xl font-black uppercase tracking-tighter"><small class="text-primary">Pedido #</small> {{ $order->id }}</h3>
+            <h3 class="text-xl font-bold"><small class="text-primary">Importe:</small>
                 ${{ number_format($order->total_price, 2, ',', '.') }}</h3>
         </div>
         <div>
@@ -112,32 +141,42 @@ new class extends Component {
                 <x-button wire:click="loadCart(false)" icon="o-shopping-cart" class="mt-2 btn-primary w-full"
                     label="Copiar Pedido" />
             @endif
-
+            <x-button icon="o-printer" class="btn-neutral w-full mt-2" label="Imprimir Pedido" link="/order/{{ $order->id }}/print" external target="_blank" />
         </div>
     </div>
 
-    <table class="table w-full rounded-sm overflow-hidden">
-        <thead class="text-sm font-bold bg-slate-200/25 text-center">
+    <table class="table w-full rounded-sm overflow-hidden mt-4">
+        <thead class="text-sm font-bold uppercase tracking-widest text-slate-500">
             <tr>
                 <th>Prod. ID</th>
                 <th>Producto</th>
-                <th>Cantidad</th>
-                <th>Precio</th>
+                <th class="text-center">Cantidad</th>
+                <th class="text-right">Precio</th>
+                <th class="text-right">Subtotal</th>
             </tr>
         </thead>
         <tbody>
             @foreach ($items as $index => $item)
-                <tr class="even:bg-slate-100/5 odd:bg-slate-100/10">
-                    <td class="text-center">{{ $item['product_id'] }}</td>
-                    <td>{{ $item['product']['description'] }}</td>
-                    <td class="text-center">
+                <tr class="hover:bg-base-200 transition-colors">
+                    <td class="font-mono text-xs">{{ $item['product_id'] }}</td>
+                    <td class="font-bold">{{ $item['product']['description'] }}</td>
+                    <td class="text-center font-black">
                         {{ $item['quantity'] }}
                     </td>
                     <td class="text-right">
-                        ${{ number_format($item['price'], 2) }}
+                        $ {{ number_format($item['price'], 2, ',', '.') }}
+                    </td>
+                    <td class="text-right font-black">
+                        $ {{ number_format($item['price'] * $item['quantity'], 2, ',', '.') }}
                     </td>
                 </tr>
             @endforeach
         </tbody>
+        <tfoot class="bg-base-200/50">
+            <tr>
+                <td colspan="4" class="text-right font-black uppercase">Total Pedido:</td>
+                <td class="text-right font-black text-lg text-primary">$ {{ number_format($order->total_price, 2, ',', '.') }}</td>
+            </tr>
+        </tfoot>
     </table>
 </div>

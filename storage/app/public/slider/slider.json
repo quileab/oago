@@ -1,0 +1,52 @@
+{
+    "slides": [
+        {
+            "id": "slider\/1_catalogos.webp",
+            "title": "Cat\u00e1logos y precios a la medida",
+            "description": "Experiencia personalizada con cat\u00e1logos y listas de precios exclusivas para cada cliente. \nIdeal para modelos de negocio B2B.",
+            "url": "",
+            "urlText": ""
+        },
+        {
+            "id": "slider\/2_promociones.webp",
+            "title": "Promociones inteligentes en tiempo real",
+            "description": "Bonificaciones por volumen y ofertas especiales aplicadas autom\u00e1ticamente en tu carrito.",
+            "url": "",
+            "urlText": ""
+        },
+        {
+            "id": "slider\/3_vendedores.webp",
+            "title": "Vendedores Amigos",
+            "description": "Herramientas avanzadas para que tus vendedores gestionen y asistan a sus clientes al instante.\nPermite asistir a los clientes para realizar compras.",
+            "url": "",
+            "urlText": ""
+        },
+        {
+            "id": "slider\/4_velocidad.webp",
+            "title": "Velocidad y dise\u00f1o superior",
+            "description": "Navegaci\u00f3n fluida y ultrarr\u00e1pida impulsada por tecnolog\u00eda de vanguardia.",
+            "url": "",
+            "urlText": ""
+        },
+        {
+            "id": "slider\/5_api.webp",
+            "title": "Integraci\u00f3n sin l\u00edmites",
+            "description": "Arquitectura basada en API lista para conectar tu cat\u00e1logo con cualquier sistema o aplicaci\u00f3n.\nPreparado para integrarse f\u00e1cilmente con ERPs, aplicaciones m\u00f3viles o sistemas de terceros.",
+            "url": "",
+            "urlText": ""
+        },
+        {
+            "id": "slider\/6_seguridad.webp",
+            "title": "Seguridad de nivel empresarial",
+            "description": "Control de acceso robusto y autenticaci\u00f3n segura para mantener tu informaci\u00f3n siempre protegida.",
+            "url": "",
+            "urlText": ""
+        }
+    ],
+    "config": {
+        "autoplay": true,
+        "interval": "6000",
+        "withoutArrows": false,
+        "withoutIndicators": false
+    }
+}

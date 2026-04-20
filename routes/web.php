@@ -1,20 +1,23 @@
 <?php
 
-use Livewire\Volt\Volt;
+use App\Http\Controllers\ImageProxyController;
+use App\Http\Controllers\Reports\ExportController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Artisan;
-use App\Http\Controllers\ImageProxyController;
+use Livewire\Volt\Volt;
 
 // route to web /
 Route::get('/', function () {
     return view('index');
 });
 
-Route::get('/ordersuccess', function (Illuminate\Http\Request $request) {
+Route::get('/ordersuccess', function (Request $request) {
     return view('ordersuccess', [
         'orderId' => $request->order,
-        'orderStatus' => $request->status
+        'orderStatus' => $request->status,
+        'isAlt' => $request->is_alt ?? false,
     ]);
 })->name('ordersuccess');
 
@@ -33,11 +36,12 @@ Route::get('/logout', function () {
     request()->session()->regenerateToken();
     request()->session()->flush();
     request()->session()->forget('is_alt_login'); // Eliminar la bandera de alternativo
+
     return redirect('/');
 });
 
 Route::get('/register', function () {
-    //return "<pre>Registration is disabled. Please contact the administrator.</pre>";
+    // return "<pre>Registration is disabled. Please contact the administrator.</pre>";
     return view('registration');
 })->name('register');
 // admin only routes
@@ -46,12 +50,30 @@ Route::middleware(['auth', 'check_guest'])->group(function () {
     Volt::route('/user/profile', 'users.profile');
 
     Volt::route('/orders', 'orders')->middleware('is_role:admin,customer,sales');
+    Volt::route('/alt-orders', 'alt-orders')->middleware('is_role:admin,sales,customer')->name('alt-orders');
+    Volt::route('/alt-order/{orderId}/edit', 'alt-orderitems');
     Volt::route('/order/{orderId}/edit', 'orderitems');
+
+    // Print Routes
+    Route::get('/order/{id}/print', function ($id) {
+        $order = \App\Models\Order::with(['user', 'items.product'])->findOrFail($id);
+        return view('order-print', ['order' => $order, 'isAlt' => false]);
+    })->name('order.print');
+
+    Route::get('/alt-order/{id}/print', function ($id) {
+        $order = \App\Models\AltOrder::with(['user', 'items.product'])->findOrFail($id);
+        return view('order-print', ['order' => $order, 'isAlt' => true]);
+    })->name('alt-order.print');
     Volt::route('/users', 'users.index')->middleware('is_admin');
     Volt::route('/users/{id}/sales-assign', 'users.sales-assign')->middleware('is_admin'); // New route
     Volt::route('/user/{id?}', 'users.crud')->middleware('is_admin');
     Volt::route('/my-sales-agents', 'users.sales-assigned')->middleware('auth'); // New route for customers
     Volt::route('/alts', 'users.alts.index')->middleware('is_admin');
+
+    // Rutas de prueba para páginas de error
+    Route::get('/test-error/{code}', function ($code) {
+        abort($code);
+    })->middleware('auth');
     Volt::route('/alt/{id?}', 'users.alts.crud')->middleware('is_admin');
     Volt::route('/alt-users/create', 'users.alts.crud')->middleware('is_admin'); // New route for adding alt user
     Volt::route('/products', 'products.index')->middleware('is_admin');
@@ -78,10 +100,10 @@ Route::middleware(['auth', 'check_guest'])->group(function () {
             $logs['Composer Install for PROD'] = Artisan::call('composer install --optimize-autoloader --no-dev');
         }
 
-        $maintenance = ($option == "cache") ? [
+        $maintenance = ($option == 'cache') ? [
             'Flush' => 'cache:flush',
         ] : [
-            //'DebugBar'=>'debugbar:clear',
+            // 'DebugBar'=>'debugbar:clear',
             'Storage Link' => 'storage:link',
             'Config' => 'config:clear',
             'Optimize Clear' => 'optimize:clear',
@@ -98,15 +120,16 @@ Route::middleware(['auth', 'check_guest'])->group(function () {
             try {
                 Artisan::call($value);
                 $logs[$key] = '✔️';
-            } catch (\Exception $e) {
-                $logs[$key] = '❌' . $e->getMessage();
+            } catch (Exception $e) {
+                $logs[$key] = '❌'.$e->getMessage();
             }
         }
-        return "<pre>" . print_r($logs, true) . "</pre><hr />";
+
+        return '<pre>'.print_r($logs, true).'</pre><hr />';
     })->middleware('is_admin');
 
     // using Reports/ExportController -> exportProducts with associated ListPrices
-    Route::get('/export/products', [\App\Http\Controllers\Reports\ExportController::class, 'exportProducts'])->middleware('is_admin');
-    Route::get('/export/customers-products', [\App\Http\Controllers\Reports\ExportController::class, 'exportCustomersProducts'])->middleware('is_admin');
-    Route::get('/export/users-order-stats', [\App\Http\Controllers\Reports\ExportController::class, 'exportUsersOrderStats'])->middleware('is_admin');
+    Route::get('/export/products', [ExportController::class, 'exportProducts'])->middleware('is_admin');
+    Route::get('/export/customers-products', [ExportController::class, 'exportCustomersProducts'])->middleware('is_admin');
+    Route::get('/export/users-order-stats', [ExportController::class, 'exportUsersOrderStats'])->middleware('is_admin');
 });

@@ -15,11 +15,11 @@
         @case('pending')
         <h1 class="text-2xl font-bold">¡Gracias por tu compra!</h1>
         <p>Su pedido se ha realizado correctamente.</p>
-        <p>El número de su pedido es: <strong>#{{ $orderId ?? 'N/A' }}</strong></p>
+        <p>El número de su pedido es: <strong>#{{ ($isAlt ?? false) ? 'ALT-' : '' }}{{ $orderId ?? 'N/A' }}</strong></p>
         @break
         @case('on-hold')
         <h1 class="text-2xl font-bold">Su pedido se encuentra EN ESPERA</h1>
-        El número de su pedido es: <strong>#{{ $orderId ?? 'N/A' }}</strong>
+        El número de su pedido es: <strong>#{{ ($isAlt ?? false) ? 'ALT-' : '' }}{{ $orderId ?? 'N/A' }}</strong>
         <p class="mt-2">⚠️ El precio puede sufrir actualizaciones al retomar el pedido.</p>
         <p>ℹ️ Pasado el lapso de espera, el pedido se cancelará.</p>
         @break

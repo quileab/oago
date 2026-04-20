@@ -17,8 +17,8 @@ new class extends Component {
 
     public function loadData()
     {
-        $user = Auth::user();
-        if ($user && $user instanceof \App\Models\User) {
+        $user = current_user();
+        if ($user && method_exists($user, 'assignedSalesAgents')) {
             $this->assignedAgents = $user->assignedSalesAgents()
                 ->with('salesAgent')
                 ->get();
@@ -27,8 +27,9 @@ new class extends Component {
 
     public function toggleActive($id)
     {
+        $user = current_user();
         $agent = CustomerSalesAgent::where('id', $id)
-            ->where('customer_id', Auth::id())
+            ->where('customer_id', $user->id)
             ->firstOrFail();
         
         $agent->is_active = !$agent->is_active;
@@ -61,8 +62,8 @@ new class extends Component {
             </x-list-item>
         @endforeach
 
-        @if($assignedAgents->isEmpty())
-            <div class="text-center text-gray-500 py-4">No tiene vendedores asignados.</div>
+        @if(count($assignedAgents) == 0)
+            <div class="text-center text-gray-500 py-4 font-bold uppercase text-xs">No tiene vendedores asignados.</div>
         @endif
     </x-card>
 </div>

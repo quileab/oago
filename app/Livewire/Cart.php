@@ -2,18 +2,21 @@
 
 namespace App\Livewire;
 
+use App\Models\AltOrder;
 use App\Models\Order;
-use Livewire\Component;
-use Livewire\Attributes\On;
 use App\Models\Product;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
+use Livewire\Attributes\On;
+use Livewire\Component;
 use Mary\Traits\Toast;
 
 class Cart extends Component
 {
     use Toast;
+
     public bool $showCart = false;
+
     public $total = 0;
 
     public function mount()
@@ -26,13 +29,16 @@ class Cart extends Component
     {
         if (Auth::guest() || Auth::user()->role->value === 'guest') {
             $this->warning('Debe iniciar sesión para comprar');
+
             return;
         }
 
         if (is_numeric($product)) {
             $productModel = Product::find($product);
-            if (!$productModel) return;
-            
+            if (! $productModel) {
+                return;
+            }
+
             $product = [
                 'id' => $productModel->id,
                 'description' => $productModel->description,
@@ -73,7 +79,7 @@ class Cart extends Component
     {
         $cart = Session::get('cart', []);
         if (isset($cart[$productId])) {
-            $cart[$productId]['quantity'] = max(1, (int)$quantity);
+            $cart[$productId]['quantity'] = max(1, (int) $quantity);
             $this->updateCartAndNotify($cart);
         }
     }
@@ -86,7 +92,7 @@ class Cart extends Component
 
         Session::put('cart', $cart);
         $this->calculateTotal();
-        
+
         // Notificar cambios para que la UI reaccione
         $this->dispatch('cart-updated');
 
@@ -100,7 +106,7 @@ class Cart extends Component
         $this->total = 0;
         foreach ($cart as $item) {
             $product = Product::find($item['product_id']);
-            $orderedQuantity = (int)$item['quantity'];
+            $orderedQuantity = (int) $item['quantity'];
             $billableQuantity = $orderedQuantity;
 
             if ($product && $product->hasBonus() && $product->bonus_threshold > 0) {
@@ -110,7 +116,7 @@ class Cart extends Component
                 $billableQuantity = $orderedQuantity - $freeUnits;
             }
 
-            $this->total += (float)$item['price'] * $billableQuantity;
+            $this->total += (float) $item['price'] * $billableQuantity;
         }
     }
 
@@ -147,19 +153,23 @@ class Cart extends Component
     {
         if (Auth::check() || Auth::guard('alt')->check()) {
             $jsonCart = json_encode(Session::get('cart'));
-            file_put_contents(storage_path('app/private/' . Auth::id() . '_cart.json'), $jsonCart);
+            file_put_contents(storage_path('app/private/'.Auth::id().'_cart.json'), $jsonCart);
         }
     }
 
     public function jsonCartDelete()
     {
-        if (file_exists(storage_path('app/private/' . Auth::id() . '_cart.json'))) {
-            unlink(storage_path('app/private/' . Auth::id() . '_cart.json'));
+        if (file_exists(storage_path('app/private/'.Auth::id().'_cart.json'))) {
+            unlink(storage_path('app/private/'.Auth::id().'_cart.json'));
         }
     }
 
     public function saveCart()
     {
-        Order::placeOrder(['status' => 'on-hold']);
+        if (Auth::guard('alt')->check()) {
+            AltOrder::placeOrder(['status' => 'on-hold']);
+        } else {
+            Order::placeOrder(['status' => 'on-hold']);
+        }
     }
 }

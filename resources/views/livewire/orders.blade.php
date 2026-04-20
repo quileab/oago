@@ -129,6 +129,10 @@ new class extends Component {
         $ {{ number_format($order->total_price, 2, ',', '.') }}
         @endscope
 
+        @scope('actions', $order)
+            <x-button icon="o-printer" class="btn-ghost btn-sm" title="Imprimir" link="/order/{{ $order->id }}/print" external target="_blank" />
+        @endscope
+
     </x-table>
 
     <!-- FILTER DRAWER -->

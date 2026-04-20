@@ -38,7 +38,7 @@
             <x-menu activate-by-route>
 
                 {{-- User --}}
-                @if($user = auth()->user())
+                @if($user = current_user())
                     <x-list-item :item="$user" value="name" sub-value="email" class="-mx-2 !-mt-4 rounded bg-primary/10">
                         <x-slot:actions>
                             <x-button icon="o-power" class="btn-circle btn-ghost btn-xs text-warning" tooltip-left="SALIR"
@@ -47,7 +47,7 @@
                     </x-list-item>
                 @endif
 
-                @if($user->role->value == 'admin')
+                @if($user && $user->role->value == 'admin')
                     <x-menu-item title="Sitio Principal" icon="o-sparkles" link="/" no-wire-navigate />
                     <x-menu-item title="Dashboard" icon="o-chart-pie" link="/dashboard" class="text-info" />
                     <x-menu-sub title="Usuarios" icon="o-user">
@@ -77,8 +77,12 @@
                         <x-menu-item title="Logs" icon="o-document-magnifying-glass" link="/logs" />
                     </x-menu-sub>
                 @endif
-                @if($user->role->value != 'guest')
-                    <x-menu-item title="Pedidos" icon="o-clipboard-document-list" link="/orders" class="text-warning" />
+                @if($user && $user->role->value != 'guest')
+                    <div class="border-t border-base-content/5 my-2"></div>
+                    @if(!Auth::guard('alt')->check())
+                        <x-menu-item title="Pedidos API" icon="o-clipboard-document-list" link="/orders" class="text-warning" />
+                    @endif
+                    <x-menu-item title="Pedidos [ALT]" icon="o-document-duplicate" link="/alt-orders" class="text-success" />
                     @if($user->role->value === 'customer')
                         <x-menu-item title="Mis Vendedores" icon="o-users" link="/my-sales-agents" />
                     @endif

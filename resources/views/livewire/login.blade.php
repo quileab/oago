@@ -86,46 +86,24 @@ new #[Layout('components.layouts.empty')]
     }
 }; ?>
 
-<div class="flex justify-center items-center">
-    <div data-theme="dark"
-        class="w-11/12 sm:w-3/4 md:w-[450px] mx-auto bg-slate-900/90 backdrop-blur-2xl rounded-2xl shadow-2xl shadow-black/60 p-8 border border-white/10 mt-10 md:mt-20">
+<div class="min-h-screen flex justify-center items-center">
+    <div class="w-11/12 sm:w-3/4 md:w-[420px] mx-auto bg-base-100/70 backdrop-blur-2xl rounded-2xl shadow-2xl p-6 border border-base-content/10">
         
-        <div class="flex flex-col items-center mb-8">
-            <img src="{{ asset('imgs/brand.webp') }}" class="w-48 mb-4 drop-shadow-xl" alt="Brand Logo">
-            <h2 class="text-2xl font-black tracking-tighter text-white uppercase">Ingresar</h2>
-            <p class="text-[10px] text-slate-400 mt-1 uppercase tracking-[0.2em] font-bold">Acceso Clientes</p>
+        <div class="flex flex-col items-center mb-4">
+            <img src="{{ asset('imgs/brand-logo.webp') }}" class="w-32 mb-2 drop-shadow-xl" alt="Brand Logo">
+            <h2 class="text-xl font-black tracking-tighter uppercase">Ingresar</h2>
         </div>
 
-        <x-form wire:submit="login" no-separator class="space-y-5">
-            <x-input label="E-mail" wire:model="email" icon="o-envelope" 
-                class="bg-slate-800/40 border-white/5 focus:border-primary" />
+        <x-form wire:submit="login" no-separator class="space-y-4">
+            <x-input label="E-mail" wire:model="email" icon="o-envelope" />
             
-            <div x-data="{ showPassword: false }" class="relative">
-                <div x-show="!showPassword">
-                    <x-input label="Contraseña" wire:model="password" type="password" icon="o-lock-closed" 
-                        class="bg-slate-800/40 border-white/5 focus:border-primary">
-                        <x-slot:append>
-                            <x-button @click="showPassword = !showPassword" icon="o-eye-slash" 
-                                class="btn-ghost btn-sm text-slate-400 hover:text-white" />
-                        </x-slot:append>
-                    </x-input>
-                </div>
-                <div x-show="showPassword" style="display: none;">
-                    <x-input label="Contraseña" wire:model="password" type="text" icon="o-lock-closed" 
-                        class="bg-slate-800/40 border-white/5 focus:border-primary">
-                        <x-slot:append>
-                            <x-button @click="showPassword = !showPassword" icon="o-eye" 
-                                class="btn-ghost btn-sm text-primary" />
-                        </x-slot:append>
-                    </x-input>
-                </div>
-            </div>
+            <x-password label="Contraseña" wire:model="password" icon="o-lock-closed" right />
 
             <x-slot:actions>
-                <div class="flex gap-3 w-full mt-2">
+                <div class="flex gap-3 w-full mt-1">
                     <x-button label="Volver" @click="window.history.back()" icon="o-arrow-uturn-left"
-                        class="btn-ghost btn-sm flex-1 text-slate-400 border border-white/5 hover:bg-white/5" />
-                    <x-button label="INGRESAR" type="submit" icon="o-key" class="btn-primary flex-[2] font-bold shadow-lg shadow-primary/20" spinner="login" />
+                        class="btn-ghost btn-sm flex-1" />
+                    <x-button label="INGRESAR" type="submit" icon="o-key" class="btn-primary flex-[2] font-bold" spinner="login" />
                 </div>
             </x-slot:actions>
         </x-form>

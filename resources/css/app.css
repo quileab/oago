@@ -135,3 +135,66 @@
     background-color: #002b6b !important;
     color: #ec8a00 !important;
 }
+
+/* PRINT STYLES */
+@media print {
+    /* Hide everything by default if needed, or just specific UI parts */
+    nav, 
+    aside, 
+    footer, 
+    button, 
+    .btn,
+    .no-print,
+    .mary-drawer,
+    .mary-toast {
+        display: none !important;
+    }
+
+    /* Reset body and main container for print */
+    body {
+        background-color: white !important;
+        color: black !important;
+        font-size: 12pt;
+    }
+
+    main, 
+    .mary-main,
+    .mary-content {
+        margin: 0 !important;
+        padding: 0 !important;
+        display: block !important;
+        width: 100% !important;
+    }
+
+    /* Ensure tables look good */
+    table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+    }
+    
+    th, td {
+        border-bottom: 1px solid #ddd !important;
+        padding: 8px !important;
+    }
+
+    .card {
+        box-shadow: none !important;
+        border: none !important;
+        padding: 0 !important;
+    }
+
+    /* Specific spacing for the header */
+    .print-header {
+        display: block !important;
+        margin-bottom: 20px;
+        border-bottom: 2px solid black;
+        padding-bottom: 10px;
+    }
+}
+
+/* Hide print-only elements on screen */
+@media screen {
+    .print-only {
+        display: none !important;
+    }
+}

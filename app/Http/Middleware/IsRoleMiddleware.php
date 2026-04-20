@@ -11,11 +11,12 @@ class IsRoleMiddleware
     /**
      * Handle an incoming request.
      *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     * @param  Closure(Request): (Response)  $next
      */
     public function handle(Request $request, Closure $next, ...$roles): Response
     {
-        if (! $request->user() || ! in_array($request->user()->role->value, $roles)) {
+        $user = current_user();
+        if (! $user || ! in_array($user->role->value, $roles)) {
             abort(404);
         }
 

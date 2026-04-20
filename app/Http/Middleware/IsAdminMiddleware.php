@@ -11,13 +11,15 @@ class IsAdminMiddleware
     /**
      * Handle an incoming request.
      *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     * @param  Closure(Request): (Response)  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if ($request->user()->role->value!='admin') {
+        $user = current_user();
+        if (! $user || $user->role->value != 'admin') {
             abort(404);
         }
+
         return $next($request);
     }
 }

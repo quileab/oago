@@ -2,9 +2,12 @@
 
 namespace App\Mail;
 
+use App\Models\AltOrder;
+use App\Models\Order;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
@@ -15,13 +18,19 @@ class OrderMail extends Mailable implements ShouldQueue
 
     public $order;
 
+    public $is_alt;
+
     /**
      * Create a new message instance.
      */
-    public function __construct($order)
+    public function __construct($order, $is_alt = false)
     {
-        // load order data user & details
-        $this->order = \App\Models\Order::with(['user', 'items'])->find($order);
+        $this->is_alt = $is_alt;
+        if ($is_alt) {
+            $this->order = AltOrder::with(['user', 'items'])->find($order);
+        } else {
+            $this->order = Order::with(['user', 'items'])->find($order);
+        }
     }
 
     /**
@@ -30,7 +39,7 @@ class OrderMail extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Confirmación de Pedido',
+            subject: ($this->is_alt ? '[ALT] ' : '').'Confirmación de Pedido',
         );
     }
 
@@ -47,7 +56,7 @@ class OrderMail extends Mailable implements ShouldQueue
     /**
      * Get the attachments for the message.
      *
-     * @return array<int, \Illuminate\Mail\Mailables\Attachment>
+     * @return array<int, Attachment>
      */
     public function attachments(): array
     {
