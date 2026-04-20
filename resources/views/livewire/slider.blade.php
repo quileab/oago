@@ -19,8 +19,42 @@ new class extends Component {
         'urlText' => ''
     ];
 
+    // Configuración general del slider
+    public $config = [
+        'autoplay' => true,
+        'interval' => 5000,
+        'withoutArrows' => false,
+        'withoutIndicators' => false
+    ];
+
     private $sliderPath = 'slider';
     private $jsonFile = 'slider/slider.json';
+
+    public function mount()
+    {
+        $disk = Storage::disk('public');
+        if ($disk->exists($this->jsonFile)) {
+            $data = json_decode($disk->get($this->jsonFile), true);
+            if (isset($data['config'])) {
+                $this->config = array_merge($this->config, $data['config']);
+            }
+        }
+    }
+
+    public function saveConfig()
+    {
+        $disk = Storage::disk('public');
+        $data = $disk->exists($this->jsonFile) ? json_decode($disk->get($this->jsonFile), true) : ['slides' => []];
+
+        // Si el JSON viejo era un array plano o de slides, normalizar
+        if (!isset($data['slides'])) {
+            $data = ['slides' => $data, 'config' => []];
+        }
+
+        $data['config'] = $this->config;
+        $disk->put($this->jsonFile, json_encode($data, JSON_PRETTY_PRINT));
+        $this->success('Configuración general actualizada.');
+    }
 
     public function getImagesProperty()
     {
@@ -30,7 +64,11 @@ new class extends Component {
             $this->generateJsonFromFiles();
         }
 
-        $files_in_json = json_decode($disk->get($this->jsonFile), true);
+        $data = json_decode($disk->get($this->jsonFile), true);
+
+        // Normalización de estructura nueva/vieja
+        $files_in_json = isset($data['slides']) ? $data['slides'] : $data;
+
         $files_on_disk = $disk->files($this->sliderPath);
         $files_on_disk_basename = array_map('basename', $files_on_disk);
 
@@ -42,7 +80,12 @@ new class extends Component {
 
         // If there's a mismatch, update the JSON file
         if (count($existing_files) !== count($files_in_json)) {
-            $disk->put($this->jsonFile, json_encode(array_values($existing_files), JSON_PRETTY_PRINT));
+            if (isset($data['slides'])) {
+                $data['slides'] = array_values($existing_files);
+            } else {
+                $data = array_values($existing_files);
+            }
+            $disk->put($this->jsonFile, json_encode($data, JSON_PRETTY_PRINT));
             $files_in_json = $existing_files;
         }
 
@@ -63,8 +106,10 @@ new class extends Component {
     public function edit($id)
     {
         $disk = Storage::disk('public');
-        $files_in_json = json_decode($disk->get($this->jsonFile), true);
-        $slide = collect($files_in_json)->first(function($f) use ($id) {
+        $data = json_decode($disk->get($this->jsonFile), true);
+        $slides = isset($data['slides']) ? $data['slides'] : $data;
+
+        $slide = collect($slides)->first(function($f) use ($id) {
             $path = is_array($f) ? $f['id'] : $f;
             return $path === $id;
         });
@@ -84,9 +129,10 @@ new class extends Component {
     public function save()
     {
         $disk = Storage::disk('public');
-        $files_in_json = json_decode($disk->get($this->jsonFile), true);
-        
-        $newFiles = collect($files_in_json)->map(function($f) {
+        $data = json_decode($disk->get($this->jsonFile), true);
+        $slides = isset($data['slides']) ? $data['slides'] : $data;
+
+        $newSlides = collect($slides)->map(function($f) {
             $path = is_array($f) ? $f['id'] : $f;
             if ($path === $this->editingSlide['id']) {
                 return $this->editingSlide;
@@ -94,7 +140,13 @@ new class extends Component {
             return $f;
         })->toArray();
 
-        $disk->put($this->jsonFile, json_encode(array_values($newFiles), JSON_PRETTY_PRINT));
+        if (isset($data['slides'])) {
+            $data['slides'] = array_values($newSlides);
+        } else {
+            $data = array_values($newSlides);
+        }
+
+        $disk->put($this->jsonFile, json_encode($data, JSON_PRETTY_PRINT));
         $this->editModal = false;
         $this->success('Imagen actualizada.');
     }
@@ -127,20 +179,27 @@ new class extends Component {
     public function reorderImages($orderedItems)
     {
         $disk = Storage::disk('public');
-        $files_in_json = json_decode($disk->get($this->jsonFile), true);
+        $data = json_decode($disk->get($this->jsonFile), true);
+        $slides = isset($data['slides']) ? $data['slides'] : $data;
         $orderedIds = collect($orderedItems)->pluck('value')->toArray();
-        
+
         $newOrder = [];
         foreach ($orderedIds as $id) {
-            $slide = collect($files_in_json)->first(function($f) use ($id) {
+            $slide = collect($slides)->first(function($f) use ($id) {
                 return (is_array($f) ? $f['id'] : $f) === $id;
             });
             if ($slide) {
                 $newOrder[] = $slide;
             }
         }
-        
-        $disk->put($this->jsonFile, json_encode($newOrder, JSON_PRETTY_PRINT));
+
+        if (isset($data['slides'])) {
+            $data['slides'] = $newOrder;
+        } else {
+            $data = $newOrder;
+        }
+
+        $disk->put($this->jsonFile, json_encode($data, JSON_PRETTY_PRINT));
         $this->success('Imágenes reordenadas.');
     }
 
@@ -159,26 +218,45 @@ new class extends Component {
             return ($aMatch[1] ?? PHP_INT_MAX) <=> ($bMatch[1] ?? PHP_INT_MAX);
         });
 
-        $disk->put($this->jsonFile, json_encode(array_values($imageFiles), JSON_PRETTY_PRINT));
+        $disk->put($this->jsonFile, json_encode(['slides' => array_values($imageFiles), 'config' => $this->config], JSON_PRETTY_PRINT));
     }
 
     private function addImageToJson($path)
     {
         $disk = Storage::disk('public');
-        $images = json_decode($disk->get($this->jsonFile), true);
-        $images[] = ['id' => $path, 'title' => '', 'description' => '', 'url' => '', 'urlText' => ''];
-        $disk->put($this->jsonFile, json_encode($images, JSON_PRETTY_PRINT));
+        $data = json_decode($disk->get($this->jsonFile), true);
+
+        $newSlide = ['id' => $path, 'title' => '', 'description' => '', 'url' => '', 'urlText' => ''];
+
+        if (isset($data['slides'])) {
+            $data['slides'][] = $newSlide;
+        } else {
+            // Migrar a nueva estructura si era un array plano
+            $data = ['slides' => $data, 'config' => $this->config];
+            $data['slides'][] = $newSlide;
+        }
+
+        $disk->put($this->jsonFile, json_encode($data, JSON_PRETTY_PRINT));
     }
 
     private function removeImageFromJson($path)
     {
         $disk = Storage::disk('public');
-        $images = json_decode($disk->get($this->jsonFile), true);
-        $images = array_filter($images, function($image) use ($path) {
+        $data = json_decode($disk->get($this->jsonFile), true);
+        $slides = isset($data['slides']) ? $data['slides'] : $data;
+
+        $newSlides = array_filter($slides, function($image) use ($path) {
             $currentPath = is_array($image) ? $image['id'] : $image;
             return $currentPath !== $path;
         });
-        $disk->put($this->jsonFile, json_encode(array_values($images), JSON_PRETTY_PRINT));
+
+        if (isset($data['slides'])) {
+            $data['slides'] = array_values($newSlides);
+        } else {
+            $data = array_values($newSlides);
+        }
+
+        $disk->put($this->jsonFile, json_encode($data, JSON_PRETTY_PRINT));
     }
 };
 ?>
@@ -193,65 +271,82 @@ new class extends Component {
         },
     });
 })">
-    <x-header title="Administrar Slider" subtitle="Sube, elimina y ordena las imágenes del carrusel." separator />
+    <x-header title="Administrar Slider" subtitle="Sube, elimina, ordena y configura el carrusel." separator />
 
-    <div class="relative">
-        <div wire:loading.flex wire:target="reorderImages" class="absolute inset-0 bg-white bg-opacity-75 z-10 items-center justify-center" style="display: none;">
-            <div class="text-center">
-                <x-icon name="o-arrow-path" class="w-8 h-8 animate-spin mx-auto" />
-                <p>Reordenando imágenes...</p>
-            </div>
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-8 mb-8">
+        <!-- Lado izquierdo: Configuración General -->
+        <div class="lg:col-span-1">
+            <x-card title="Configuración" shadow separator class="bg-base-100">
+                <div class="space-y-4">
+                    <x-checkbox label="Autoplay" wire:model="config.autoplay" wire:change="saveConfig" hint="Cambio automático" />
+                    <x-input label="Intervalo (ms)" type="number" wire:model="config.interval" wire:change="saveConfig" step="500" hint="Ej: 5000 = 5 seg" />
+                    <x-checkbox label="Sin Flechas" wire:model="config.withoutArrows" wire:change="saveConfig" />
+                    <x-checkbox label="Sin Indicadores" wire:model="config.withoutIndicators" wire:change="saveConfig" />
+                </div>
+            </x-card>
+
+            <x-form wire:submit="uploadImage" class="mt-4 p-4 bg-base-100 rounded-lg shadow-md border border-base-200">
+                <x-file wire:model="selectedImageFile" label="Subir Nueva Imagen" accept="image/*" />
+                @error('selectedImageFile')
+                    <span class="text-red-500 text-sm">{{ $message }}</span>
+                @enderror
+                @if($selectedImageFile)
+                    <x-button type="submit" class="btn-primary mt-4 w-full" spinner="uploadImage">Subir Imagen</x-button>
+                @endif
+            </x-form>
         </div>
-        <div x-ref="imageList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8" wire:loading.class="opacity-50" wire:target="reorderImages">
-            @foreach($this->images as $image)
-                <div wire:key="{{ $image['id'] }}" data-id="{{ $image['id'] }}"
-                    class="relative group bg-base-200 rounded-lg shadow-md overflow-hidden">
-                    <img src="{{ $image['image_url'] }}" class="w-full h-48 object-cover" alt="Slider Image">
-                    <div
-                        class="absolute inset-0 bg-black bg-opacity-50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 gap-2">
-                        <div class="flex gap-2">
-                            <button class="handle cursor-grab text-white p-2 bg-blue-500 rounded-full">
-                                <x-icon name="o-arrows-pointing-out" class="w-6 h-6" />
-                            </button>
-                            <button wire:click="edit('{{ $image['id'] }}')"
-                                class="bg-amber-500 text-white p-2 rounded-full">
-                                <x-icon name="o-pencil" class="w-6 h-6" />
-                            </button>
-                            <button wire:click="delete('{{ $image['id'] }}')"
-                                wire:confirm="¿Estás seguro de que quieres eliminar esta imagen?"
-                                class="bg-red-500 text-white p-2 rounded-full">
-                                <x-icon name="o-trash" class="w-6 h-6" />
-                            </button>
-                        </div>
-                    </div>
-                    <div class="absolute bottom-2 left-2 text-white text-xs bg-black bg-opacity-70 px-2 py-1 rounded max-w-[90%] truncate">
-                        @if($image['title'])
-                            <span class="font-bold block">{{ $image['title'] }}</span>
-                        @endif
-                        {{ $image['name'] }}
+
+        <!-- Lado derecho: Listado de Imágenes -->
+        <div class="lg:col-span-3">
+            <div class="relative">
+                <div wire:loading.flex wire:target="reorderImages" class="absolute inset-0 bg-white bg-opacity-75 z-10 items-center justify-center" style="display: none;">
+                    <div class="text-center">
+                        <x-icon name="o-arrow-path" class="w-8 h-8 animate-spin mx-auto" />
+                        <p>Reordenando imágenes...</p>
                     </div>
                 </div>
-            @endforeach
+                <div x-ref="imageList" class="grid grid-cols-1 md:grid-cols-2 gap-4" wire:loading.class="opacity-50" wire:target="reorderImages">
+                    @foreach($this->images as $image)
+                        <div wire:key="{{ $image['id'] }}" data-id="{{ $image['id'] }}"
+                            class="relative group bg-base-200 rounded-lg shadow-md overflow-hidden border border-base-300">
+                            <img src="{{ $image['image_url'] }}" class="w-full h-48 object-cover" alt="Slider Image">
+                            <div
+                                class="absolute inset-0 bg-black bg-opacity-50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 gap-2">
+                                <div class="flex gap-2">
+                                    <button class="handle cursor-grab text-white p-2 bg-blue-500 rounded-full hover:scale-110 transition-transform">
+                                        <x-icon name="o-arrows-pointing-out" class="w-6 h-6" />
+                                    </button>
+                                    <button wire:click="edit('{{ $image['id'] }}')"
+                                        class="bg-amber-500 text-white p-2 rounded-full hover:scale-110 transition-transform">
+                                        <x-icon name="o-pencil" class="w-6 h-6" />
+                                    </button>
+                                    <button wire:click="delete('{{ $image['id'] }}')"
+                                        wire:confirm="¿Estás seguro de que quieres eliminar esta imagen?"
+                                        class="bg-red-500 text-white p-2 rounded-full hover:scale-110 transition-transform">
+                                        <x-icon name="o-trash" class="w-6 h-6" />
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="absolute bottom-2 left-2 text-white text-xs bg-black bg-opacity-70 px-2 py-1 rounded max-w-[90%] truncate">
+                                @if($image['title'])
+                                    <span class="font-bold block text-blue-300">{{ $image['title'] }}</span>
+                                @endif
+                                {{ $image['name'] }}
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
         </div>
     </div>
 
-    <x-form wire:submit="uploadImage" class="p-4 bg-base-100 rounded-lg shadow-md">
-        <x-file wire:model="selectedImageFile" label="Subir Nueva Imagen" accept="image/*" />
-        @error('selectedImageFile')
-            <span class="text-red-500 text-sm">{{ $message }}</span>
-        @enderror
-        @if($selectedImageFile)
-            <x-button type="submit" class="btn-primary mt-4" spinner="uploadImage">Subir Imagen</x-button>
-        @endif
-    </x-form>
-
     <x-modal wire:model="editModal" title="Editar Texto del Slide" class="backdrop-blur">
         <div class="grid gap-4">
-            <img src="{{ asset('storage/' . $editingSlide['id']) }}" class="w-full h-32 object-cover rounded-lg" />
-            <x-input label="Título" wire:model="editingSlide.title" placeholder="Título que aparece en grande" />
+            <img src="{{ asset('storage/' . $editingSlide['id']) }}" class="w-full h-48 object-cover rounded-lg border border-base-300 shadow-inner" /> 
+            <x-input label="Título" wire:model="editingSlide.title" placeholder="Título que aparece en grande" />   
             <x-textarea label="Descripción" wire:model="editingSlide.description" placeholder="Texto descriptivo inferior" rows="2" />
             <div class="grid grid-cols-2 gap-4">
-                <x-input label="Texto del Botón" wire:model="editingSlide.urlText" placeholder="Ej: Ver Más" />
+                <x-input label="Texto del Botón" wire:model="editingSlide.urlText" placeholder="Ej: Ver Más" />     
                 <x-input label="Enlace del Botón" wire:model="editingSlide.url" placeholder="Ej: /products?tag=oferta" />
             </div>
         </div>
