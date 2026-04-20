@@ -278,11 +278,14 @@ new class extends Component {
         <div class="lg:col-span-1">
             <x-card title="Configuración" shadow separator class="bg-base-100">
                 <div class="space-y-4">
-                    <x-checkbox label="Autoplay" wire:model="config.autoplay" wire:change="saveConfig" hint="Cambio automático" />
-                    <x-input label="Intervalo (ms)" type="number" wire:model="config.interval" wire:change="saveConfig" step="500" hint="Ej: 5000 = 5 seg" />
-                    <x-checkbox label="Sin Flechas" wire:model="config.withoutArrows" wire:change="saveConfig" />
-                    <x-checkbox label="Sin Indicadores" wire:model="config.withoutIndicators" wire:change="saveConfig" />
+                    <x-checkbox label="Autoplay" wire:model="config.autoplay" hint="Cambio automático" />
+                    <x-input label="Intervalo (ms)" type="number" wire:model="config.interval" step="500" hint="Ej: 5000 = 5 seg" />
+                    <x-checkbox label="Sin Flechas" wire:model="config.withoutArrows" />
+                    <x-checkbox label="Sin Indicadores" wire:model="config.withoutIndicators" />
                 </div>
+                <x-slot:actions>
+                    <x-button label="Guardar Configuración" class="btn-primary btn-sm w-full" icon="o-check" wire:click="saveConfig" spinner="saveConfig" />
+                </x-slot:actions>
             </x-card>
 
             <x-form wire:submit="uploadImage" class="mt-4 p-4 bg-base-100 rounded-lg shadow-md border border-base-200">
