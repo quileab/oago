@@ -23,6 +23,11 @@ class CheckGuestExpiration
             return $next($request);
         }
 
+        // Si es un usuario interno, no expira
+        if ($user->is_internal) {
+            return $next($request);
+        }
+
         $expirationDays = SettingsHelper::settings('guest_access_ttl_days', 10);
         $expirationDate = $user->created_at->addDays($expirationDays);
 
