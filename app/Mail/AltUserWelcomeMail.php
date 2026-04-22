@@ -2,28 +2,32 @@
 
 namespace App\Mail;
 
+use App\Models\AltUser as User;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
-use App\Models\AltUser as User;
 
 class AltUserWelcomeMail extends Mailable
 {
     use Queueable, SerializesModels;
 
     public User $user;
+
     public string $password;
+
+    public ?string $token;
 
     /**
      * Create a new message instance.
      */
-    public function __construct(User $user, string $password)
+    public function __construct(User $user, string $password, ?string $token = null)
     {
         $this->user = $user;
         $this->password = $password;
+        $this->token = $token;
     }
 
     /**
@@ -49,7 +53,7 @@ class AltUserWelcomeMail extends Mailable
     /**
      * Get the attachments for the message.
      *
-     * @return array<int, \Illuminate\Mail\Mailables\Attachment>
+     * @return array<int, Attachment>
      */
     public function attachments(): array
     {

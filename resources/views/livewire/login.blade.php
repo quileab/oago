@@ -94,6 +94,18 @@ new #[Layout('components.layouts.empty')]
             <h2 class="text-xl font-black tracking-tighter uppercase">Ingresar</h2>
         </div>
 
+        @if (session('success'))
+            <x-alert icon="o-check-circle" class="alert-success mb-4 text-xs font-bold shadow-sm">
+                {{ session('success') }}
+            </x-alert>
+        @endif
+
+        @if (session('error'))
+            <x-alert icon="o-exclamation-triangle" class="alert-error mb-4 text-xs font-bold shadow-sm">
+                {{ session('error') }}
+            </x-alert>
+        @endif
+
         <x-form wire:submit="login" no-separator class="space-y-4">
             <x-input label="E-mail" wire:model="email" icon="o-envelope" />
             

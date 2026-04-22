@@ -39,6 +39,11 @@ class AltOrder extends Model
         return $this->hasMany(AltOrderItem::class, 'alt_order_id');
     }
 
+    public function shipping()
+    {
+        return $this->hasOne(ShippingDetail::class, 'alt_order_id');
+    }
+
     public static function orderStates($state = null)
     {
         $statuses = [
@@ -84,13 +89,38 @@ class AltOrder extends Model
         $shipping['total_price'] = $total;
         $shipping['alt_user_id'] = Auth::guard('alt')->id() ?? Auth::id(); // Usar el guard correcto
 
-        $data = array_merge($order, $shipping);
-
-        // Crear la orden alternativa
+        // Crear la orden alternativa (Solo datos comerciales)
         $orderCreated = AltOrder::updateOrCreate(
             ['id' => $order['id'] ?? null],
-            $data
+            [
+                'alt_user_id' => $shipping['alt_user_id'],
+                'total_price' => $shipping['total_price'],
+                'sending_method' => $shipping['sending_method'] ?? null,
+                'transport_detail' => $shipping['transport_detail'] ?? null,
+                'payment_method' => $shipping['payment_method'] ?? null,
+                'payment_detail' => $shipping['payment_detail'] ?? null,
+                'information' => $shipping['information'] ?? null,
+                'status' => $shipping['status'] ?? 'pending',
+            ]
         );
+
+        // Guardar detalles de envío en la tabla shipping_details (Solo si no es el método predeterminado)
+        if (($shipping['sending_method'] ?? '') !== 'Envío a cargo de la Empresa a Dirección Registrada') {
+            ShippingDetail::updateOrCreate(
+                ['alt_order_id' => $orderCreated->id],
+                [
+                    'contact_name' => $shipping['contact_name'] ?? null,
+                    'address' => $shipping['sending_address'] ?? null,
+                    'city' => $shipping['sending_city'] ?? null,
+                    'postal_code' => $shipping['postal_code'] ?? current_user()?->postal_code, // Respaldo del perfil
+                    'phone' => $shipping['contact_number'] ?? current_user()?->phone,
+                    'shipping_status' => 'pending',
+                ]
+            );
+        } else {
+            // Eliminar si existía de un intento previo con otro método
+            ShippingDetail::where('alt_order_id', $orderCreated->id)->delete();
+        }
 
         // Remove old items
         AltOrderItem::where('alt_order_id', $orderCreated->id)->delete();

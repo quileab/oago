@@ -13,12 +13,16 @@ return new class extends Migration
     {
         Schema::create('shipping_details', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('order_id')->constrained()->onDelete('cascade'); // Relación con orders
-            $table->string('address', 100); // Dirección de envío
-            $table->string('city', 50); // Ciudad de envío
-            $table->string('postal_code', 10); // Código postal
-            $table->string('phone', 50); // Teléfono de contacto
-            $table->string('shipping_status', 20)->default('pending'); // Estado del envío (pending, shipped, delivered)
+            $table->foreignId('order_id')->nullable()->constrained()->onDelete('cascade');
+            $table->foreignId('alt_order_id')->nullable()->constrained('alt_orders')->onDelete('cascade');
+            
+            $table->string('contact_name', 100)->nullable();
+            $table->string('address', 100)->nullable();
+            $table->string('city', 50)->nullable();
+            $table->string('postal_code', 10)->nullable();
+            $table->string('phone', 50)->nullable();
+            $table->string('shipping_status', 20)->default('pending');
+            
             $table->timestamps();
         });
     }

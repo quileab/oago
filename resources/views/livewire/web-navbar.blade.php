@@ -24,22 +24,24 @@
 
         @if(Auth::guest())
           <x-button label="INGRESAR" icon="o-lock-closed" class="btn btn-ghost ml-1" link="/login" />
-          <span class="opacity-50">|</span>
-          <x-button label="REGISTRARSE" icon="o-check-circle" class="btn btn-ghost ml-1" link="/register" />
         @else
           @php $user = current_user(); @endphp
-          <x-dropdown label="{{ $user->name }}" class="btn-ghost" title="{{ $user->role->value }}">
-            <x-menu-item title="Ordenes de Compra" icon="o-archive-box" link="/orders" />
-            @if($user->role->value === 'customer')
-              <x-menu-item title="Mis Vendedores" icon="o-users" link="/my-sales-agents" />
+          <div class="flex items-center gap-2">
+            <x-dropdown label="{{ $user->name }}" class="btn-ghost" title="{{ $user->role->value }}">
+              <x-menu-item title="Mi Perfil" icon="o-user" link="/user/profile" />
+              <x-menu-item title="Ordenes de Compra" icon="o-archive-box" link="/orders" />
+              @if($user->role->value === 'customer')
+                <x-menu-item title="Mis Vendedores" icon="o-users" link="/my-sales-agents" />
+              @endif
+              <x-menu-item title="SALIR" icon="o-arrow-right-start-on-rectangle" link="/logout" no-wire-navigate />
+            </x-dropdown>
+
+            @if($user instanceof \App\Models\AltUser && isset($trial_days_remaining))
+              <div class="tooltip tooltip-bottom tooltip-warning" data-tip="Días de prueba restantes">
+                <span class="badge badge-warning badge-sm font-bold cursor-help">{{ $trial_days_remaining }}</span>
+              </div>
             @endif
-            <x-menu-item title="SALIR" icon="o-arrow-right-start-on-rectangle" link="/logout" no-wire-navigate />
-          </x-dropdown>
-        @endif
-        @if(Auth::check() && current_user()->role->value == 'guest')
-          @if($trial_days_remaining)
-            <span class="text-sm opacity-50">Dias pendientes: {{ $trial_days_remaining }}</span>
-          @endif
+          </div>
         @endif
       </div>
     </div>

@@ -24,13 +24,10 @@ class WebNavbar extends Component
     public function mount()
     {
         $this->salesCustomers = collect();
-        $loggedInUser = Auth::user();
-        if (!$loggedInUser && Auth::guard('alt')->check()) {
-            $loggedInUser = Auth::guard('alt')->user();
-        }
+        $loggedInUser = current_user();
 
         if ($loggedInUser && $loggedInUser->role === Role::SALES) {
-            // Auto-assign if not set
+            // ... (rest of sales logic remains same)
             if (!session('sales_acting_as_customer_id')) {
                  $firstCustomer = $loggedInUser->getManagedCustomersQuery()->first();
                  if ($firstCustomer) {
@@ -47,15 +44,11 @@ class WebNavbar extends Component
              $this->loadCustomers();
         }
 
-        // Usar current_user() para la lógica de trial si es necesario, 
-        // pero aquí mantenemos la lógica específica de AltUser si aplica.
-        if ($loggedInUser && $loggedInUser->role === Role::GUEST) {
-            $guest = AltUser::where('email', $loggedInUser->email)->first();
-            if ($guest) {
-                $expirationDays = \App\Helpers\SettingsHelper::settings('guest_access_ttl_days', 10);
-                $end_date = $guest->created_at->copy()->addDays($expirationDays);
-                $this->trial_days_remaining = floor(max(0, now()->diffInDays($end_date, false)));
-            }
+        // Lógica de Trial para usuarios alternativos (Solo si no son internos)
+        if ($loggedInUser instanceof AltUser && !$loggedInUser->is_internal) {
+            $expirationDays = \App\Helpers\SettingsHelper::settings('guest_access_ttl_days', 10);
+            $end_date = $loggedInUser->created_at->copy()->addDays($expirationDays);
+            $this->trial_days_remaining = floor(max(0, now()->diffInDays($end_date, false)));
         }
     }
 

@@ -26,7 +26,6 @@
         .header { 
             display: flex; 
             justify-content: space-between; 
-            border-bottom: 2px solid #002b6b; 
             padding-bottom: 10px; 
             margin-bottom: 20px; 
             align-items: flex-end;
@@ -75,7 +74,6 @@
             text-align: center; 
             font-size: 11px; 
             color: #999; 
-            border-top: 1px solid #eee; 
             padding-top: 10px; 
         }
         .btn-print { 
@@ -126,13 +124,18 @@
             <div class="details-box">
                 <h3>Información de Entrega y Pago</h3>
                 <p><strong>Método de Envío:</strong> {{ $order->sending_method ?? 'No especificado' }}</p>
-                @if($order->sending_address)
-                    <p><strong>Dirección:</strong> {{ $order->sending_address }}, {{ $order->sending_city }}</p>
+                
+                @if($order->shipping)
+                    <p><strong>Contacto:</strong> {{ $order->shipping->contact_name ?? $order->user->name }}</p>
+                    <p><strong>Dirección:</strong> {{ $order->shipping->address }}, {{ $order->shipping->city }}</p>
+                    <p><strong>Tel. Entrega:</strong> {{ $order->shipping->phone }}</p>
+                @elseif($order->sending_method == 'Envío a cargo de la Empresa a Dirección Registrada')
+                    <p><strong>Contacto:</strong> {{ $order->user->name }}</p>
+                    <p><strong>Dirección:</strong> {{ $order->user->address }}, {{ $order->user->city }} ({{ $order->user->postal_code }})</p>
+                    <p><strong>Tel. Entrega:</strong> {{ $order->user->phone }}</p>
                 @endif
-                @if($order->contact_name)
-                    <p><strong>Contacto:</strong> {{ $order->contact_name }} ({{ $order->contact_number }})</p>
-                @endif
-                <p><strong>Forma de Pago:</strong> {{ $order->payment_method ?? 'No especificado' }}</p>
+
+                <p style="margin-top: 10px;"><strong>Forma de Pago:</strong> {{ $order->payment_method ?? 'No especificado' }}</p>
                 @if($order->payment_detail)
                     <p><strong>Detalle Pago:</strong> {{ $order->payment_detail }}</p>
                 @endif
@@ -141,6 +144,13 @@
                 @endif
             </div>
         </div>
+
+        @if($order->information)
+            <div style="margin-bottom: 20px; padding: 10px; border: 1px dashed #ccc; border-radius: 5px;">
+                <h3 style="font-size: 11px; text-transform: uppercase; color: #666; margin: 0 0 5px 0; border-bottom: 1px solid #eee;">Información Adicional del Pedido</h3>
+                <p style="font-size: 12px; margin: 0; font-style: italic;">"{{ $order->information }}"</p>
+            </div>
+        @endif
 
         <table>
             <thead>

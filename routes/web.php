@@ -1,10 +1,15 @@
 <?php
 
+use App\Enums\Role;
 use App\Http\Controllers\ImageProxyController;
 use App\Http\Controllers\Reports\ExportController;
+use App\Models\AltOrder;
+use App\Models\AltUser;
+use App\Models\Order;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
 
@@ -29,6 +34,32 @@ Route::get('/proxy-image', [ImageProxyController::class, 'show'])->name('proxy.i
 Volt::route('/login', 'login')->name('login');
 Volt::route('/about', 'about')->name('about');
 Volt::route('/contact', 'contact')->name('contact');
+
+// Activación de cuenta para usuarios alternativos (PÚBLICA)
+Route::get('/activate-account/{token}', function ($token) {
+    Log::info('INICIO ACTIVACIÓN: Token [' . $token . ']');
+
+    $user = AltUser::where('activation_token', $token)->first();
+
+    if (! $user) {
+        Log::warning('ACTIVACIÓN FALLIDA: Token no encontrado.');
+        return redirect('/login')->with('error', 'El enlace de activación es inválido o ha expirado.');
+    }
+
+    Log::info('USUARIO ENCONTRADO: ' . $user->email . ' [ID: ' . $user->id . '] [Rol actual: ' . ($user->role->value ?? $user->role) . ']');
+
+    // Activación mediante forceFill para asegurar la persistencia
+    $user->forceFill([
+        'role' => Role::CUSTOMER,
+        'activation_token' => null,
+    ])->save();
+
+    // Recarga para confirmar el cambio en logs
+    $freshUser = AltUser::find($user->id);
+    Log::info('ACTIVACIÓN COMPLETADA: Nuevo rol -> ' . ($freshUser->role->value ?? $freshUser->role));
+
+    return redirect('/login')->with('success', '¡Cuenta activada con éxito! Ya podés ingresar con tus credenciales.');
+})->name('activate.account');
 
 Route::get('/logout', function () {
     Auth::logout();
@@ -56,12 +87,14 @@ Route::middleware(['auth', 'check_guest'])->group(function () {
 
     // Print Routes
     Route::get('/order/{id}/print', function ($id) {
-        $order = \App\Models\Order::with(['user', 'items.product'])->findOrFail($id);
+        $order = Order::with(['user', 'items.product'])->findOrFail($id);
+
         return view('order-print', ['order' => $order, 'isAlt' => false]);
     })->name('order.print');
 
     Route::get('/alt-order/{id}/print', function ($id) {
-        $order = \App\Models\AltOrder::with(['user', 'items.product'])->findOrFail($id);
+        $order = AltOrder::with(['user', 'items.product'])->findOrFail($id);
+
         return view('order-print', ['order' => $order, 'isAlt' => true]);
     })->name('alt-order.print');
     Volt::route('/users', 'users.index')->middleware('is_admin');

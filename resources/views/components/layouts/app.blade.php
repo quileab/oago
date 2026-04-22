@@ -50,6 +50,12 @@
                 @if($user && $user->role->value == 'admin')
                     <x-menu-item title="Sitio Principal" icon="o-sparkles" link="/" no-wire-navigate />
                     <x-menu-item title="Dashboard" icon="o-chart-pie" link="/dashboard" class="text-info" />
+                    
+                    @if(!Auth::guard('alt')->check())
+                        <x-menu-item title="Pedidos API" icon="o-clipboard-document-list" link="/orders" class="text-warning" />
+                    @endif
+                    <x-menu-item title="Pedidos [ALT]" icon="o-document-duplicate" link="/alt-orders" class="text-success" />
+
                     <x-menu-sub title="Usuarios" icon="o-user">
                         <x-menu-item title="Registrados" icon="s-users" link="/users" />
                         <x-menu-item title="Alternativos" icon="o-users" link="/alts" />
@@ -78,11 +84,14 @@
                     </x-menu-sub>
                 @endif
                 @if($user && $user->role->value != 'guest')
-                    <div class="border-t border-base-content/5 my-2"></div>
-                    @if(!Auth::guard('alt')->check())
-                        <x-menu-item title="Pedidos API" icon="o-clipboard-document-list" link="/orders" class="text-warning" />
+                    @if($user->role->value != 'admin')
+                        <div class="border-t border-base-content/5 my-2"></div>
+                        @if(!Auth::guard('alt')->check())
+                            <x-menu-item title="Pedidos API" icon="o-clipboard-document-list" link="/orders" class="text-warning" />
+                        @endif
+                        <x-menu-item title="Pedidos [ALT]" icon="o-document-duplicate" link="/alt-orders" class="text-success" />
                     @endif
-                    <x-menu-item title="Pedidos [ALT]" icon="o-document-duplicate" link="/alt-orders" class="text-success" />
+
                     @if($user->role->value === 'customer')
                         <x-menu-item title="Mis Vendedores" icon="o-users" link="/my-sales-agents" />
                     @endif

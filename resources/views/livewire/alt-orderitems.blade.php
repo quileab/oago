@@ -13,7 +13,7 @@ new class extends Component {
 
     public function mount($orderId)
     {
-        $this->order = AltOrder::with('items.product')->findOrFail($orderId);
+        $this->order = AltOrder::with(['items.product', 'shipping'])->findOrFail($orderId);
         $this->items = $this->order->items->toArray();
     }
 
@@ -78,12 +78,17 @@ new class extends Component {
             <div>
                 <h3 class="font-black text-sm uppercase mb-1 border-b">Datos del Cliente</h3>
                 <p class="font-bold text-lg">{{ $order->user->lastname }}, {{ $order->user->name }}</p>
-                <p>{{ $order->user->address }}</p>
-                <p>{{ $order->user->city }} ({{ $order->user->postal_code }})</p>
+                <p>{{ $order->user->email }}</p>
                 <p>Tel: {{ $order->user->phone }}</p>
             </div>
             <div>
-                <h3 class="font-black text-sm uppercase mb-1 border-b">Detalles de Envío y Pago</h3>
+                <h3 class="font-black text-sm uppercase mb-1 border-b">Detalles de Entrega y Pago</h3>
+                @if($order->shipping)
+                    <p><strong>Contacto:</strong> {{ $order->shipping->contact_name ?? $order->user->name }}</p>
+                    <p><strong>Dirección:</strong> {{ $order->shipping->address }}</p>
+                    <p><strong>Ciudad:</strong> {{ $order->shipping->city }}</p>
+                    <p><strong>Tel. Entrega:</strong> {{ $order->shipping->phone }}</p>
+                @endif
                 <p><strong>Envío:</strong> {{ $order->sending_method }}</p>
                 <p><strong>Pago:</strong> {{ $order->payment_method }}</p>
                 @if($order->transport_detail) <p><strong>Transporte:</strong> {{ $order->transport_detail }}</p> @endif
@@ -132,7 +137,7 @@ new class extends Component {
         </div>
     </div>
 
-    <x-card shadow>
+    <x-card shadow class="mb-6">
         <table class="table w-full">
             <thead class="uppercase text-[10px] font-black tracking-widest text-slate-500">
                 <tr>
@@ -156,4 +161,24 @@ new class extends Component {
             </tbody>
         </table>
     </x-card>
+
+    @if($order->shipping)
+        <x-card title="Información de Entrega (Logística)" icon="o-truck" shadow separator class="mt-6 border-l-4 border-primary no-print">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                    <p class="text-xs font-black uppercase text-slate-500 mb-1">Dirección de Envío</p>
+                    <p class="font-bold">{{ $order->shipping->address ?? 'No especificada' }}</p>
+                    <p class="text-sm">{{ $order->shipping->city ?? '' }} {{ $order->shipping->postal_code ? '('.$order->shipping->postal_code.')' : '' }}</p>
+                </div>
+                <div>
+                    <p class="text-xs font-black uppercase text-slate-500 mb-1">Contacto de Entrega</p>
+                    <p class="font-bold">{{ $order->shipping->phone ?? 'No especificado' }}</p>
+                </div>
+                <div>
+                    <p class="text-xs font-black uppercase text-slate-500 mb-1">Estado del Envío</p>
+                    <x-badge :value="$order->shipping->shipping_status ?? 'Pendiente'" class="badge-neutral font-bold uppercase" />
+                </div>
+            </div>
+        </x-card>
+    @endif
 </div>

@@ -8,26 +8,30 @@ new class extends Component {
     public $transportation = [
         [
             'id' => 1,
-            'name' => 'Transporte Propio',
+            'name' => 'Envío a cargo de la Empresa a Dirección Registrada',
         ],
         [
             'id' => 2,
-            'name' => 'Transporte Tercerizado',
+            'name' => 'Envío a cargo de la Empresa (Dirección Alternativa)',
         ],
         [
             'id' => 3,
-            'name' => 'Transporte OAgostini',
+            'name' => 'Retiro del Cliente / Transporte Propio',
+        ],
+        [
+            'id' => 4,
+            'name' => 'Envío Tercerizado (A designar por el cliente)',
         ],
     ];
 
     public $paymentOptions = [
         [
             'id' => 1,
-            'name' => 'Contado',
+            'name' => 'Contado / Efectivo',
         ],
         [
             'id' => 2,
-            'name' => 'Efectivo/Cheque',
+            'name' => 'Cheque / Valores',
         ],
         [
             'id' => 3,
@@ -36,7 +40,7 @@ new class extends Component {
     ];
 
     public $data = [
-        'sending_method' => 1,
+        'sending_method' => 'Envío a cargo de la Empresa a Dirección Registrada',
         'sending_address' => null,
         'sending_city' => null,
         'contact_name' => null,
@@ -67,6 +71,9 @@ new class extends Component {
         $currentUser = current_user();
         $this->data['sending_address'] = $currentUser->address;
         $this->data['sending_city'] = $currentUser->city . ' (' . $currentUser->postal_code . ')';
+        
+        // set default payment method
+        $this->data['payment_method'] = 'Contado / Efectivo';
     }
 
     public function save()
@@ -122,30 +129,50 @@ new class extends Component {
         </table>
 
         <x-form wire:submit.prevent="save">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-4">
-                <x-select label="Transporte a Utilizar" wire:model.lazy="data.sending_method" :options="$transportation"
-                    option-value="name" icon="o-truck" class="flex-1" />
-                <x-input label="Datos del Transporte" wire:model="data.transport_detail"
-                    icon="o-clipboard-document-list" />
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="flex flex-col">
+                    <x-select label="Transporte a Utilizar" wire:model.live="data.sending_method" :options="$transportation"
+                        option-value="name" icon="o-truck" class="flex-1" />
+
+                    @if($data['sending_method'] == 'Envío a cargo de la Empresa a Dirección Registrada')
+                        <div class="mt-2 p-4 bg-primary/5 rounded-xl border border-primary/10 flex items-start gap-3">
+                            <x-icon name="o-information-circle" class="w-5 h-5 text-primary mt-0.5" />
+                            <p class="text-sm leading-relaxed">
+                                <span class="font-black uppercase text-[10px] tracking-tighter block mb-1">Entrega en domicilio registrado:</span>
+                                <span class="italic opacity-80">{{ current_user()->address }}, {{ current_user()->city }} ({{ current_user()->postal_code }})</span>
+                            </p>
+                        </div>
+                    @endif
+                </div>
+
+                @if($data['sending_method'] !== 'Envío a cargo de la Empresa a Dirección Registrada')
+                    <x-input label="Datos del Transporte" wire:model="data.transport_detail"
+                        icon="o-clipboard-document-list" placeholder="Ej: Comisionista, Empresa de transporte, etc." />
+                @endif
             </div>
-            @if($data['sending_method'] == 'Transporte OAgostini')
-                <x-input label="Dirección de Entrega" wire:model="data.sending_address" icon="o-map-pin" maxlength="100" />
-                <x-input label="Ciudad de Entrega" wire:model="data.sending_city" icon="o-map" maxlength="50" />
+
+            @if($data['sending_method'] == 'Envío a cargo de la Empresa (Dirección Alternativa)')
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-6 rounded-2xl border border-base-300 mt-2 bg-base-200/20">
+                    <div class="col-span-full font-black text-[10px] uppercase tracking-widest opacity-50">Dirección de entrega alternativa</div>
+                    <x-input label="Nombre de Contacto" wire:model="data.contact_name" icon="o-user" placeholder="Persona que recibe" />
+                    <x-input label="Teléfono de Contacto" wire:model="data.contact_number" icon="o-phone" />
+                    <x-input label="Dirección de Entrega" wire:model="data.sending_address" icon="o-map-pin" maxlength="100" class="md:col-span-1" />
+                    <x-input label="Ciudad de Entrega" wire:model="data.sending_city" icon="o-map" maxlength="50" class="md:col-span-1" />
+                </div>
             @endif
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-4">
-                <x-input label="Persona a Cargo" wire:model="data.contact_name" icon="o-user" />
-                <x-input label="Teléfono de Contacto" wire:model="data.contact_number" icon="o-phone" />
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-4">
-                <x-select label="Forma de Pago" wire:model="data.payment_method" :options="$paymentOptions"
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <x-select label="Forma de Pago" wire:model.live="data.payment_method" :options="$paymentOptions"
                     option-value="name" icon="o-currency-dollar" class="flex-1" />
                 <x-input label="Detalles del Pago" wire:model="data.payment_detail" icon="o-document-text"
-                    class="flex-1" maxlength="100" />
+                    class="flex-1" maxlength="100" placeholder="Aclaraciones sobre el pago..." />
             </div>
-            <x-textarea label="Información Adicional" wire:model="data.information" hint="Max 240 caracteres" rows="5"
+
+            <x-textarea label="Información Adicional para el Pedido" wire:model="data.information" hint="Máximo 240 caracteres" rows="3"
                 maxlength="240" />
+
             <x-slot:actions>
-                <x-button wire:click="save" icon="o-check" class="btn-primary" type="submit" spinner="save"
+                <x-button wire:click="save" icon="o-check" class="btn-primary w-full md:w-auto px-12" type="submit" spinner="save"
                     label="Confirmar Pedido" />
             </x-slot:actions>
         </x-form>

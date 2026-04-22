@@ -4,16 +4,16 @@ namespace App\Models;
 
 use App\Enums\Role;
 use App\Traits\HasAchievements;
+use App\Traits\HasPricingList;
 use App\Traits\HasProfileData;
 use App\Traits\ManagesCustomers;
-use App\Traits\HasPricingList;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 class AltUser extends Authenticatable
 {
+    use HasAchievements, HasPricingList, HasProfileData, ManagesCustomers;
     use Notifiable;
-    use HasProfileData, HasAchievements, ManagesCustomers, HasPricingList;
 
     protected $table = 'alt_users';
 
@@ -29,6 +29,8 @@ class AltUser extends Authenticatable
         'list_id',
         'is_internal',
         'role',
+        'remember_token',
+        'activation_token',
     ];
 
     protected $hidden = [
