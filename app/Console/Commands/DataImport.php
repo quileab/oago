@@ -21,7 +21,7 @@ class DataImport extends Command
      *
      * @var string
      */
-    protected $description = 'Import data with live migration of logistics from orders to shipping_details';
+    protected $description = 'Import data with intelligent column filtering (orders), injection (alt_users, products) and logistics migration';
 
     /**
      * Execute the console command.
@@ -37,7 +37,7 @@ class DataImport extends Command
         }
 
         $this->newLine();
-        $this->info("🚀 Iniciando migración de datos integral desde: $fileName");
+        $this->info("🚀 Iniciando migración inteligente desde: $fileName");
         $this->newLine();
 
         if (!$this->confirm("⚠️  Esto borrará los datos actuales de las tablas destino. ¿Continuar?", true)) {
@@ -71,7 +71,7 @@ class DataImport extends Command
         $this->newLine();
 
         // 2. Importación
-        $this->info("📥 Procesando archivo SQL con trasvase de logística...");
+        $this->info("📥 Procesando archivo SQL con filtros avanzados...");
         
         $handle = fopen($filePath, "r");
         if ($handle) {
@@ -110,10 +110,15 @@ class DataImport extends Command
 
                 if ($insideInsert && str_ends_with($trimmedLine, ';')) {
                     
+                    // Transformaciones según la tabla
                     if ($currentTable === 'orders') {
                         $migrationResult = $this->migrateOrderLogistics($buffer);
                         $buffer = $migrationResult['cleanSql'];
                         $logisticsMigrated += $migrationResult['count'];
+                    } elseif ($currentTable === 'alt_users') {
+                        $buffer = $this->transformAltUsers($buffer);
+                    } elseif ($currentTable === 'products') {
+                        $buffer = $this->transformProducts($buffer);
                     }
 
                     try {
@@ -173,21 +178,13 @@ class DataImport extends Command
                     $cName = $parts[6];
                     $phone = $parts[7];
 
-                    // Solo migrar si hay algún dato útil
-                    if ($addr !== 'NULL' || $city !== 'NULL' || $cName !== 'NULL' || $phone !== 'NULL') {
+                    if ($addr !== 'NULL' && $addr !== null) {
                         $this->saveToShippingDetails($orderId, $addr, $city, $cName, $phone);
                         $logisticsCount++;
                     }
 
-                    // Eliminar columnas de logística para la tabla 'orders'
                     unset($parts[4], $parts[5], $parts[6], $parts[7]);
-                    
-                    $sanitizedParts = array_map(function($val) {
-                        if ($val === 'NULL' || $val === null) return 'NULL';
-                        return "'" . str_replace("'", "''", $val) . "'";
-                    }, array_values($parts));
-                    
-                    $newOrderRows[] = "(" . implode(',', $sanitizedParts) . ")";
+                    $newOrderRows[] = $this->rebuildRow($parts);
                 } else {
                     $newOrderRows[] = "($row)";
                 }
@@ -200,6 +197,78 @@ class DataImport extends Command
         }
         
         return ['cleanSql' => $sql, 'count' => 0];
+    }
+
+    /**
+     * Inyecta activation_token en alt_users (V1=15 cols, V2=16 cols)
+     */
+    private function transformAltUsers(string $sql): string
+    {
+        if (preg_match('/INSERT INTO `?alt_users`? VALUES\s*(.*);/is', $sql, $matches)) {
+            $valuesSection = $matches[1];
+            preg_match_all('/\((.*?)\)(?:,|$)/s', $valuesSection, $rows);
+            
+            $newRows = [];
+            foreach ($rows[1] as $row) {
+                $parts = str_getcsv($row, ',', "'");
+                if (count($parts) === 15) {
+                    // Inyectar NULL en la posición 9 (activation_token, después de password)
+                    array_splice($parts, 9, 0, [null]);
+                    $newRows[] = $this->rebuildRow($parts);
+                } else {
+                    $newRows[] = "($row)";
+                }
+            }
+            return "INSERT INTO `alt_users` VALUES " . implode(',', $newRows) . ";";
+        }
+        return $sql;
+    }
+
+    /**
+     * Inyecta bonus_threshold y bonus_amount en products y descarta excedentes
+     * Dump tiene 33 cols, pero 'taxable' está en la 15.
+     * DB espera BT(15), BA(16), TS(17).
+     */
+    private function transformProducts(string $sql): string
+    {
+        if (preg_match('/INSERT INTO `?products`? VALUES\s*(.*);/is', $sql, $matches)) {
+            $valuesSection = $matches[1];
+            preg_match_all('/\((.*?)\)(?:,|$)/s', $valuesSection, $rows);
+            
+            $newRows = [];
+            foreach ($rows[1] as $row) {
+                $parts = str_getcsv($row, ',', "'");
+                if (count($parts) >= 31) {
+                    // Partes: 0-13 (ID a Offer End)
+                    // Inyectar 0, 0 en pos 14 y 15 (BT y BA)
+                    // Tax Status (pos 14 original) ahora será 16.
+                    array_splice($parts, 14, 0, [0, 0]);
+                    
+                    // Mantener solo hasta la columna 32 (ID es 0, UA es 32)
+                    // Cortar si hay excedentes del dump original (pos 33+)
+                    $parts = array_slice($parts, 0, 33);
+                    
+                    $newRows[] = $this->rebuildRow($parts);
+                } else {
+                    $newRows[] = "($row)";
+                }
+            }
+            return "INSERT INTO `products` VALUES " . implode(',', $newRows) . ";";
+        }
+        return $sql;
+    }
+
+    /**
+     * Reconstruye una fila SQL sanitizando valores
+     */
+    private function rebuildRow(array $parts): string
+    {
+        $sanitizedParts = array_map(function($val) {
+            if ($val === 'NULL' || $val === null) return 'NULL';
+            return "'" . str_replace("'", "''", $val) . "'";
+        }, array_values($parts));
+        
+        return "(" . implode(',', $sanitizedParts) . ")";
     }
 
     /**

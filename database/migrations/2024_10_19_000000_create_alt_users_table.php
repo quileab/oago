@@ -21,6 +21,7 @@ return new class extends Migration
             $table->string('phone', 50)->nullable();
             $table->string('email')->unique();
             $table->string('password');
+            $table->string('activation_token', 100)->nullable();
             $table->string('role', 8)->default('none');
             $table->foreignId('list_id')->nullable()
                 ->constrained('list_names')
