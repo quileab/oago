@@ -1,0 +1,29 @@
+$kind: http-request
+name: 'Create / Update User'
+method: POST
+url: '{{base_url}}/api/users'
+order: 2000
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "id": 1,
+      "name": "Jane",
+      "lastname": "Doe",
+      "address": "456 Elm St",
+      "city": "Córdoba",
+      "postal_code": "5000",
+      "phone": "+54351234567",
+      "email": "jane@example.com",
+      "password": "password",
+      "role": "customer",
+      "list_id": null
+    }

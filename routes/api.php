@@ -22,31 +22,35 @@ Route::middleware('auth:sanctum')->group(function () {
         return $request->user();
     });
 
-    // Rutas de Pedidos
-    Route::get('/orders/pending', [OrderController::class, 'listPendingOrders']);
-    Route::put('/orders/{order}/status', [OrderController::class, 'updateOrderStatus']);
-    Route::put('/orders/{order}/products', [OrderController::class, 'updateOrderProducts']);
+    // Rutas protegidas exclusivamente para Administradores
+    Route::middleware('is_admin')->group(function () {
+        // Rutas de Pedidos
+        Route::get('/orders/pending', [OrderController::class, 'listPendingOrders']);
+        Route::put('/orders/{order}/status', [OrderController::class, 'updateOrderStatus']);
+        Route::put('/orders/{order}/products', [OrderController::class, 'updateOrderProducts']);
 
-    // Rutas de administración de Productos
-    Route::get('products', [ProductController::class, 'index']);
-    Route::get('products/{product}', [ProductController::class, 'show']);
-    Route::post('products', [ProductController::class, 'store']);
-    Route::put('products/{product}', [ProductController::class, 'update']);
-    Route::delete('products/{product}', [ProductController::class, 'destroy']);
-    Route::post('products/{product}/upload-image', [ProductController::class, 'uploadImage']);
-    Route::put('products/{product}/visibility', [ProductController::class, 'changeVisibility']);
+        // Rutas de administración de Productos
+        Route::get('products', [ProductController::class, 'index']);
+        Route::get('products/{product}', [ProductController::class, 'show']);
+        Route::post('products', [ProductController::class, 'store']);
+        Route::put('products/{product}', [ProductController::class, 'update']);
+        Route::delete('products/{product}', [ProductController::class, 'destroy']);
+        Route::post('products/{product}/upload-image', [ProductController::class, 'uploadImage']);
+        Route::put('products/{product}/visibility', [ProductController::class, 'changeVisibility']);
 
-    // Rutas de Listas de Precios
-    Route::get('list-prices', [ListPriceController::class, 'index']);
-    Route::post('list-prices', [ListPriceController::class, 'store']);
-    Route::get('list-prices/{product_id}/{list_id}', [ListPriceController::class, 'show']);
-    Route::put('list-prices/{product_id}/{list_id}', [ListPriceController::class, 'update']);
-    Route::delete('list-prices/{product_id}/{list_id}', [ListPriceController::class, 'destroy']);
+        // Rutas de Listas de Precios
+        Route::get('list-prices', [ListPriceController::class, 'index']);
+        Route::post('list-prices', [ListPriceController::class, 'store']);
+        Route::get('list-prices/{product_id}/{list_id}', [ListPriceController::class, 'show']);
+        Route::put('list-prices/{product_id}/{list_id}', [ListPriceController::class, 'update']);
+        Route::delete('list-prices/{product_id}/{list_id}', [ListPriceController::class, 'destroy']);
 
-    // Rutas de administración de Usuarios (potencialmente solo para admins)
-    // Se recomienda añadir un middleware de administrador aquí, por ejemplo: ->middleware('is.admin')
-    Route::get('users', [UserController::class, 'index']);
-    Route::post('users', [UserController::class, 'store']);
+        // Rutas de administración de Usuarios
+        Route::get('users', [UserController::class, 'index']);
+        Route::post('users', [UserController::class, 'store']);
+    });
+
+    // Rutas de Usuarios que tienen validación interna de propiedad (IDOR check)
     Route::get('users/{id}', [UserController::class, 'show']);
     Route::put('users/{id}', [UserController::class, 'update']);
     Route::delete('users/{id}', [UserController::class, 'destroy']);

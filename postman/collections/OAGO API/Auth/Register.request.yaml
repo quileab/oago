@@ -1,0 +1,24 @@
+$kind: http-request
+name: Register
+method: POST
+url: '{{base_url}}/api/register'
+order: 1000
+auth:
+  type: noauth
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "John",
+      "lastname": "Doe",
+      "address": "123 Main St",
+      "city": "Buenos Aires",
+      "postal_code": "1000",
+      "phone": "+54911234567",
+      "email": "john@example.com",
+      "password": "password",
+      "password_confirmation": "password"
+    }

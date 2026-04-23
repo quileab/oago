@@ -1,0 +1,27 @@
+$kind: http-request
+name: Update User
+method: PUT
+url: '{{base_url}}/api/users/{{user_id}}'
+order: 4000
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "Jane",
+      "lastname": "Smith",
+      "address": "789 Oak Ave",
+      "city": "Rosario",
+      "postal_code": "2000",
+      "phone": "+54341234567",
+      "email": "jane.smith@example.com",
+      "role": "customer",
+      "list_id": null
+    }

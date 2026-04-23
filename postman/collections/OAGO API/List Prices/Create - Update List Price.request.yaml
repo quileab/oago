@@ -1,0 +1,22 @@
+$kind: http-request
+name: 'Create / Update List Price'
+method: POST
+url: '{{base_url}}/api/list-prices'
+order: 2000
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "product_id": 1,
+      "list_id": 1,
+      "price": 89.99,
+      "unit_price": 9.99
+    }

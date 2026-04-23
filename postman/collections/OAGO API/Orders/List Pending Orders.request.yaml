@@ -1,0 +1,10 @@
+$kind: http-request
+name: List Pending Orders
+method: GET
+url: '{{base_url}}/api/orders/pending'
+order: 1000
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'

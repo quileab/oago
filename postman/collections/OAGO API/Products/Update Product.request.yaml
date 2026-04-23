@@ -1,0 +1,38 @@
+$kind: http-request
+name: Update Product
+method: PUT
+url: '{{base_url}}/api/products/{{product_id}}'
+order: 4000
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "description": "Sample Product",
+      "description_html": "<p>Sample Product</p>",
+      "published": true,
+      "featured": false,
+      "visibility": "visible",
+      "tax_status": "taxable",
+      "in_stock": true,
+      "stock": 100,
+      "allow_reservation": false,
+      "qtty_package": 1,
+      "qtty_unit": 1,
+      "price": 99.99,
+      "sku": "SKU-001",
+      "barcode": "1234567890",
+      "brand": "Brand",
+      "model": "Model X",
+      "category": "Electronics",
+      "by_bulk": false,
+      "weight": 0.5,
+      "tags": "sample,product"
+    }

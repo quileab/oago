@@ -1,0 +1,25 @@
+$kind: http-request
+name: Update Order Products
+method: PUT
+url: '{{base_url}}/api/orders/{{order_id}}/products'
+order: 3000
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "products": [
+        {
+          "id": 1,
+          "quantity": 2,
+          "price": 99.99
+        }
+      ]
+    }

@@ -13,6 +13,7 @@ new class extends Component {
     public function mount($orderId)
     {
         $this->order = \App\Models\Order::with('items.product')->findOrFail($orderId);
+        abort_if($this->order->user_id !== \Illuminate\Support\Facades\Auth::id() && \Illuminate\Support\Facades\Auth::user()->role->value !== 'admin', 403, 'Unauthorized');
         $this->items = $this->order->items->toArray();
     }
 

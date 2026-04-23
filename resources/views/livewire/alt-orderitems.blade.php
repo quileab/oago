@@ -14,6 +14,7 @@ new class extends Component {
     public function mount($orderId)
     {
         $this->order = AltOrder::with(['items.product', 'shipping'])->findOrFail($orderId);
+        abort_if($this->order->alt_user_id !== Auth::guard('alt')->id() && Auth::id() !== $this->order->alt_user_id && Auth::user()->role->value !== 'admin', 403, 'Unauthorized');
         $this->items = $this->order->items->toArray();
     }
 
