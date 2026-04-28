@@ -41,8 +41,8 @@ new
             </div>
             <div class="relative group">
                 <div class="absolute -inset-4 bg-red-700/10 rounded-3xl rotate-3 group-hover:rotate-0 transition-transform duration-500"></div>
-                <div class="relative rounded-2xl overflow-hidden shadow-2xl">
-                    <img src="{{ asset('imgs/oago-big.png') }}" class="w-full h-full object-cover" alt="Osvaldo Agostini">
+                <div class="relative rounded-2xl overflow-hidden shadow-2xl rotate-3 group-hover:rotate-0 transition-transform duration-500">
+                    <img id="logo" loading="lazy" src="{{ asset('imgs/WebStoreBrand.webp') }}" class="w-full h-full object-cover" alt="Osvaldo Agostini">
                 </div>
             </div>
         </section>
