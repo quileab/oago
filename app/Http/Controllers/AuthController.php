@@ -2,11 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\User;
 use Exception;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-
 
 class AuthController extends Controller
 {
@@ -14,33 +13,33 @@ class AuthController extends Controller
     {
         try {
             $request->validate([
-                  'email' => 'required|email|exists:users',
-                  'password' => 'required',
+                'email' => 'required|email|exists:users',
+                'password' => 'required',
             ]);
-          }
-          catch (Exception $e) {
+        } catch (Exception $e) {
             return response()->json([
-              'message' => $e->getMessage(),
+                'message' => $e->getMessage(),
             ], 400);
-          }
+        }
         $user = User::where('email', $request->email)->first();
-        if (!$user || !Hash::check($request->password, $user->password)) {
+        if (! $user || ! Hash::check($request->password, $user->password)) {
             return response()->json([
                 'message' => 'The provided credentials are incorrect.',
             ], 401);
         }
         $token = $user->createToken($user->name)->plainTextToken;
+
         return response()->json([
             'user' => $user,
             'token' => $token,
         ]);
-    
+
     }
 
     public function register(Request $request)
     {
-    try {
-        $fields = $request->validate([
+        try {
+            $fields = $request->validate([
                 'name' => 'required|max:30',
                 'lastname' => 'required|max:30',
                 'address' => 'required|max:50',
@@ -49,15 +48,15 @@ class AuthController extends Controller
                 'phone' => 'required|max:50',
                 'email' => 'required|email|unique:users',
                 'password' => 'required|confirmed',
-        ]);
-        }
-        catch (Exception $e) {
-        return response()->json([
-            'message' => $e->getMessage(),
-        ], 400);
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+            ], 400);
         }
         $user = User::create($fields);
         $token = $user->createToken($request->name)->plainTextToken;
+
         return response()->json([
             'user' => $user,
             'token' => $token,
@@ -67,6 +66,7 @@ class AuthController extends Controller
     public function logout(Request $request)
     {
         $request->user()->tokens()->delete();
+
         return response()->json([
             'message' => 'Logged out successfully.',
         ]);

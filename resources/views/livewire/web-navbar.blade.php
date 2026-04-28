@@ -6,7 +6,7 @@
     <div class="inline-flex flex-wrap items-right align-middle justify-end">
       <a href="/" class="hover:bg-gray-400 hover:text-black transition-all duration-300 p-4">Inicio</a>
       <a href="/about" class="hover:bg-gray-400 hover:text-black transition-all duration-300 p-4">Nosotros</a>
-      <a href="/contact" class="hover:bg-gray-400 hover:text-black transition-all duration-300 p-4">Contactos</a>
+      <a href="/registrate" class="hover:bg-gray-400 hover:text-black transition-all duration-300 p-4">Regístrate</a>
 
       <div class="inline-flex items-center">
         @if(count($salesCustomers) > 0 || $searchCustomer)
@@ -17,7 +17,7 @@
                 class="input-sm" />
             </div>
             @foreach($salesCustomers as $customer)
-              <x-menu-item title="{{ is_object($customer) ? $customer->full_name : 'ID: ' . $customer }}" wire:click="setActingCustomer({{ is_object($customer) ? $customer->id : $customer }})" />
+              <x-menu-item title="{{ is_object($customer) ? ($customer->full_name ?? 'ID: ' . ($customer->id ?? 'Unknown')) : 'ID: ' . $customer }}" wire:click="setActingCustomer({{ is_object($customer) ? ($customer->id ?? 0) : $customer }})" />
             @endforeach
           </x-dropdown>
         @endif

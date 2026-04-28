@@ -198,3 +198,24 @@
         display: none !important;
     }
 }
+
+/* Fix MaryUI Crop Modal Size */
+.modal:has(.cropper-container) .modal-box,
+.modal.modal-open .modal-box:has(.cropper-container) {
+    max-width: 95vw !important;
+    max-height: 95vh !important;
+    width: 95vw !important;
+    height: 95vh !important;
+    display: flex;
+    flex-direction: column;
+}
+
+.cropper-container {
+    flex-grow: 1;
+    min-height: 60vh !important;
+    width: 100% !important;
+}
+
+.cropper-view-box, .cropper-face {
+    border-radius: 0% !important;
+}

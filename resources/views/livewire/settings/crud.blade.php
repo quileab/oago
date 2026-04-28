@@ -42,14 +42,20 @@ new class extends Component {
         $setting = Setting::findOrFail($id);
         $this->formData = $setting->toArray();
 
-        // Convert array value to comma-separated string for JSON types for easier editing
-        if ($this->formData['type'] === 'json' && is_array($this->formData['value'])) {
-            $this->formData['value'] = implode(',', $this->formData['value']);
-        } elseif ($this->formData['type'] === 'json' && is_string($this->formData['value'])) {
-            // Try to decode if it's a JSON string
-            $decoded = json_decode($this->formData['value'], true);
-            if (is_array($decoded)) {
-                $this->formData['value'] = implode(',', $decoded);
+        // Convert simple arrays to comma-separated string, keep complex JSON as raw string
+        if ($this->formData['type'] === 'json') {
+            $value = is_string($this->formData['value']) 
+                ? json_decode($this->formData['value'], true) 
+                : $this->formData['value'];
+
+            if (is_array($value)) {
+                // If it's a simple flat array of strings/numbers, implode it
+                if (collect($value)->every(fn($item) => is_string($item) || is_numeric($item))) {
+                    $this->formData['value'] = implode(',', $value);
+                } else {
+                    // It's complex JSON, show as formatted string
+                    $this->formData['value'] = json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                }
             }
         }
 
@@ -71,15 +77,23 @@ new class extends Component {
 
         $data = $this->formData;
 
-        // Handle JSON type conversion back to array/json-string
-        if ($data['type'] === 'json') {
-            // Assume input is comma-separated string
-            $data['value'] = array_map('trim', explode(',', $data['value']));
-            // Note: Depending on Model casting, this array might need to be json_encoded.
-            // Since Setting model has no casts, and seeder passed array, 
-            // if the DB column is JSON, Laravel handles it. If it's TEXT, we should json_encode.
-            // To be safe and consistent with typical Laravel usage without casts:
-            $data['value'] = json_encode($data['value']);
+        // Handle JSON type conversion
+        if ($data['type'] === 'json' && !empty($data['value'])) {
+            $trimmedValue = trim($data['value']);
+            
+            // Check if it's a JSON object/array string
+            if (str_starts_with($trimmedValue, '{') || str_starts_with($trimmedValue, '[')) {
+                $decoded = json_decode($trimmedValue, true);
+                if (json_last_error() === JSON_ERROR_NONE) {
+                    $data['value'] = json_encode($decoded);
+                } else {
+                    $this->addError('formData.value', 'El formato JSON no es válido: ' . json_last_error_msg());
+                    return;
+                }
+            } else {
+                // Assume it's a comma-separated list
+                $data['value'] = json_encode(array_map('trim', explode(',', $data['value'])));
+            }
         }
 
         Setting::updateOrCreate(
@@ -160,13 +174,13 @@ new class extends Component {
     </x-card>
 
     <x-drawer wire:model="drawer" :title="$isEditing ? 'Editar Configuración' : 'Nueva Configuración'" right
-        with-close-button class="lg:w-1/3">
+        with-close-button class="lg:w-2/3">
         <x-form wire:submit="save">
             <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <x-input label="Clave (Key)" wire:model="formData.key"
                     hint="Identif. único (ej. 'site_name')" />
 
-                <x-select label="Tipo de Dato" wire:model="formData.type" :options="$this->types()" option-value="id"
+                <x-select label="Tipo de Dato" wire:model.live="formData.type" :options="$this->types()" option-value="id"
                     option-label="name" />
             </div>
 
@@ -175,8 +189,13 @@ new class extends Component {
             <x-textarea label="Descripción" wire:model="formData.description"
                 hint="Breve explicación de para qué sirve" />
 
-            <x-textarea label="Valor Inicial / Predeterminado" wire:model="formData.value"
-                hint="Para JSON/Lista, separar valores por coma" />
+            <x-textarea 
+                label="Valor / Configuración" 
+                wire:model="formData.value"
+                :rows="isset($formData['type']) && $formData['type'] === 'json' ? 15 : 4"
+                class="font-mono text-sm bg-base-300/50"
+                :hint="isset($formData['type']) && $formData['type'] === 'json' ? 'Para objetos complejos use JSON válido. Para listas simples separe por comas.' : 'Utilice tipografía monoespaciada para mayor claridad.'"
+            />
 
 
             <div class="flex justify-between w-full mt-1">

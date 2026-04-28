@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Controller;
 use App\Models\Order;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use App\Http\Controllers\Controller;
 
 class OrderController extends Controller
 {
@@ -19,9 +19,10 @@ class OrderController extends Controller
             $order->items = $order->items->filter(function ($item) {
                 return $item->quantity > 0 && $item->price > 0;
             })->values(); // Re-index the collection after filtering
+
             return $order;
         });
-        
+
         return response()->json($filteredOrders, 200);
     }
 
@@ -29,7 +30,7 @@ class OrderController extends Controller
     public function updateOrderStatus(Request $request, Order $order)
     {
         $request->validate([
-            'status' => 'required|string|max:20'
+            'status' => 'required|string|max:20',
         ]);
 
         $order->update(['status' => $request->status]);
@@ -44,17 +45,16 @@ class OrderController extends Controller
     {
         Log::info("Request: { json_encode($request) }");
         try {
-        $request->validate([
-            'products' => 'required|array',
-            'products.*.id' => 'required|exists:products,id',
-            'products.*.quantity' => 'required|integer|min:0',  // Permitir 0 para eliminar
-            'products.*.price' => 'required|numeric|min:0'
-        ]);
-        }
-        catch (Exception $e) {
-        return response()->json([
-            'message' => $e->getMessage(),
-        ], 400);
+            $request->validate([
+                'products' => 'required|array',
+                'products.*.id' => 'required|exists:products,id',
+                'products.*.quantity' => 'required|integer|min:0',  // Permitir 0 para eliminar
+                'products.*.price' => 'required|numeric|min:0',
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+            ], 400);
         }
         Log::info("Actualizando productos en el pedido: {$order->id}");
 
@@ -69,7 +69,7 @@ class OrderController extends Controller
                     // Si existe, actualizar la cantidad y el precio
                     $item->update([
                         'quantity' => $productData['quantity'],
-                        'price' => $productData['price']
+                        'price' => $productData['price'],
                     ]);
                 }
             } else {
@@ -78,7 +78,7 @@ class OrderController extends Controller
                     $order->items()->create([
                         'product_id' => $productData['id'],
                         'quantity' => $productData['quantity'],
-                        'price' => $productData['price']
+                        'price' => $productData['price'],
                     ]);
                 }
             }
@@ -86,7 +86,7 @@ class OrderController extends Controller
 
         return response()->json([
             'message' => 'Productos del pedido actualizados con éxito.',
-            'order' => $order->load('items.product')
+            'order' => $order->load('items.product'),
         ], 200);
     }
 }

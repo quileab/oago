@@ -2,16 +2,17 @@
 
 namespace App\Models;
 
+use App\Helpers\SettingsHelper;
 use App\Mail\OrderMail;
-use App\Models\OrderItem;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Session;
 
 class Order extends Model
 {
-    //protected $fillable = ['status'];
+    // protected $fillable = ['status'];
     protected $fillable = [
         'user_id',
         'total_price',
@@ -26,6 +27,7 @@ class Order extends Model
         'information',
         'status',
     ];
+
     public function user()
     {
         return $this->belongsTo(User::class);
@@ -122,7 +124,7 @@ class Order extends Model
 
         // Enviar correo de confirmación
         try {
-            $adminEmail = \App\Helpers\SettingsHelper::settings('order_placed_mail');
+            $adminEmail = SettingsHelper::settings('order_placed_mail');
             $userEmail = current_user()?->email;
 
             if ($userEmail) {
@@ -135,7 +137,7 @@ class Order extends Model
                 Mail::to($adminEmail)->send(new OrderMail($orderCreated->id));
             }
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Error enviando correo de orden: ' . $e->getMessage());
+            Log::error('Error enviando correo de orden: '.$e->getMessage());
         }
 
         // Limpiar el carrito
@@ -144,9 +146,10 @@ class Order extends Model
         unset($items, $order, $shipping, $data);
 
         // delete JSON cart
-        if (file_exists(storage_path('app/private/' . Auth::id() . '_cart.json'))) {
-            unlink(storage_path('app/private/' . Auth::id() . '_cart.json'));
+        if (file_exists(storage_path('app/private/'.Auth::id().'_cart.json'))) {
+            unlink(storage_path('app/private/'.Auth::id().'_cart.json'));
         }
+
         // Redireccionar a una página de éxito
         return redirect()->route('ordersuccess', ['order' => $orderCreated->id, 'status' => $orderCreated->status]);
     }
@@ -163,7 +166,7 @@ class Order extends Model
             'failed' => 'Fallido',
         ];
 
-        //return translation of order status from array
+        // return translation of order status from array
         return $statuses[$state];
     }
 }

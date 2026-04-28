@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Helpers\SettingsHelper;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -18,7 +19,7 @@ class Product extends Model
 
     public static function getTags()
     {
-        return \App\Helpers\SettingsHelper::getProductTags();
+        return SettingsHelper::getProductTags();
     }
 
     public function hasBonus(): bool
@@ -28,9 +29,10 @@ class Product extends Model
 
     public function getBonusLabelAttribute(): string
     {
-        if (!$this->hasBonus()) {
+        if (! $this->hasBonus()) {
             return '';
         }
+
         return "{$this->bonus_threshold} + {$this->bonus_amount} off !!";
     }
 }

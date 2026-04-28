@@ -12,7 +12,7 @@ class ApiLoggerMiddleware
     /**
      * Handle an incoming request.
      *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     * @param  Closure(Request): (Response)  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
@@ -39,10 +39,10 @@ class ApiLoggerMiddleware
             // Registro detallado para fallos (4xx, 5xx, etc.)
             $data = [
                 'method' => $method,
-                'url'    => $url,
+                'url' => $url,
                 'status' => $status,
-                'ip'     => $request->ip(),
-                'user'   => $request->user()?->id ?? 'guest',
+                'ip' => $request->ip(),
+                'user' => $request->user()?->id ?? 'guest',
                 'request_payload' => $this->maskSensitiveData($request->all()),
                 'response_payload' => $this->maskSensitiveData(json_decode($response->getContent(), true) ?? []),
             ];

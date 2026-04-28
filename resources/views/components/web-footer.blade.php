@@ -18,19 +18,21 @@
                 <li class="flex items-start justify-center md:justify-start gap-3 hover:text-white transition-colors">
                     <x-icon name="o-map-pin" class="w-5 h-5 text-orange-500 shrink-0" />
                     <span>
-                        {{ App\Helpers\SettingsHelper::settings('address', 'Av. José Gorriti') }}<br>
-                        <span class="text-slate-500 text-xs tracking-tight">{{ App\Helpers\SettingsHelper::settings('city', 'S3000, Santa Fe') }}</span>
+                        {{ App\Helpers\SettingsHelper::settings('company_address', 'Av. José Gorriti, S3000, Santa Fe') }}
                     </span>
                 </li>
                 <li class="flex items-center justify-center md:justify-start gap-3 hover:text-white transition-colors">
                     <x-icon name="o-phone" class="w-5 h-5 text-orange-500 shrink-0" />
-                    <span>+54 9 342 463-8925</span>
+                    <span>{{ App\Helpers\SettingsHelper::settings('company_phone', '+54 9 342 463-8925') }}</span>
                 </li>
                 <li class="flex items-center justify-center md:justify-start gap-3 hover:text-white transition-colors">
                     <x-icon name="o-envelope" class="w-5 h-5 text-orange-500 shrink-0" />
-                    <span>contacto@oagostini.com.ar</span>
+                    <span>{{ App\Helpers\SettingsHelper::settings('company_email', 'contacto@oagostini.com.ar') }}</span>
                 </li>
             </ul>
+            <div class="mt-6 w-full grayscale opacity-70 hover:grayscale-0 hover:opacity-100 transition-all duration-500 rounded-xl overflow-hidden">
+                {!! App\Helpers\SettingsHelper::settings('company_map_iframe', '') !!}
+            </div>
         </div>
 
         <!-- Columna 3: Redes Sociales -->
@@ -39,25 +41,34 @@
                 <span class="w-6 h-0.5 bg-orange-500 rounded-full"></span>
                 Seguinos
             </h3>
-            <div class="flex gap-4">
-                <a href="{{ App\Helpers\SettingsHelper::settings('social-facebook', 'https://www.facebook.com/OAgostinidistribuciones/') }}" 
-                   target="_blank" class="p-3 bg-slate-800 rounded-xl hover:bg-orange-500 hover:text-white transition-all duration-300 shadow-lg group">
-                    <svg class="w-6 h-6 fill-current group-hover:scale-110 transition-transform" viewBox="0 0 24 24"><path d="M12,2C6.477,2,2,6.477,2,12c0,5.013,3.693,9.153,8.505,9.876V14.65H8.031v-2.629h2.474v-1.749 c0-2.896,1.411-4.167,3.818-4.167c1.153,0,1.762,0.085,2.051,0.124v2.294h-1.642c-1.022,0-1.379,0.969-1.379,2.061v1.437h2.995 l-0.406,2.629h-2.588v7.247C18.235,21.236,22,17.062,22,12C22,6.477,17.523,2,12,2z" /></svg>
-                </a>
-                <a href="{{ App\Helpers\SettingsHelper::settings('social-instagram', 'https://www.instagram.com/o.a.distribuciones') }}" 
-                   target="_blank" class="p-3 bg-slate-800 rounded-xl hover:bg-orange-500 hover:text-white transition-all duration-300 shadow-lg group">
-                    <svg class="w-6 h-6 fill-current group-hover:scale-110 transition-transform" viewBox="0 0 24 24"><path d="M 8 3 C 5.239 3 3 5.239 3 8 L 3 16 C 3 18.761 5.239 21 8 21 L 16 21 C 18.761 21 21 18.761 21 16 L 21 8 C 21 5.239 18.761 3 16 3 L 8 3 z M 18 5 C 18.552 5 19 5.448 19 6 C 19 6.552 18.552 7 18 7 C 17.448 7 17 6.552 17 6 C 17 5.448 17.448 5 18 5 z M 12 7 C 14.761 7 17 9.239 17 12 C 17 14.761 14.761 17 12 17 C 9.239 17 7 14.761 7 12 C 7 9.239 9.239 7 12 7 z M 12 9 A 3 3 0 0 0 9 12 A 3 3 0 0 0 12 15 A 3 3 0 0 0 15 12 A 3 3 0 0 0 12 9 z" /></svg>
-                </a>
+            <div class="flex flex-wrap gap-4 justify-center md:justify-start">
+                @foreach(App\Helpers\SettingsHelper::settings('social_networks', []) as $network)
+                    <a href="{{ $network['url'] }}" 
+                       title="{{ $network['platform'] }}"
+                       target="_blank" 
+                       class="p-3 bg-slate-800 rounded-xl hover:bg-orange-500 hover:text-white transition-all duration-300 shadow-lg group">
+                        <div class="w-6 h-6 group-hover:scale-110 transition-transform flex items-center justify-center">
+                            {!! $network['icon_svg'] !!}
+                        </div>
+                    </a>
+                @endforeach
             </div>
         </div>
     </div>
 
     <!-- WhatsApp Flotante Mejorado (Movido a la Izquierda) -->
-    <div class="fixed bottom-6 left-6 z-[100] group">
-        <div class="absolute inset-0 bg-green-500 rounded-full blur-md opacity-20 group-hover:opacity-40 animate-pulse transition-opacity"></div>
-        <a href="{{ App\Helpers\SettingsHelper::settings('social-whatsapp', 'https://api.whatsapp.com/send/?phone=5493424638925&text&type=phone_number&app_absent=0') }}" 
-           target="_blank" class="relative block p-4 bg-green-500 text-white rounded-full shadow-2xl hover:bg-green-600 transition-all duration-300 hover:scale-110 active:scale-95">
-            <svg class="w-8 h-8 fill-current" viewBox="0 0 24 24"><path d="M19.077,4.928C17.191,3.041,14.683,2.001,12.011,2c-5.506,0-9.987,4.479-9.989,9.985 c-0.001,1.76,0.459,3.478,1.333,4.992L2,22l5.233-1.237c1.459,0.796,3.101,1.215,4.773,1.216h0.004 c5.505,0,9.986-4.48,9.989-9.985C22.001,9.325,20.963,6.816,19.077,4.928z M16.898,15.554c-0.208,0.583-1.227,1.145-1.685,1.186 c-0.458,0.042-0.887,0.207-2.995-0.624c-2.537-1-4.139-3.601-4.263-3.767c-0.125-0.167-1.019-1.353-1.019-2.581 S7.581,7.936,7.81,7.687c0.229-0.25,0.499-0.312,0.666-0.312c0.166,0,0.333,0,0.478,0.006c0.178,0.007,0.375,0.016,0.562,0.431 c0.222,0.494,0.707,1.728,0.769,1.853s0.104,0.271,0.021,0.437s-0.125,0.27-0.249,0.416c-0.125,0.146-0.262,0.325-0.374,0.437 c-0.125,0.124-0.255,0.26-0.11,0.509c0.146,0.25,0.646,1.067,1.388,1.728c0.954,0.85,1.757,1.113,2.007,1.239 c0.25,0.125,0.395,0.104,0.541-0.063c0.146-0.166,0.624-0.728,0.79-0.978s0.333-0.208,0.562-0.125s1.456,0.687,1.705,0.812 c0.25,0.125,0.416,0.187,0.478,0.291C17.106,14.471,17.106,14.971,16.898,15.554z" /></svg>
-        </a>
-    </div>
+    @php
+        $whatsapp = collect(App\Helpers\SettingsHelper::settings('social_networks', []))->firstWhere('platform', 'WhatsApp');
+    @endphp
+    @if($whatsapp)
+        <div class="fixed bottom-6 left-6 z-[100] group">
+            <div class="absolute inset-0 bg-green-500 rounded-full blur-md opacity-20 group-hover:opacity-40 animate-pulse transition-opacity"></div>
+            <a href="{{ $whatsapp['url'] }}" 
+               target="_blank" class="relative block p-4 bg-green-500 text-white rounded-full shadow-2xl hover:bg-green-600 transition-all duration-300 hover:scale-110 active:scale-95">
+               <div class="w-8 h-8 flex items-center justify-center">
+                   {!! $whatsapp['icon_svg'] !!}
+               </div>
+            </a>
+        </div>
+    @endif
 </footer>

@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\ListPrice;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class ListPriceController extends Controller
@@ -15,6 +15,7 @@ class ListPriceController extends Controller
     public function index()
     {
         $listPrices = ListPrice::all();
+
         return response()->json($listPrices, 200);
     }
 
@@ -24,8 +25,8 @@ class ListPriceController extends Controller
     public function store(Request $request)
     {
         // check if product exists where product_id and list_id
-        $listPrice_exists=ListPrice::where('product_id', $request->product_id)->where('list_id', $request->list_id)->first();
-        if($listPrice_exists){
+        $listPrice_exists = ListPrice::where('product_id', $request->product_id)->where('list_id', $request->list_id)->first();
+        if ($listPrice_exists) {
             return $this->update($request, $listPrice_exists->product_id, $listPrice_exists->list_id);
         }
         $validator = Validator::make($request->all(), [
@@ -51,12 +52,12 @@ class ListPriceController extends Controller
     /**
      * Display the specified resource using product ID.
      */
-    public function show($product_id,$list_id)
+    public function show($product_id, $list_id)
     {
-        $listPrice = ListPrice
-            ::where('product_id', $product_id)
+        $listPrice = ListPrice::where('product_id', $product_id)
             ->where('list_id', $list_id)
             ->firstOrFail();
+
         // return price of product_id
         return response()->json($listPrice, 200);
     }
@@ -67,8 +68,8 @@ class ListPriceController extends Controller
     public function update(Request $request, $product_id, $list_id)
     {
         $listPrice = ListPrice::where('product_id', $product_id)
-                               ->where('list_id', $list_id)
-                               ->firstOrFail();
+            ->where('list_id', $list_id)
+            ->firstOrFail();
 
         $validator = Validator::make($request->all(), [
             'price' => 'numeric|min:0',
@@ -80,7 +81,8 @@ class ListPriceController extends Controller
         }
 
         $listPrice->update($request->only(['price', 'unit_price']));
-        //return response()->json($listPrice, 200);
+
+        // return response()->json($listPrice, 200);
         // just return ok when no errors
         return response()->json(['message' => 'OK'], 200);
     }
@@ -91,10 +93,11 @@ class ListPriceController extends Controller
     public function destroy($product_id, $list_id)
     {
         $listPrice = ListPrice::where('product_id', $product_id)
-                               ->where('list_id', $list_id)
-                               ->firstOrFail();
+            ->where('list_id', $list_id)
+            ->firstOrFail();
 
         $listPrice->delete();
+
         return response()->json(['message' => 'Precio de lista eliminado correctamente'], 200);
     }
 }

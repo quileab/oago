@@ -2,13 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Enums\Role;
 use App\Models\AltUser;
-use App\Models\CustomerSalesAgent;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithFaker;
 use Tests\TestCase;
-use App\Enums\Role;
 
 class CustomerSalesAgentTest extends TestCase
 {
@@ -33,7 +31,7 @@ class CustomerSalesAgentTest extends TestCase
         $this->assertCount(1, $customer->assignedSalesAgents);
         $this->assertEquals($salesAgent->id, $customer->assignedSalesAgents->first()->sales_agent_id);
         $this->assertTrue($customer->assignedSalesAgents->first()->is_admin_assigned);
-        
+
         // Inverse
         $this->assertCount(1, $salesAgent->assignedCustomers);
         $this->assertEquals($customer->id, $salesAgent->assignedCustomers->first()->customer_id);
@@ -63,7 +61,7 @@ class CustomerSalesAgentTest extends TestCase
         $this->assertCount(1, $customer->assignedSalesAgents);
         $this->assertEquals($salesAgent->id, $customer->assignedSalesAgents->first()->sales_agent_id);
         $this->assertEquals(AltUser::class, $customer->assignedSalesAgents->first()->sales_agent_type);
-        
+
         // Inverse
         $this->assertCount(1, $salesAgent->assignedCustomers);
         $this->assertEquals($customer->id, $salesAgent->assignedCustomers->first()->customer_id);

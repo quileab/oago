@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\Reports;
 
 use App\Http\Controllers\Controller;
+use App\Models\ListPrice;
+use App\Models\Product;
+use App\Models\User;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ExportController extends Controller
@@ -11,19 +14,19 @@ class ExportController extends Controller
     public function exportProducts(): BinaryFileResponse
     {
         $filename = 'products.csv';
-        $filename_download = 'products' . date("dmYHi") . '.csv';
+        $filename_download = 'products'.date('dmYHi').'.csv';
 
         $handle = fopen($filename, 'w+');
 
         // get unique list_id columns from list_prices table to $listPrices
-        $listPrices = \App\Models\ListPrice::select('list_id')->distinct()->get();
+        $listPrices = ListPrice::select('list_id')->distinct()->get();
 
         // get all products
-        $products = \App\Models\Product::with('listPrices')->get();
+        $products = Product::with('listPrices')->get();
 
         $headers = [
-            "Content-type" => "text/csv",
-            "Content-disposition" => "attachment; filename=/" . $filename_download,
+            'Content-type' => 'text/csv',
+            'Content-disposition' => 'attachment; filename=/'.$filename_download,
             // "Pragma" => "no-cache",
             // "Cache-Control" => "must-revalidate, post-check=0, pre-check=0",
             // "Expires" => "0"
@@ -31,7 +34,7 @@ class ExportController extends Controller
 
         $csv_headers = ['id', 'brand', 'model', 'description', 'description_html', 'tags', 'price'];
         foreach ($listPrices as $listPrice) {
-            $csv_headers[] = 'list_' . $listPrice->list_id;
+            $csv_headers[] = 'list_'.$listPrice->list_id;
         }
         fputcsv($handle, $csv_headers);
 
@@ -54,26 +57,27 @@ class ExportController extends Controller
 
         return response()->download($filename, $filename_download, $headers)->deleteFileAfterSend(true);
     }
+
     public function exportCustomersProducts(): BinaryFileResponse
     {
         $filename = 'customers_products.csv';
-        $filename_download = 'customers_products' . date("dmYHi") . '.csv';
+        $filename_download = 'customers_products'.date('dmYHi').'.csv';
 
         $handle = fopen($filename, 'w+');
 
         // get unique list_id columns from list_prices table to $listPrices
-        $listPrices = \App\Models\ListPrice::select('list_id')->distinct()->get();
+        $listPrices = ListPrice::select('list_id')->distinct()->get();
 
         // get all products
-        $products = \App\Models\Product::with('listPrices')
+        $products = Product::with('listPrices')
             ->where('published', 1)
             ->where('description', 'not like', 'CONS INT%')
             ->where('model', '!=', 'consumo interno')
             ->get();
 
         $headers = [
-            "Content-type" => "text/csv",
-            "Content-disposition" => "attachment; filename=/" . $filename_download,
+            'Content-type' => 'text/csv',
+            'Content-disposition' => 'attachment; filename=/'.$filename_download,
             // "Pragma" => "no-cache",
             // "Cache-Control" => "must-revalidate, post-check=0, pre-check=0",
             // "Expires" => "0"
@@ -81,7 +85,7 @@ class ExportController extends Controller
 
         $csv_headers = ['id', 'brand', 'model', 'description', 'description_html', 'tags', 'price'];
         foreach ($listPrices as $listPrice) {
-            $csv_headers[] = 'list_' . $listPrice->list_id;
+            $csv_headers[] = 'list_'.$listPrice->list_id;
         }
         fputcsv($handle, $csv_headers);
 
@@ -108,18 +112,18 @@ class ExportController extends Controller
     public function exportUsersOrderStats(): BinaryFileResponse
     {
         $filename = 'users_order_stats.csv';
-        $filename_download = 'users_order_stats_' . date("dmYHi") . '.csv';
+        $filename_download = 'users_order_stats_'.date('dmYHi').'.csv';
 
         $handle = fopen($filename, 'w+');
 
-        $users = \App\Models\User::withCount('orders')
+        $users = User::withCount('orders')
             ->with('latestOrder')
             ->orderByDesc('orders_count')
             ->get();
 
         $headers = [
-            "Content-type" => "text/csv",
-            "Content-disposition" => "attachment; filename=/" . $filename_download,
+            'Content-type' => 'text/csv',
+            'Content-disposition' => 'attachment; filename=/'.$filename_download,
         ];
 
         $csv_headers = ['ID', 'Nombre', 'Email', 'Teléfono', '# de Compras', 'Ultima compra'];
@@ -128,7 +132,7 @@ class ExportController extends Controller
         foreach ($users as $user) {
             $row = [];
             $row[] = $user->id;
-            $row[] = $user->name . ' ' . $user->lastname;
+            $row[] = $user->name.' '.$user->lastname;
             $row[] = $user->email;
             $row[] = $user->phone;
             $row[] = $user->orders_count;

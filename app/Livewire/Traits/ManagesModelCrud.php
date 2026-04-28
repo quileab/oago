@@ -2,8 +2,8 @@
 
 namespace App\Livewire\Traits;
 
-use Mary\Traits\Toast;
 use Illuminate\Validation\ValidationException;
+use Mary\Traits\Toast;
 
 trait ManagesModelCrud
 {
@@ -23,7 +23,7 @@ trait ManagesModelCrud
         if ($id) {
             $this->model = $this->modelClass::findOrFail($id);
         } else {
-            $this->model = new $this->modelClass();
+            $this->model = new $this->modelClass;
         }
     }
 

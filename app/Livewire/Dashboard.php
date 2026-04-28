@@ -4,16 +4,21 @@ namespace App\Livewire;
 
 use App\Models\Order;
 use App\Models\OrderItem;
-use Livewire\Component;
 use Carbon\Carbon;
+use Livewire\Component;
 
 class Dashboard extends Component
 {
     public $dateFrom;
+
     public $dateTo;
+
     public $totalWeeklySales = 0;
+
     public $weeks = [];
+
     public $selectedWeek;
+
     public $weekOptions = [];
 
     public function mount()
@@ -24,7 +29,7 @@ class Dashboard extends Component
         Carbon::setLocale('es'); // Set locale to Spanish
 
         $now = Carbon::now();
-        $this->selectedWeek = $now->year . '-' . $now->weekOfYear;
+        $this->selectedWeek = $now->year.'-'.$now->weekOfYear;
 
         $startDate = Carbon::now()->subYear();
         $endDate = Carbon::now();
@@ -37,12 +42,12 @@ class Dashboard extends Component
             $weekNumber = $currentDate->weekOfYear;
             $year = $currentDate->year;
 
-            if (!isset($weeks[$month])) {
+            if (! isset($weeks[$month])) {
                 $weeks[$month] = [];
             }
 
-            $weekKey = $year . '-' . $weekNumber;
-            if (!in_array($weekKey, $weeks[$month])) {
+            $weekKey = $year.'-'.$weekNumber;
+            if (! in_array($weekKey, $weeks[$month])) {
                 $weeks[$month][] = $weekKey;
             }
 
@@ -63,7 +68,7 @@ class Dashboard extends Component
         foreach ($this->weeks as $month => $monthWeeks) {
             $weekOptions[] = ['id' => $month, 'name' => $month, 'disabled' => true];
             foreach ($monthWeeks as $week) {
-                $weekOptions[] = ['id' => $week, 'name' => 'Semana ' . explode('-', $week)[1]];
+                $weekOptions[] = ['id' => $week, 'name' => 'Semana '.explode('-', $week)[1]];
             }
         }
 

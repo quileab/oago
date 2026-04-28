@@ -2,8 +2,8 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
 use App\Models\User;
+use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 
@@ -42,13 +42,15 @@ class ResetCustomerPasswords extends Command
             });
 
             $this->newLine();
-            $this->info("Successfully reset the passwords for " . $count . " users.");
+            $this->info('Successfully reset the passwords for '.$count.' users.');
+
             return 0; // Success exit code
 
         } catch (\Exception $e) {
             $this->error('An error occurred during the password reset process.');
-            $this->error('Error: ' . $e->getMessage());
-            Log::error('Password reset command failed: ' . $e->getMessage());
+            $this->error('Error: '.$e->getMessage());
+            Log::error('Password reset command failed: '.$e->getMessage());
+
             return 1; // Error exit code
         }
     }

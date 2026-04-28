@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Product;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -15,18 +15,22 @@ class ProductController extends Controller
 {
     private function deleteImageCache($url)
     {
-        if (!$url) return;
+        if (! $url) {
+            return;
+        }
         $hash = md5($url);
         $part1 = substr($hash, 0, 2);
         $part2 = substr($hash, 2, 2);
         Storage::disk('public')->delete("image_cache/{$part1}/{$part2}/{$hash}.webp");
     }
+
     /**
      * Display a listing of the resource.
      */
     public function index()
     {
         $products = Product::all();
+
         return response()->json($products, 200);
     }
 
@@ -38,7 +42,7 @@ class ProductController extends Controller
         if ($request->has('qtty_package') && (int) $request->qtty_package < 1) {
             $old_qtty = $request->qtty_package;
             $request->merge(['qtty_package' => 1]);
-            Log::warning("API Warning: qtty_package corregido de {$old_qtty} a 1 para el producto SKU: " . ($request->sku ?? 'N/A'));
+            Log::warning("API Warning: qtty_package corregido de {$old_qtty} a 1 para el producto SKU: ".($request->sku ?? 'N/A'));
         }
 
         $validator = Validator::make(
@@ -80,13 +84,13 @@ class ProductController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        //check if product exists
+        // check if product exists
         $product_exists = Product::find($request->id);
         if ($product_exists instanceof Product) {
             return $this->update($request, $product_exists);
         }
 
-        //create new product
+        // create new product
         $product = Product::create($request->all());
 
         if ($request->has('image_url') && $request->image_url) {
@@ -102,9 +106,10 @@ class ProductController extends Controller
     public function show(Product $product)
     {
         // return proper response if product not found
-        if (!$product) {
+        if (! $product) {
             return response()->json(['message' => 'Product not found'], 404);
         }
+
         return response()->json($product, 200);
     }
 
@@ -114,7 +119,7 @@ class ProductController extends Controller
         if ($request->has('qtty_package') && (int) $request->qtty_package < 1) {
             $old_qtty = $request->qtty_package;
             $request->merge(['qtty_package' => 1]);
-            Log::warning("API Warning: qtty_package corregido de {$old_qtty} a 1 para el producto SKU: " . ($product->sku ?? $request->sku ?? 'N/A'));
+            Log::warning("API Warning: qtty_package corregido de {$old_qtty} a 1 para el producto SKU: ".($product->sku ?? $request->sku ?? 'N/A'));
         }
 
         $validator = Validator::make(
@@ -164,6 +169,7 @@ class ProductController extends Controller
         }
 
         $product->update($request->all());
+
         // return response()->json($product, 200);
         // just return ok when no errors
         return response()->json(['message' => 'OK'], 200);
@@ -176,6 +182,7 @@ class ProductController extends Controller
             $this->deleteImageCache($product->image_url);
         }
         $product->delete();
+
         return response()->json(['message' => 'Producto eliminado correctamente'], 200);
     }
 
@@ -206,7 +213,7 @@ class ProductController extends Controller
     public function changeVisibility(Request $request, $product)
     {
         $product = Product::find($product);
-        //return response()->json(['message' => json_encode($request)], 200);
+        // return response()->json(['message' => json_encode($request)], 200);
 
         $request->validate([
             'sku' => 'nullable|string|max:50',
@@ -214,9 +221,9 @@ class ProductController extends Controller
         ]);
 
         // check if product not exists try to find sku
-        if (!$product) {
+        if (! $product) {
             $product = Product::where('sku', $request->sku)->first();
-            if (!$product) {
+            if (! $product) {
                 return response()->json(['message' => 'Producto no encontrado'], 404);
             }
         }

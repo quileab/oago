@@ -1,8 +1,13 @@
 <?php
 
+use App\Http\Middleware\ApiLoggerMiddleware;
+use App\Http\Middleware\CheckGuestExpiration;
+use App\Http\Middleware\IsAdminMiddleware;
+use App\Http\Middleware\IsRoleMiddleware;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Session\Middleware\StartSession;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -13,14 +18,14 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->api(prepend: [
-            \App\Http\Middleware\ApiLoggerMiddleware::class,
-            \Illuminate\Session\Middleware\StartSession::class,
+            ApiLoggerMiddleware::class,
+            StartSession::class,
         ]);
 
         $middleware->alias([
-            'is_admin' => \App\Http\Middleware\IsAdminMiddleware::class,
-            'is_role' => \App\Http\Middleware\IsRoleMiddleware::class,
-            'check_guest' => \App\Http\Middleware\CheckGuestExpiration::class,
+            'is_admin' => IsAdminMiddleware::class,
+            'is_role' => IsRoleMiddleware::class,
+            'check_guest' => CheckGuestExpiration::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

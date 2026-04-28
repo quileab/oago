@@ -10,10 +10,10 @@ trait HasProfileData
     public function getFullNameAttribute(): string
     {
         if ($this->lastname && $this->name) {
-            return $this->lastname . ', ' . $this->name;
+            return $this->lastname.', '.$this->name;
         }
 
-        return '✨SYS: ' . $this->name;
+        return '✨SYS: '.$this->name;
     }
 
     /**

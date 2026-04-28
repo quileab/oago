@@ -1,122 +1,71 @@
 <?php
+
+use App\Models\ListName;
+use App\Models\ListPrice;
 use App\Models\Product;
-use Livewire\Volt\Component;
-use Livewire\WithPagination;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Storage;
+use Livewire\Volt\Component;
+use Livewire\WithFileUploads;
+use Livewire\WithPagination;
 use Mary\Traits\Toast;
 
 new class extends Component {
-    use Toast;
-    use WithPagination;
+    use WithPagination, WithFileUploads, Toast;
 
     public string $search = '';
 
-    public bool $drawer = false;
-
-    public array $sortBy = ['column' => 'id', 'direction' => 'asc'];
-
-    public $priceLists = [];
-    public $priceList;
-
-    public function mount()
+    public function products(): LengthAwarePaginator
     {
-        $this->hydrate();
+        return Product::query()
+            ->where(function ($q) {
+                $q->where('description', 'like', "%{$this->search}%")
+                    ->orWhere('brand', 'like', "%{$this->search}%")
+                    ->orWhere('id', 'like', "%{$this->search}%");
+            })
+            ->orderBy('id', 'desc')
+            ->paginate(15);
     }
 
-    public function hydrate()
+    public function updatedSearch()
     {
-        // get unique price lists from list_id
-        $this->priceLists = Cache::remember('priceLists', 60 * 60, function () {
-            return \App\Models\ListPrice::select('list_id')->distinct()->get();
-        }) ?? \App\Models\ListPrice::select('list_id')->distinct()->get();
-        // if not set, set first price list
-        $this->priceList = $this->priceList ?? $this->priceLists->first()->list_id;
-    }
-
-    // Clear filters
-    // public function clear(): void
-    // {
-    //     $this->reset();
-    //     $this->resetPage(); 
-    //     $this->success('Filters cleared.', position: 'toast-bottom');
-    // }
-
-    // Delete action
-    public function delete($id): void
-    {
-        Product::destroy($id);
-        $this->success('Product deleted.', position: 'toast-bottom');
-        //$this->warning("Will delete #$id", 'It is fake.', position: 'toast-bottom');
-    }
-
-    // Table headers
-    public function headers(): array
-    {
-        return [
-            ['key' => 'id', 'label' => '#', 'class' => 'w-1'],
-            ['key' => 'brand', 'label' => 'Marca'],
-            ['key' => 'model', 'label' => 'Modelo', 'sortable' => false],
-            ['key' => 'description', 'label' => 'Descripción'],
-            ['key' => 'price', 'label' => 'Precio', 'class' => 'text-right'],
-            ['key' => 'offer_price', 'label' => 'Precio Oferta', 'class' => 'text-right'],
-            ['key' => 'list_price', 'label' => 'Precio Lista', 'class' => 'text-right'],
-        ];
-    }
-
-    public function products(): LengthAwarePaginator //Collection
-    {
-        $this->drawer = false;
-        $list_price = $this->priceList;
-
-        return Product::join('list_prices as listprice', 'listprice.product_id', '=', 'products.id')
-            ->select('products.*', 'listprice.price as list_price')
-            ->where('listprice.list_id', $list_price)
-            ->when($this->search, fn($q) => $q->where(DB::raw('concat(brand," ",ifnull(model,"")," ",description)'), 'like', "%$this->search%"))
-            ->orderBy(...array_values($this->sortBy))
-            ->paginate(20);
+        $this->resetPage();
     }
 
     public function with(): array
     {
         return [
             'products' => $this->products(),
-            'headers' => $this->headers()
         ];
-    }
-
-    // Reset pagination when any component property changes
-    public function updated($property): void
-    {
-        if (!is_array($property) && $property != "") {
-            // $this->resetPage();
-            $this->goToPage(1);
-            $this->success('Page reset.', position: 'toast-bottom');
-        }
     }
 }; ?>
 
 <div>
-    <!-- HEADER -->
-    <x-header title="Productos » Lista {{ $priceList }}" separator progress-indicator>
-        <x-slot:middle class="!justify-end">
-            <x-input placeholder="Search..." wire:model.live.debounce="search" clearable icon="o-magnifying-glass" />
-        </x-slot:middle>
+    <x-header title="Gestión de Productos" separator progress-indicator>
         <x-slot:actions>
-            <x-button label="Filtros" @click="$wire.drawer = true" responsive icon="o-funnel" />
+            <x-input placeholder="Buscar descripción, marca o ID..." wire:model.live.debounce="search" icon="o-magnifying-glass" clearable />
+            <x-button label="Nuevo Producto" icon="o-plus" class="btn-primary" link="/product" />
         </x-slot:actions>
     </x-header>
 
-    <!-- TABLE  -->
-    <x-table :headers="$headers" :rows="$products" :sort-by="$sortBy" with-pagination :key="'products-'.$priceList" />
+    <x-card>
+        <x-table :headers="[
+            ['key' => 'id', 'label' => 'ID', 'class' => 'w-16'],
+            ['key' => 'image_url', 'label' => 'Imagen', 'class' => 'w-24'],
+            ['key' => 'description', 'label' => 'Descripción'],
+            ['key' => 'brand', 'label' => 'Marca'],
+            ['key' => 'category', 'label' => 'Categoría'],
+            ['key' => 'stock', 'label' => 'Stock', 'class' => 'text-right'],
+        ]" :rows="$products" link="/product/{id}" with-pagination>
+            @scope('cell_image_url', $product)
+                <x-image-proxy :url="$product->image_url" class="w-16 h-16 object-cover rounded-lg shadow-sm" />
+            @endscope
 
-    <!-- FILTER DRAWER -->
-    <x-drawer wire:model="drawer" title="Filtros" right separator with-close-button class="lg:w-1/3">
-        Listas de Precios
-        <x-select wire:model="priceList" :options="$priceLists" option-label="list_id" option-value="list_id" />
-
-        <x-slot:actions>
-            <x-button label="Aplicar" icon="o-check" class="btn-primary" wire:click="products" spinner />
-        </x-slot:actions>
-    </x-drawer>
-
+            @scope('cell_stock', $product)
+                <span @class(['font-bold', 'text-error' => $product->stock <= 0, 'text-warning' => $product->stock > 0 && $product->stock < 10])>
+                    {{ $product->stock }}
+                </span>
+            @endscope
+        </x-table>
+    </x-card>
 </div>

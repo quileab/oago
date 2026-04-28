@@ -26,3 +26,5 @@ yarn-error.log
 # Cache y archivos temporales de Laravel
 /bootstrap/cache/*.php
 /storage/framework/cache/data/
+# Postman environments (prevent leaking real tokens)
+postman/environments/

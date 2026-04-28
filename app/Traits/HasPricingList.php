@@ -21,7 +21,7 @@ trait HasPricingList
      */
     public function getProductPrice(Product $product): ?float
     {
-        if (!$this->list) {
+        if (! $this->list) {
             return null;
         }
 

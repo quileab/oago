@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\User;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -13,7 +14,7 @@ return new class extends Migration
     {
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
-            $table->foreignIdFor(\App\Models\User::class)->constrained(); // Relación con users
+            $table->foreignIdFor(User::class)->constrained(); // Relación con users
             $table->decimal('total_price', 12, 2); // Precio total del pedido
 
             $table->string('sending_method', 100)->nullable();

@@ -5,11 +5,15 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ isset($title) ? $title . ' - ' . config('app.name') : config('app.name') }}</title>
+    <title>{{ isset($title) ? $title . ' - ' . App\Helpers\SettingsHelper::settings('company_name', config('app.name')) : App\Helpers\SettingsHelper::settings('company_name', config('app.name')) }}</title>
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script src="{{ asset('js/tinymce/tinymce.min.js') }}"></script>
+    {{-- Cropper.js --}}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css" />
     @livewireStyles
+    <link rel="icon" type="image/webp" href="{{ asset('imgs/fallback.webp') }}">
 </head>
 
 <body class="min-h-screen font-sans antialiased bg-base-200/50 dark:bg-base-200">
@@ -61,7 +65,7 @@
                         <x-menu-item title="Alternativos" icon="o-users" link="/alts" />
                     </x-menu-sub>
                     <x-menu-sub title="Productos" icon="o-cube">
-                        <x-menu-item title="Listas de Precios" icon="o-square-3-stack-3d" link="/products" />
+                        <x-menu-item title="Gestión de Productos" icon="o-square-3-stack-3d" link="/products" />
                         <x-menu-item title="Atrib. Extras Web" icon="s-square-3-stack-3d" link="/products/extras" />
                     </x-menu-sub>
                     <x-menu-sub title="Web" icon="o-paint-brush">

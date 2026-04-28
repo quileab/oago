@@ -39,7 +39,10 @@ class WebProductCard extends Component
             $this->local_product = (array) $product;
         }
 
-        $this->user_price = $this->local_product['user_price'] ?? current_user()?->getProductPrice(Product::find($this->local_product['id'])) ?? 0;
+        $productId = $this->local_product['id'] ?? null;
+        $productModel = $productId ? Product::find($productId) : null;
+
+        $this->user_price = $this->local_product['user_price'] ?? ($productModel ? current_user()?->getProductPrice($productModel) : 0) ?? 0;
         $this->offer_price = $this->local_product['offer_price'] ?? 0;
 
         // Inicializar siempre con el valor por defecto del bulto
@@ -48,8 +51,15 @@ class WebProductCard extends Component
 
     public function render()
     {
+        $productObj = (object) $this->local_product;
+
+        // Ensure id exists to avoid Blade errors
+        if (! isset($productObj->id)) {
+            $productObj->id = 0;
+        }
+
         return view('livewire.web-product-card', [
-            'product' => (object) $this->local_product,
+            'product' => $productObj,
             'display_price' => $this->user_price,
             'display_offer' => $this->offer_price,
             'cart' => session()->get('cart', []), // Pasamos el carrito actual para el badge visual

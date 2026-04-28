@@ -3,9 +3,6 @@
 namespace App\Providers;
 
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
-use Illuminate\Support\Facades\Auth;
-use App\Providers\SessionUserProvider;
-use Illuminate\Session\SessionManager;
 
 class AuthServiceProvider extends ServiceProvider
 {

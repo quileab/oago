@@ -10,15 +10,15 @@ class SettingsHelper
     /**
      * Get a setting value from the database, using cache for performance.
      *
-     * @param string $key The key of the setting.
-     * @param mixed $default The default value to return if the setting is not found.
+     * @param  string  $key  The key of the setting.
+     * @param  mixed  $default  The default value to return if the setting is not found.
      * @return mixed
      */
     public static function settings($key, $default = null)
     {
-        return Cache::rememberForever('settings.' . $key, function () use ($key, $default) {
+        return Cache::rememberForever('settings.'.$key, function () use ($key, $default) {
             $setting = Setting::where('key', $key)->first();
-            if (!$setting) {
+            if (! $setting) {
                 return $default;
             }
 
@@ -29,6 +29,7 @@ class SettingsHelper
                     return (bool) $setting->value;
                 case 'json':
                     $decoded = json_decode($setting->value, true);
+
                     return (json_last_error() === JSON_ERROR_NONE) ? $decoded : $default;
                 case 'string':
                 default:
@@ -40,8 +41,8 @@ class SettingsHelper
     /**
      * Create or update a setting value and clear its cache.
      *
-     * @param string $key The key of the setting.
-     * @param mixed $value The value to store.
+     * @param  string  $key  The key of the setting.
+     * @param  mixed  $value  The value to store.
      * @return void
      */
     public static function update_setting($key, $value)
@@ -56,7 +57,7 @@ class SettingsHelper
             ['value' => $value]
         );
 
-        Cache::forget('settings.' . $key);
+        Cache::forget('settings.'.$key);
     }
 
     /**

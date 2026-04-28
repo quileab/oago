@@ -3,10 +3,10 @@
 namespace App\Traits;
 
 use App\Enums\Role;
-use App\Models\User;
 use App\Models\CustomerSalesAgent;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 trait ManagesCustomers
 {
@@ -29,7 +29,7 @@ trait ManagesCustomers
 
         return User::whereHas('assignedSalesAgents', function ($query) {
             $query->where('sales_agent_id', $this->id)
-                  ->where('sales_agent_type', self::class);
+                ->where('sales_agent_type', self::class);
         });
     }
 }

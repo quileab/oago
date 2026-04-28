@@ -51,6 +51,12 @@ La interfaz de usuario y la experiencia de usuario (UX) son fundamentales en "oa
 *   **JavaScript:** El JavaScript del frontend se encuentra en `resources/js`. **Vite** se utiliza para el empaquetado y la compilación de activos.
 *   **Vistas:** Las plantillas Blade se ubican en `resources/views`, con componentes Livewire en `resources/views/livewire`.
 
+### 🖼️ Gestión de Imágenes y Recursos Visuales
+
+*   **Fallback Global (`fallback.webp`):** Se utiliza una imagen centralizada (`public/imgs/fallback.webp`) con propósitos múltiples para asegurar la consistencia visual y mitigar errores en la UI:
+    *   **Imágenes Rotas/Ausentes:** Funciona como imagen de reemplazo automática (a través de `ImageProxyController` y el componente `<x-image-proxy>`) cuando la imagen de un producto no existe, su formato es inválido o no puede ser descargada desde orígenes remotos.
+    *   **Favicon:** Se utiliza como el ícono principal de la aplicación en las pestañas del navegador, estando presente en todos los layouts base (`app.blade.php`, `index.blade.php`, `clean.blade.php`, `empty.blade.php`).
+
 ## 🧪 Pruebas
 
 La calidad del código se asegura mediante pruebas:

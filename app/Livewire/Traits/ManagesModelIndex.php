@@ -2,6 +2,8 @@
 
 namespace App\Livewire\Traits;
 
+use App\Models\AltUser;
+
 // NOTE: This trait assumes the component is using `Mary\Traits\Toast`
 // and `Livewire\WithPagination`.
 trait ManagesModelIndex
@@ -20,16 +22,16 @@ trait ManagesModelIndex
     {
         $query = $this->modelClass::query();
 
-        if ($this->search && !empty($this->searchableColumns)) {
+        if ($this->search && ! empty($this->searchableColumns)) {
             $query->where(function ($q) {
                 foreach ($this->searchableColumns as $column) {
-                    $q->orWhere($column, 'like', '%' . $this->search . '%');
+                    $q->orWhere($column, 'like', '%'.$this->search.'%');
                 }
             });
         }
 
         // Order by role descending
-        if (property_exists($this, 'modelClass') && $this->modelClass === \App\Models\AltUser::class) {
+        if (property_exists($this, 'modelClass') && $this->modelClass === AltUser::class) {
             $query->orderBy('role', 'desc');
         }
 

@@ -1,5 +1,8 @@
 <?php
 
+use App\Models\AltUser;
+use App\Models\User;
+
 return [
 
     /*
@@ -70,13 +73,12 @@ return [
     'providers' => [
         'users' => [
             'driver' => 'eloquent',
-            'model' => env('AUTH_MODEL', App\Models\User::class),
+            'model' => env('AUTH_MODEL', User::class),
         ],
         'alts' => [
             'driver' => 'eloquent',
-            'model' => App\Models\AltUser::class,
+            'model' => AltUser::class,
         ],
-        
 
         // 'users' => [
         //     'driver' => 'database',

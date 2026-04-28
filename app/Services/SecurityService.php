@@ -11,7 +11,7 @@ class SecurityService
      */
     public static function isPrivateIp(string $ip): bool
     {
-        return !filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE);
+        return ! filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE);
     }
 
     /**
@@ -25,16 +25,16 @@ class SecurityService
             $allowedHosts = (json_last_error() === JSON_ERROR_NONE) ? $decoded : explode(',', $allowedHosts);
         }
 
-        if (empty($allowedHosts) || !is_array($allowedHosts)) {
+        if (empty($allowedHosts) || ! is_array($allowedHosts)) {
             return true; // Si no hay whitelist válida, permitimos todos (protegido por SSRF check)
         }
 
         $host = parse_url($url, PHP_URL_HOST);
-        
+
         foreach ($allowedHosts as $allowed) {
             // Soporte para comodines simples como *.ejemplo.com
             if (str_contains($allowed, '*')) {
-                $pattern = '/^' . str_replace(['.', '*'], ['\.', '.*'], $allowed) . '$/i';
+                $pattern = '/^'.str_replace(['.', '*'], ['\.', '.*'], $allowed).'$/i';
                 if (preg_match($pattern, $host)) {
                     return true;
                 }
@@ -43,7 +43,8 @@ class SecurityService
             }
         }
 
-        Log::warning("SecurityService: Host no permitido intentó acceder al proxy: " . $host);
+        Log::warning('SecurityService: Host no permitido intentó acceder al proxy: '.$host);
+
         return false;
     }
 }

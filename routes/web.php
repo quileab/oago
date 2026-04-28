@@ -33,20 +33,21 @@ Route::get('/proxy-image', [ImageProxyController::class, 'show'])->name('proxy.i
 // });
 Volt::route('/login', 'login')->name('login');
 Volt::route('/about', 'about')->name('about');
-Volt::route('/contact', 'contact')->name('contact');
+Volt::route('/registrate', 'register')->name('register');
 
 // Activación de cuenta para usuarios alternativos (PÚBLICA)
 Route::get('/activate-account/{token}', function ($token) {
-    Log::info('INICIO ACTIVACIÓN: Token [' . $token . ']');
+    Log::info('INICIO ACTIVACIÓN: Token ['.$token.']');
 
     $user = AltUser::where('activation_token', $token)->first();
 
     if (! $user) {
         Log::warning('ACTIVACIÓN FALLIDA: Token no encontrado.');
+
         return redirect('/login')->with('error', 'El enlace de activación es inválido o ha expirado.');
     }
 
-    Log::info('USUARIO ENCONTRADO: ' . $user->email . ' [ID: ' . $user->id . '] [Rol actual: ' . ($user->role->value ?? $user->role) . ']');
+    Log::info('USUARIO ENCONTRADO: '.$user->email.' [ID: '.$user->id.'] [Rol actual: '.($user->role->value ?? $user->role).']');
 
     // Activación mediante forceFill para asegurar la persistencia
     $user->forceFill([
@@ -56,7 +57,7 @@ Route::get('/activate-account/{token}', function ($token) {
 
     // Recarga para confirmar el cambio en logs
     $freshUser = AltUser::find($user->id);
-    Log::info('ACTIVACIÓN COMPLETADA: Nuevo rol -> ' . ($freshUser->role->value ?? $freshUser->role));
+    Log::info('ACTIVACIÓN COMPLETADA: Nuevo rol -> '.($freshUser->role->value ?? $freshUser->role));
 
     return redirect('/login')->with('success', '¡Cuenta activada con éxito! Ya podés ingresar con tus credenciales.');
 })->name('activate.account');
@@ -71,10 +72,6 @@ Route::get('/logout', function () {
     return redirect('/');
 });
 
-Route::get('/register', function () {
-    // return "<pre>Registration is disabled. Please contact the administrator.</pre>";
-    return view('registration');
-})->name('register');
 // admin only routes
 Route::middleware(['auth', 'check_guest'])->group(function () {
 

@@ -2,17 +2,18 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\Role;
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
-use App\Enums\Role;
 
 class UserController extends Controller
 {
     /**
      * Display a listing of the resource.
+     *
      * @response array{data: Users[]}
      */
     public function index(Request $request)
@@ -28,6 +29,7 @@ class UserController extends Controller
         }
 
         $users = $query->get();
+
         return response()->json($users, 200);
     }
 
@@ -52,12 +54,12 @@ class UserController extends Controller
         ];
 
         // Solo validamos ID único si NO existe el usuario
-        if (!$existingUser) {
+        if (! $existingUser) {
             $rules['id'] .= '|unique:users,id';
         }
 
         if (auth()->user()->role === Role::ADMIN) {
-            $rules['role'] = ['required', 'string', Rule::in(array_map(fn($role) => $role->value, Role::cases()))];
+            $rules['role'] = ['required', 'string', Rule::in(array_map(fn ($role) => $role->value, Role::cases()))];
             $rules['list_id'] = 'nullable|exists:list_names,id';
         } else {
             $request->merge(['role' => Role::CUSTOMER->value]);
@@ -65,7 +67,7 @@ class UserController extends Controller
         }
 
         $validatedData = $request->validate($rules);
-        
+
         $warnings = [];
         $defaults = [
             'address' => 'S/D',
@@ -94,11 +96,11 @@ class UserController extends Controller
         ];
 
         // Solo actualizamos el password si se envía uno nuevo
-        if (!empty($validatedData['password'])) {
+        if (! empty($validatedData['password'])) {
             $userData['password'] = Hash::make($validatedData['password']);
-        } elseif (!$existingUser) {
+        } elseif (! $existingUser) {
             // Si es un usuario nuevo y no viene password, usamos el ID como password
-            $userData['password'] = Hash::make((string)$validatedData['id']);
+            $userData['password'] = Hash::make((string) $validatedData['id']);
         }
 
         // Usamos updateOrCreate para manejar ambos casos
@@ -113,7 +115,7 @@ class UserController extends Controller
         return response()->json([
             'user' => $user,
             'warnings' => $warnings,
-            'message' => $message
+            'message' => $message,
         ], $status);
     }
 
@@ -127,6 +129,7 @@ class UserController extends Controller
         if (auth()->id() !== $user->id && auth()->user()->role !== Role::ADMIN) {
             abort(403, 'Unauthorized to view this user profile.');
         }
+
         return response()->json($user, 200);
     }
 
@@ -154,13 +157,13 @@ class UserController extends Controller
         ];
 
         if (auth()->user()->role === Role::ADMIN) {
-            $rules['role'] = ['string', Rule::in(array_map(fn($role) => $role->value, Role::cases()))];
+            $rules['role'] = ['string', Rule::in(array_map(fn ($role) => $role->value, Role::cases()))];
         } else {
-             $request->offsetUnset('role');
+            $request->offsetUnset('role');
         }
 
         $validatedData = $request->validate($rules);
-        
+
         $warnings = [];
         $defaults = [
             'address' => 'S/D',
@@ -194,13 +197,13 @@ class UserController extends Controller
         if (auth()->user()->role === Role::ADMIN && isset($validatedData['role'])) {
             $dataToUpdate['role'] = $validatedData['role'];
         }
-        
+
         $user->update($dataToUpdate);
-        
+
         return response()->json([
             'user' => $user,
             'warnings' => $warnings,
-            'message' => 'Usuario actualizado correctamente.'
+            'message' => 'Usuario actualizado correctamente.',
         ], 200);
     }
 
@@ -216,6 +219,7 @@ class UserController extends Controller
         }
 
         $user->delete();
+
         return response()->json(['message' => 'Usuario eliminado correctamente'], 200);
     }
 }

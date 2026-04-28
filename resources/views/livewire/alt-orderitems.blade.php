@@ -59,6 +59,56 @@ new class extends Component {
         $this->order->update(['status' => $status]);
         $this->success('Estado del pedido actualizado a ' . AltOrder::orderStates($status), position: 'toast-bottom');
     }
+    public function transferToNormalAccount()
+    {
+        $normalUser = \App\Models\User::where('email', $this->order->user->email)->first();
+        if (!$normalUser) {
+            $this->error('No se encontró una cuenta normal con el mismo email.', position: 'toast-bottom');
+            return;
+        }
+
+        \Illuminate\Support\Facades\DB::beginTransaction();
+        try {
+            $newOrder = \App\Models\Order::create([
+                'user_id' => $normalUser->id,
+                'total_price' => $this->order->total_price,
+                'sending_method' => $this->order->sending_method,
+                'transport_detail' => $this->order->transport_detail,
+                'payment_method' => $this->order->payment_method,
+                'payment_detail' => $this->order->payment_detail,
+                'information' => $this->order->information,
+                'status' => $this->order->status,
+                'created_at' => $this->order->created_at,
+            ]);
+
+            foreach ($this->items as $item) {
+                \App\Models\OrderItem::create([
+                    'order_id' => $newOrder->id,
+                    'product_id' => $item['product_id'],
+                    'quantity' => $item['quantity'],
+                    'price' => $item['price'],
+                ]);
+            }
+
+            if ($this->order->shipping) {
+                $shipping = $this->order->shipping;
+                $shipping->order_id = $newOrder->id;
+                $shipping->alt_order_id = null;
+                $shipping->save();
+            }
+
+            \App\Models\AltOrderItem::where('alt_order_id', $this->order->id)->delete();
+            $this->order->delete();
+
+            \Illuminate\Support\Facades\DB::commit();
+
+            $this->success('Pedido transferido a la cuenta normal.', position: 'toast-bottom');
+            return redirect('/order/' . $newOrder->id . '/edit');
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\DB::rollBack();
+            $this->error('Error al transferir pedido: ' . $e->getMessage(), position: 'toast-bottom');
+        }
+    }
 }; ?>
 
 <div>
@@ -119,6 +169,18 @@ new class extends Component {
                                     spinner="changeStatus" />
                             @endif
                         @endforeach
+                    </x-dropdown>
+                @endif
+
+                @if(current_user()?->role?->value === 'admin' && \App\Models\User::where('email', $order->user->email)->exists())
+                    <div class="divider my-0"></div>
+                    <x-dropdown label="Pasar a Cta. Normal" icon="o-arrow-right-circle" class="btn-warning btn-outline btn-sm w-full" right>
+                        <div class="px-4 py-2 text-xs opacity-70">Esta acción es irreversible</div>
+                        <x-menu-item title="Confirmar Transferencia" 
+                                     icon="o-check-circle"
+                                     class="text-warning font-bold"
+                                     wire:click="transferToNormalAccount" 
+                                     spinner="transferToNormalAccount" />
                     </x-dropdown>
                 @endif
             </div>

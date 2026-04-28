@@ -24,23 +24,26 @@ class WebSearchFilter extends Component
 
     public function mount()
     {
-        // categories take unique values from products category attribute as id and name
-        $this->categories = // Cache::remember('categories', 60*60, function () {
-            DB::table('products')->select('category')
-                ->where('published', 1)
-                ->where('category', '!=', '')
-                ->distinct()
-                ->orderBy('category')
-                ->get(['id', 'category']);
-        $this->brands = // Cache::remember('brands', 60*60, function () {
-            DB::table('products')->select('brand')
-                ->where('published', 1)
-                ->where('brand', '!=', '')
-                ->distinct()
-                ->orderBy('brand')
-                ->get(['id', 'brand']);
+        // Get unique categories and brands as an array of objects with id and name
+        $this->categories = DB::table('products')
+            ->select('category')
+            ->where('published', 1)
+            ->where('category', '!=', '')
+            ->distinct()
+            ->orderBy('category')
+            ->get()
+            ->map(fn ($item) => ['id' => $item->category, 'category' => $item->category])
+            ->toArray();
 
-        // });
+        $this->brands = DB::table('products')
+            ->select('brand')
+            ->where('published', 1)
+            ->where('brand', '!=', '')
+            ->distinct()
+            ->orderBy('brand')
+            ->get()
+            ->map(fn ($item) => ['id' => $item->brand, 'brand' => $item->brand])
+            ->toArray();
 
         $this->category = session()->get('category') ?: null;
         $this->search = session()->get('search') ?: null;
