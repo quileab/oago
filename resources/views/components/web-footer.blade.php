@@ -59,14 +59,21 @@
     <!-- WhatsApp Flotante Mejorado (Movido a la Izquierda) -->
     @php
         $whatsapp = collect(App\Helpers\SettingsHelper::settings('social_networks', []))->firstWhere('platform', 'WhatsApp');
+        $companyPhone = App\Helpers\SettingsHelper::settings('company_phone');
+        $cleanPhone = $companyPhone ? preg_replace('/[^0-9]/', '', $companyPhone) : null;
+        $whatsappUrl = $cleanPhone ? 'https://wa.me/' . $cleanPhone : ($whatsapp['url'] ?? '#');
     @endphp
-    @if($whatsapp)
+    @if($whatsapp || $cleanPhone)
         <div class="fixed bottom-6 left-6 z-[100] group">
             <div class="absolute inset-0 bg-green-500 rounded-full blur-md opacity-20 group-hover:opacity-40 animate-pulse transition-opacity"></div>
-            <a href="{{ $whatsapp['url'] }}" 
+            <a href="{{ $whatsappUrl }}" 
                target="_blank" class="relative block p-4 bg-green-500 text-white rounded-full shadow-2xl hover:bg-green-600 transition-all duration-300 hover:scale-110 active:scale-95">
                <div class="w-8 h-8 flex items-center justify-center">
-                   {!! $whatsapp['icon_svg'] !!}
+                   @if($whatsapp && isset($whatsapp['icon_svg']))
+                       {!! $whatsapp['icon_svg'] !!}
+                   @else
+                       <x-icon name="o-chat-bubble-left-ellipsis" class="w-8 h-8" />
+                   @endif
                </div>
             </a>
         </div>

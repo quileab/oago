@@ -1,23 +1,29 @@
 <?php
-use Livewire\Volt\Component;
 use App\Models\Product;
-use Illuminate\Support\Str;
+use App\Services\ProductSearchService;
+use Livewire\Volt\Component;
 use Mary\Traits\Toast;
 
-new class extends Component {
+new class extends Component
+{
     use Toast;
+
     public $product;
+
     public $qtty = 1;
+
     public $related_products = [];
+
     public $user_price = 0;
+
     public $offer_price = 0;
 
     public function mount(Product $prod_id)
     {
-        $this->product = app(\App\Services\ProductSearchService::class)
+        $this->product = app(ProductSearchService::class)
             ->searchProducts(['id' => $prod_id->id], 1);
 
-        if (!$this->product) {
+        if (! $this->product) {
             $this->product = new Product([
                 'id' => 0,
                 'brand' => 'Producto no encontrado',
@@ -37,15 +43,15 @@ new class extends Component {
             $this->user_price = $this->product->user_price ?? current_user()?->getProductPrice($this->product) ?? 0;
             $this->offer_price = $this->product->offer_price ?? 0;
             $this->qtty = $this->product->qtty_package;
-            $this->related_products = app(\App\Services\ProductSearchService::class)
+            $this->related_products = app(ProductSearchService::class)
                 ->searchRelatedProducts($this->product, 12);
         }
     }
 
     public function buy($productId)
     {
-        $this->dispatch('addToCart', product: $productId, quantity: (int)$this->qtty);
-        
+        $this->dispatch('addToCart', product: $productId, quantity: (int) $this->qtty);
+
         // Resetear cantidad al valor por bulto tras agregar
         $this->qtty = $this->product->qtty_package ?? 1;
     }
@@ -62,7 +68,7 @@ new class extends Component {
         <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
             <div class="grid grid-cols-1 md:grid-cols-2">
                 <!-- Columna Imagen -->
-                <div class="relative bg-gray-50 flex items-center justify-center p-8 border-b md:border-b-0 md:border-r border-gray-100">
+                <div class="relative bg-gray-50 flex flex-col items-center justify-center p-8 border-b md:border-b-0 md:border-r border-gray-100">
                     @if($product->featured)
                         <div class="absolute top-4 left-4 z-10">
                             <span class="px-3 py-1 text-xs font-black text-white bg-red-600 rounded-full shadow-lg">
@@ -71,15 +77,84 @@ new class extends Component {
                         </div>
                     @endif
 
-                    <div class="relative group" id="detail-img-{{ $product->id }}">
-                        <x-image-proxy url="{{ $product->image_url }}" 
-                            class="max-h-[400px] w-auto object-contain transition-transform duration-700 group-hover:scale-105 {{ $product->stock == 0 ? 'opacity-40 grayscale' : '' }}" />
+                    <div x-data="{ 
+                        activeMedia: {{ json_encode($product->media[0] ?? ['type' => 'image', 'url' => $product->image_url, 'thumb' => $product->image_url]) }},
+                        mediaList: {{ json_encode($product->media) }},
+                        getProxiedUrl(url) {
+                            if (!url) return '/imgs/fallback.webp';
+                            // Si es una URL externa (http/https y no es del dominio actual), usar el proxy
+                            if (url.startsWith('http') && !url.includes(window.location.hostname) && !url.includes('localhost') && !url.includes('127.0.0.1')) {
+                                return '{{ route('proxy.image') }}?url=' + encodeURIComponent(url);
+                            }
+                            return url;
+                        },
+                        getYouTubeEmbedUrl(url) {
+                            if (!url) return '';
+                            let videoId = '';
+                            try {
+                                const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+                                const match = url.match(regExp);
+                                if (match && match[2].length === 11) {
+                                    videoId = match[2];
+                                } else if (url.includes('v=')) {
+                                    videoId = url.split('v=')[1].split('&')[0];
+                                }
+                            } catch (e) {
+                                console.error('Error extracting YouTube ID', e);
+                            }
+                            
+                            return videoId ? 'https://www.youtube.com/embed/' + videoId : url;
+                        }
+                    }" class="w-full flex flex-col">
                         
-                        @if($product->stock == 0)
-                            <div class="absolute inset-0 flex items-center justify-center">
-                                <span class="px-6 py-2 bg-white/90 backdrop-blur text-gray-500 font-black rounded-xl border-2 border-gray-200 shadow-xl uppercase tracking-[0.2em]">Agotado</span>
+                        <!-- Pantalla Principal -->
+                        <div class="relative group flex items-center justify-center min-h-[300px] md:min-h-[400px]" id="detail-img-{{ $product->id }}">
+                            <template x-if="activeMedia.type === 'image'">
+                                <img :src="getProxiedUrl(activeMedia.url)" 
+                                    class="max-h-[400px] w-auto object-contain transition-transform duration-700 group-hover:scale-105 {{ $product->stock == 0 ? 'opacity-40 grayscale' : '' }}"
+                                    onerror="this.src='/imgs/fallback.webp'">
+                            </template>
+                            
+                            <template x-if="activeMedia.type === 'video'">
+                                <div class="w-full aspect-video rounded-2xl overflow-hidden shadow-2xl border-4 border-white" :key="activeMedia.url">
+                                    <iframe class="w-full h-full" 
+                                        :src="getYouTubeEmbedUrl(activeMedia.url)" 
+                                        frameborder="0"
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                        allowfullscreen
+                                        referrerpolicy="strict-origin-when-cross-origin">
+                                    </iframe>
+                                </div>
+                            </template>
+                            
+                            @if($product->stock == 0)
+                                <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                    <span class="px-6 py-2 bg-white/90 backdrop-blur text-gray-500 font-black rounded-xl border-2 border-gray-200 shadow-xl uppercase tracking-[0.2em]">Agotado</span>
+                                </div>
+                            @endif
+                        </div>
+
+                        <!-- Miniaturas -->
+                        <template x-if="mediaList.length > 1">
+                            <div class="flex flex-wrap gap-3 mt-8 justify-center">
+                                <template x-for="(item, index) in mediaList" :key="index">
+                                    <button @click="activeMedia = item" 
+                                        class="relative w-16 h-16 rounded-xl overflow-hidden border-2 transition-all p-0.5 bg-white shadow-sm flex-shrink-0"
+                                        :class="activeMedia.url === item.url ? 'border-blue-600 scale-110 shadow-md z-10' : 'border-gray-100 opacity-60 hover:opacity-100 hover:border-gray-300'">
+                                        
+                                        <img :src="getProxiedUrl(item.thumb)" class="w-full h-full object-cover rounded-lg" onerror="this.src='/imgs/fallback.webp'">
+                                        
+                                        <template x-if="item.type === 'video'">
+                                            <div class="absolute inset-0 flex items-center justify-center bg-black/10">
+                                                <div class="bg-white/90 rounded-full p-1 shadow-sm">
+                                                    <x-icon name="s-play" class="w-5 h-5 text-red-600" />
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </button>
+                                </template>
                             </div>
-                        @endif
+                        </template>
                     </div>
                 </div>
 

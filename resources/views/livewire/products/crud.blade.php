@@ -1,15 +1,19 @@
 <?php
 
+use App\Helpers\SettingsHelper;
 use App\Models\ListName;
 use App\Models\ListPrice;
 use App\Models\Product;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Livewire\Volt\Component;
 use Livewire\WithFileUploads;
 use Mary\Traits\Toast;
 
-new class extends Component {
-    use WithFileUploads, Toast;
+new class extends Component
+{
+    use Toast, WithFileUploads;
 
     public array $formData = [];
 
@@ -18,6 +22,12 @@ new class extends Component {
     public array $selectedTags = [];
 
     public $photo;
+
+    public $extraPhotos = [];
+
+    public $extraVideos = [];
+
+    public array $existingMedia = [];
 
     public string $uploadKey = 'initial';
 
@@ -35,6 +45,7 @@ new class extends Component {
                     ->first();
                 $this->prices[$list->id] = $listPrice ? $listPrice->price : 0;
             }
+            $this->loadExistingMedia();
         } else {
             $this->formData = [
                 'description' => '',
@@ -56,6 +67,48 @@ new class extends Component {
         $this->uploadKey = uniqid();
     }
 
+    private function loadExistingMedia()
+    {
+        if (! $this->product) {
+            return;
+        }
+
+        $allMedia = $this->product->media;
+
+        // Asegurarnos de que cada item tenga storage_path (por si acaso el cache tiene datos viejos)
+        $allMedia = array_map(function ($item) {
+            if (! isset($item['storage_path'])) {
+                $item['storage_path'] = str_replace(['/storage/', Storage::disk('public')->url('')], '', $item['url']);
+            }
+
+            return $item;
+        }, $allMedia);
+
+        // Si existe imagen principal, la primera de 'media' es la principal y la ignoramos para extras.
+        // Si no existe, todas las que haya en 'media' son extras.
+        $this->existingMedia = $this->product->image_url ? array_slice($allMedia, 1) : $allMedia;
+    }
+
+    public function addVideo()
+    {
+        $this->extraVideos[] = '';
+    }
+
+    public function removeExtraVideo($index)
+    {
+        unset($this->extraVideos[$index]);
+        $this->extraVideos = array_values($this->extraVideos);
+    }
+
+    public function deleteMedia($path)
+    {
+        Storage::disk('public')->delete($path);
+
+        Cache::forget("product_media_{$this->product->id}");
+        $this->loadExistingMedia();
+        $this->success('Archivo eliminado correctamente.');
+    }
+
     public function listNames()
     {
         return ListName::all();
@@ -63,7 +116,7 @@ new class extends Component {
 
     public function availableTags()
     {
-        $tags = \App\Helpers\SettingsHelper::getProductTags();
+        $tags = SettingsHelper::getProductTags();
 
         return array_map(fn ($tag) => ['id' => $tag, 'name' => $tag], $tags);
     }
@@ -74,10 +127,23 @@ new class extends Component {
             $this->validate([
                 'photo' => 'image|max:1900',
             ]);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->uploadKey = uniqid(); // Forzar refresco para nueva vista previa
+        } catch (ValidationException $e) {
             $this->error($e->getMessage());
             $this->photo = null;
             $this->uploadKey = uniqid();
+        }
+    }
+
+    public function updatedExtraPhotos()
+    {
+        try {
+            $this->validate([
+                'extraPhotos.*' => 'image|max:10240',
+            ]);
+        } catch (ValidationException $e) {
+            $this->error($e->getMessage());
+            $this->extraPhotos = [];
         }
     }
 
@@ -90,7 +156,9 @@ new class extends Component {
             'formData.stock' => 'required|numeric',
             'formData.qtty_package' => 'required|numeric|min:1',
             'formData.qtty_unit' => 'required|numeric|min:1',
-            'photo' => 'nullable|image|max:1900',
+            'photo' => 'nullable|image|max:10240',
+            'extraPhotos.*' => 'image|max:10240',
+            'extraVideos.*' => 'nullable|url',
         ];
 
         $this->validate($rules);
@@ -103,10 +171,15 @@ new class extends Component {
             $this->formData
         );
 
-        // Handle Image
+        $this->product = $product;
+
+        // Handle Main Image
         if ($this->photo) {
             $this->processImage($product);
         }
+
+        // Handle Extra Media
+        $this->processExtraMedia($product);
 
         // Handle Prices
         foreach ($this->prices as $listId => $price) {
@@ -116,7 +189,8 @@ new class extends Component {
             );
         }
 
-        $this->success('Producto guardado correctamente.', redirectTo: '/products');
+        $this->loadExistingMedia();
+        $this->success('Producto guardado correctamente.');
     }
 
     public function delete()
@@ -135,6 +209,72 @@ new class extends Component {
         $this->product->delete();
 
         $this->success('Producto eliminado.', redirectTo: '/products');
+    }
+
+    private function processExtraMedia(Product $product)
+    {
+        $directory = "products/{$product->id}";
+
+        if (! Storage::disk('public')->exists($directory)) {
+            Storage::disk('public')->makeDirectory($directory);
+        }
+
+        // 1. Determinar el siguiente índice disponible
+        $files = Storage::disk('public')->files($directory);
+        $maxIndex = 0;
+        foreach ($files as $file) {
+            $name = basename($file);
+            if (preg_match('/extra-(\d+)\./', $name, $matches)) {
+                $maxIndex = max($maxIndex, (int) $matches[1]);
+            }
+        }
+
+        // 2. Procesar fotos extras
+        // Livewire puede devolver un objeto solo si es un archivo, o array si son varios
+        $photos = is_array($this->extraPhotos) ? $this->extraPhotos : ($this->extraPhotos ? [$this->extraPhotos] : []);
+
+        foreach ($photos as $photo) {
+            try {
+                $maxIndex++;
+                $tmpPath = $photo->getRealPath();
+                $imageContent = file_get_contents($tmpPath);
+                $image = @imagecreatefromstring($imageContent);
+
+                if ($image !== false) {
+                    imagepalettetotruecolor($image);
+                    imagealphablending($image, true);
+                    imagesavealpha($image, true);
+
+                    $extraFileName = "{$directory}/extra-{$maxIndex}.webp";
+
+                    ob_start();
+                    imagewebp($image, null, 80);
+                    $webpData = ob_get_clean();
+                    imagedestroy($image);
+
+                    if ($webpData) {
+                        Storage::disk('public')->put($extraFileName, $webpData);
+                    }
+                }
+            } catch (Exception $e) {
+                $this->error('Error al procesar foto extra: '.$e->getMessage());
+            }
+        }
+
+        // 3. Procesar videos extras
+        foreach ($this->extraVideos as $videoUrl) {
+            if (empty($videoUrl)) {
+                continue;
+            }
+
+            $maxIndex++;
+            $videoFileName = "{$directory}/extra-{$maxIndex}.url";
+            Storage::disk('public')->put($videoFileName, $videoUrl);
+        }
+
+        $this->extraPhotos = [];
+        $this->extraVideos = [];
+        Cache::forget("product_media_{$product->id}");
     }
 
     private function processImage(Product $product)
@@ -168,16 +308,12 @@ new class extends Component {
                 imagealphablending($image, true);
                 imagesavealpha($image, true);
 
-                $hash = md5($product->id.'-'.time());
-                $part1 = substr($hash, 0, 2);
-                $part2 = substr($hash, 2, 2);
-                $dir = "products/{$part1}/{$part2}";
-
+                $dir = "products/{$product->id}";
                 if (! Storage::disk('public')->exists($dir)) {
                     Storage::disk('public')->makeDirectory($dir);
                 }
 
-                $fileName = "{$dir}/{$hash}.webp";
+                $fileName = "{$dir}/main.webp";
 
                 ob_start();
                 imagewebp($image, null, 80);
@@ -185,9 +321,12 @@ new class extends Component {
                 imagedestroy($image);
 
                 if ($webpData) {
-                    if ($product->image_url && (str_contains($product->image_url, config('app.url')) || str_starts_with($product->image_url, '/storage/'))) {
+                    // Borrar imagen vieja si es distinta y es local
+                    if ($product->image_url) {
                         $oldPath = str_replace([Storage::disk('public')->url(''), '/storage/'], '', $product->image_url);
-                        Storage::disk('public')->delete($oldPath);
+                        if ($oldPath !== $fileName) {
+                            Storage::disk('public')->delete($oldPath);
+                        }
                     }
 
                     Storage::disk('public')->put($fileName, $webpData);
@@ -196,7 +335,7 @@ new class extends Component {
                     ]);
                 }
             }
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $this->error('Error al procesar la imagen: '.$e->getMessage());
         }
     }
@@ -210,10 +349,10 @@ new class extends Component {
     </x-header>
 
     <x-form wire:submit="save">
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {{-- Columna Izquierda: Imagen y Datos Básicos --}}
-            <div class="lg:col-span-1 space-y-6">
-                <x-card title="Imagen" separator shadow>
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            {{-- Columna Izquierda (Side): Imagen Principal, Estado y Listas de Precios --}}
+            <div class="lg:col-span-4 space-y-6">
+                <x-card title="Imagen Principal" separator shadow class="bg-base-100">
                     <div class="flex flex-col items-center">
                         <div class="flex flex-col items-center mb-6" 
                              wire:key="upload-wrapper-{{ $uploadKey }}"
@@ -228,12 +367,23 @@ new class extends Component {
                              }">
                             <x-file wire:model.live="photo" accept="image/*" x-on:change="checkSize">
                                 <div class="relative group cursor-pointer" wire:loading.class="opacity-50" wire:target="photo">
-                                    @php
-                                        $hasImage = isset($formData['image_url']) && $formData['image_url'];
-                                        $imgUrl = $hasImage ? $formData['image_url'] : '/imgs/fallback.webp';
-                                    @endphp
-                                    
-                                    <x-image-proxy :url="$imgUrl" class="w-64 h-64 object-cover rounded-2xl border-4 border-base-300 shadow-xl" />
+                                @php
+                                    $previewUrl = null;
+                                    if ($photo) {
+                                        try {
+                                            $previewUrl = $photo->temporaryUrl();
+                                        } catch (\Exception $e) {
+                                        }
+                                    }
+                                    if (! $previewUrl) {
+                                        $previewUrl = (isset($formData['image_url']) && $formData['image_url']) ? $formData['image_url'] : '/imgs/fallback.webp';
+                                    } else {
+                                        // Añadir cache-buster para evitar que el navegador se quede con la imagen anterior
+                                        $previewUrl .= (str_contains($previewUrl, '?') ? '&' : '?') . 'v=' . $uploadKey;
+                                    }
+                                @endphp
+                                
+                                <x-image-proxy :url="$previewUrl" wire:key="main-preview-{{ $uploadKey }}" class="w-full aspect-square object-cover rounded-2xl border-4 border-base-300 shadow-xl" />
                                     
                                     <div class="absolute inset-0 bg-primary/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl">
                                         <x-icon name="o-pencil" class="w-12 h-12 text-white" />
@@ -255,7 +405,7 @@ new class extends Component {
                     </div>
                 </x-card>
 
-                <x-card title="Estado" separator shadow>
+                <x-card title="Publicación" separator shadow class="bg-base-100">
                     <div class="space-y-4">
                         <div class="flex flex-col gap-4">
                             <x-checkbox label="Producto Publicado" wire:model="formData.published" tight />
@@ -268,46 +418,16 @@ new class extends Component {
                         ]" />
                     </div>
                 </x-card>
-            </div>
 
-            {{-- Columna Central: Datos Principales --}}
-            <div class="lg:col-span-1 space-y-6">
-                <x-card title="Información General" separator shadow>
-                    <div class="space-y-4">
-                        <x-input label="Descripción" wire:model="formData.description" placeholder="Ej: Amortiguador Trasero..." />
-                        
-                        <div class="grid grid-cols-1 gap-4">
-                            <x-input label="Marca" wire:model="formData.brand" placeholder="Ej: Monroe" />
-                            <x-input label="Categoría" wire:model="formData.category" placeholder="Ej: Suspensión" />
-                        </div>
-
-                        <div class="grid grid-cols-3 gap-4">
-                            <x-input label="Stock" type="number" wire:model="formData.stock" />
-                            <x-input label="Bulto" type="number" wire:model="formData.qtty_package" hint="Un. por bulto" />
-                            <x-input label="Unidades" type="number" wire:model="formData.qtty_unit" hint="Un. totales" />
-                        </div>
-
-                        <x-choices label="Etiquetas" 
-                                   wire:model="selectedTags" 
-                                   :options="$this->availableTags()" 
-                                   allow-all 
-                                   icon="o-tag" 
-                                   hint="Seleccione las etiquetas del producto" />
-                    </div>
-                </x-card>
-            </div>
-
-            {{-- Columna Derecha: Listas de Precios --}}
-            <div class="lg:col-span-1 space-y-6">
-                <x-card separator shadow>
+                <x-card separator shadow class="bg-base-100">
                     <x-slot:title>
                         <div class="flex items-center gap-2">
                             <x-icon name="o-currency-dollar" class="w-6 h-6 text-success" />
-                            Listas de Precios
+                            Precios
                         </div>
                     </x-slot:title>
                     
-                    <div class="space-y-3 max-h-[calc(100vh-250px)] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-200">
+                    <div class="space-y-3 max-h-[600px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-200">
                         @foreach($this->listNames() as $list)
                             <div class="p-3 border border-base-content/5 rounded-xl hover:border-primary/30 transition-colors bg-base-200/20">
                                 <x-input label="{{ $list->name }}" 
@@ -318,6 +438,164 @@ new class extends Component {
                                          class="font-bold" />
                             </div>
                         @endforeach
+                    </div>
+                </x-card>
+            </div>
+
+            {{-- Columna Derecha (Main): Información General y Multimedia Extra --}}
+            <div class="lg:col-span-8 space-y-6">
+                <x-card title="Información General" separator shadow class="bg-base-100">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="md:col-span-2">
+                            <x-input label="Descripción" wire:model="formData.description" placeholder="Ej: Amortiguador Trasero..." />
+                        </div>
+                        
+                        <x-input label="Marca" wire:model="formData.brand" placeholder="Ej: Monroe" />
+                        <x-input label="Categoría" wire:model="formData.category" placeholder="Ej: Suspensión" />
+
+                        <div class="grid grid-cols-3 gap-4 md:col-span-2">
+                            <x-input label="Stock Actual" type="number" wire:model="formData.stock" icon="o-cube" />
+                            <x-input label="Unidades x Bulto" type="number" wire:model="formData.qtty_package" hint="Empaque" />
+                            <x-input label="Unidades Totales" type="number" wire:model="formData.qtty_unit" hint="Contenido" />
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <x-choices label="Etiquetas del Producto" 
+                                    wire:model="selectedTags" 
+                                    :options="$this->availableTags()" 
+                                    allow-all 
+                                    icon="o-tag" 
+                                    hint="Seleccione para categorizar el producto" />
+                        </div>
+                    </div>
+                </x-card>
+
+                <x-card title="Multimedia Extra" separator shadow class="bg-base-100">
+                    <div class="space-y-6">
+                        {{-- Imágenes Existentes --}}
+                        <div wire:key="media-list-{{ count($existingMedia) }}-{{ time() }}">
+                            @if(count($existingMedia) > 0)
+                                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                                    @foreach($existingMedia as $index => $media)
+                                        <div class="relative group aspect-square shadow-sm"
+                                             wire:key="media-item-{{ $index }}-{{ md5($media['url']) }}">
+                                            
+                                            {{-- Imagen con redondeo propio --}}
+                                            <x-image-proxy :url="$media['thumb']" class="w-full h-full object-cover rounded-xl border-2 border-base-300 group-hover:border-primary/50 transition-all" />
+                                            
+                                            {{-- Overlay con redondeo propio y sin overflow-hidden --}}
+                                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 rounded-xl">
+                                                @if($media['type'] === 'video')
+                                                    <div class="bg-white/20 backdrop-blur-md rounded-full p-2">
+                                                        <x-icon name="s-play" class="w-8 h-8 text-white" />
+                                                    </div>
+                                                @endif
+                                                
+                                                {{-- Dropdown con portal o simplemente permitiendo overflow si el padre no tiene overflow-hidden --}}
+                                                <x-dropdown icon="o-trash" class="btn-circle btn-sm btn-error shadow-lg" no-x-padding right>
+                                                    <x-menu-item title="Confirmar" icon="o-trash" wire:click="deleteMedia('{{ $media['storage_path'] ?? '' }}')" class="text-error font-bold" />
+                                                    <x-menu-item title="Cancelar" icon="o-x-mark" />
+                                                </x-dropdown>
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @else
+                                <div class="p-8 border-2 border-dashed border-base-300 rounded-2xl flex flex-col items-center justify-center bg-base-200/50">
+                                    <x-icon name="o-photo" class="w-12 h-12 text-base-content/20" />
+                                    <p class="text-xs text-base-content/40 mt-2 font-medium">No hay multimedia extra para este producto</p>
+                                </div>
+                            @endif
+                        </div>
+
+                        <div class="divider text-[10px] font-bold uppercase tracking-widest opacity-50">Gestionar Multimedia</div>
+
+                        <div class="grid grid-cols-1 xl:grid-cols-2 gap-8 w-full">
+                            {{-- Upload Fotos Extras --}}
+                            <div class="space-y-4 w-full text-center">
+                                <label class="label label-text font-bold text-xs uppercase tracking-widest text-base-content/70 justify-center">Fotos Adicionales</label>
+                                
+                                <label class="flex flex-col items-center justify-center w-full min-h-[160px] bg-base-200 border-dashed border-2 hover:border-primary/50 transition-colors cursor-pointer group/upload rounded-xl relative p-4"
+                                       wire:class="{'opacity-50 pointer-events-none': $wire.__instance.effects.returns.extraPhotos}">
+                                    <input type="file" wire:model.live="extraPhotos" accept="image/*" multiple class="hidden" />
+                                    
+                                    <div wire:loading.remove wire:target="extraPhotos" class="w-full">
+                                        @if($extraPhotos)
+                                            <div class="flex flex-wrap justify-center gap-4 w-full">
+                                                @foreach($extraPhotos as $photo)
+                                                    <div class="relative w-20 h-20 rounded-lg overflow-hidden border shadow-sm group/item">
+                                                        @php
+                                                            $tempUrl = null;
+                                                            try {
+                                                                $tempUrl = $photo->temporaryUrl();
+                                                            } catch(\Exception $e) {}
+                                                        @endphp
+                                                        
+                                                        @if($tempUrl)
+                                                            <x-image-proxy :url="$tempUrl" class="w-full h-full object-cover" />
+                                                        @else                                                            <div class="w-full h-full flex items-center justify-center bg-base-300">
+                                                                <x-icon name="o-photo" class="w-6 h-6 text-base-content/20" />
+                                                            </div>
+                                                        @endif
+                                                        
+                                                        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover/item:opacity-100 transition-opacity flex items-center justify-center">
+                                                            <x-icon name="o-arrow-path" class="w-5 h-5 text-white" />
+                                                        </div>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                            <div class="w-full text-center mt-4">
+                                                <x-badge value="{{ count($extraPhotos) }} fotos (Clic para reemplazar)" class="badge-success text-white font-bold text-[10px]" />
+                                            </div>
+                                        @else
+                                            <div class="flex flex-col items-center px-4 text-center py-6">
+                                                <x-icon name="o-cloud-arrow-up" class="w-12 h-12 text-base-content/30 group-hover/upload:text-primary transition-colors" />
+                                                <div class="mt-2 text-sm font-bold text-base-content/60 group-hover/upload:text-primary">Clic para subir imágenes</div>
+                                                <div class="text-[10px] text-base-content/40 uppercase tracking-widest mt-1">WebP, JPG, PNG</div>
+                                            </div>
+                                        @endif
+                                    </div>
+
+                                    <div wire:loading wire:target="extraPhotos" class="w-full text-center py-6">
+                                        <div class="text-xs text-primary flex items-center justify-center gap-2">
+                                            <x-loading class="loading-xs" /> Procesando imágenes...
+                                        </div>
+                                    </div>
+                                </label>
+                                
+                                @error('extraPhotos.*')
+                                    <div class="w-full text-center mt-2">
+                                        <p class="text-[10px] text-error font-bold">{{ $message }}</p>
+                                    </div>
+                                @enderror
+                                
+                                <p class="text-[10px] text-base-content/50 italic text-center">
+                                    Click en el área gris para seleccionar fotos. Se procesarán al guardar el producto.
+                                </p>
+                            </div>
+
+                            {{-- Videos --}}
+                            <div class="space-y-4 w-full">
+                                <div class="flex justify-between items-center mb-1">
+                                    <label class="label label-text font-bold text-xs uppercase tracking-widest text-base-content/70">Videos de YouTube</label>
+                                    <x-button label="Agregar Video" icon="o-plus" wire:click="addVideo" class="btn-xs btn-primary btn-outline" type="button" />
+                                </div>
+
+                                <div class="space-y-3">
+                                    @foreach($extraVideos as $index => $video)
+                                        <div class="flex gap-2 items-center group" wire:key="video-{{ $index }}">
+                                            <div class="bg-base-200 p-2 rounded-lg flex-grow">
+                                                <x-input wire:model="extraVideos.{{ $index }}" placeholder="URL de YouTube..." class="input-sm border-none bg-transparent focus:ring-0" />
+                                            </div>
+                                            <x-button icon="o-trash" wire:click="removeExtraVideo({{ $index }})" class="btn-sm btn-square btn-ghost text-error opacity-0 group-hover:opacity-100 transition-opacity" type="button" />
+                                        </div>
+                                    @endforeach
+                                    @if(empty($extraVideos))
+                                        <p class="text-[10px] text-base-content/40 italic text-center">No hay videos agregados.</p>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </x-card>
             </div>

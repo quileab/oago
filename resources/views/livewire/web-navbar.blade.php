@@ -17,7 +17,13 @@
                 class="input-sm" />
             </div>
             @foreach($salesCustomers as $customer)
-              <x-menu-item title="{{ is_object($customer) ? ($customer->full_name ?? 'ID: ' . ($customer->id ?? 'Unknown')) : 'ID: ' . $customer }}" wire:click="setActingCustomer({{ is_object($customer) ? ($customer->id ?? 0) : $customer }})" />
+              @php
+                $cId = is_object($customer) ? ($customer->id ?? 0) : ($customer['id'] ?? 0);
+                $cName = is_object($customer)
+                    ? ($customer->full_name ?? 'ID: ' . $cId)
+                    : (trim(($customer['lastname'] ?? '') . ', ' . ($customer['name'] ?? ''), ', ') ?: 'ID: ' . $cId);
+              @endphp
+              <x-menu-item title="{{ $cName }}" wire:click="setActingCustomer({{ $cId }})" />
             @endforeach
           </x-dropdown>
         @endif

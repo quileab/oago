@@ -11,13 +11,17 @@ use ZipArchive;
 
 class MakeDeployZip extends Command
 {
-    protected $signature = 'make:deploy-zip {--name=deploy.zip}';
+    protected $signature = 'make:deploy-zip {--name=deploy.zip} {--no_brand}';
 
     protected $description = 'Genera un paquete ZIP para despliegue en hosting compartido';
 
     public function handle()
     {
+        $noBrand = $this->option('no_brand');
         $this->info('🚀 Iniciando proceso de empaquetado...');
+        if ($noBrand) {
+            $this->info('🚫 Opción --no_brand activa: se excluirán imágenes de marca y sliders.');
+        }
 
         // 1. Ejecutar npm run build y publicar assets de Livewire
         $this->info('📦 Ejecutando npm run build...');
@@ -87,13 +91,21 @@ class MakeDeployZip extends Command
 
             // --- REGLAS DE EXCLUSIÓN ESTRICTAS ---
 
-            // 1. Excluir carpetas pesadas y de desarrollo
+            // 1. Excluir carpetas pesadas, cache de imágenes y de desarrollo
             if ($zipPath === 'vendor' || Str::startsWith($zipPath, 'vendor/') ||
                 Str::startsWith($zipPath, 'node_modules/') ||
+                Str::contains($zipPath, 'image_cache/') ||
                 Str::startsWith($zipPath, 'public/storage') || // EXCLUIR el link de storage
                 Str::startsWith($zipPath, '.git/')) {
                 // EXCEPCIÓN: Permitir public/vendor (donde se publican assets como Livewire)
                 if (! Str::startsWith($zipPath, 'public/vendor/')) {
+                    continue;
+                }
+            }
+
+            // 1.1 Exclusión de Branding (si se solicita)
+            if ($noBrand) {
+                if (Str::startsWith($zipPath, 'public/imgs/') || Str::startsWith($zipPath, 'storage/app/public/slider/')) {
                     continue;
                 }
             }
