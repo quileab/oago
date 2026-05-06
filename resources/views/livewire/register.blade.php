@@ -40,11 +40,6 @@ new #[Layout('components.layouts.clean')] #[Title('Registrarse - Agostini Distri
         $this->captcha_image = $this->generateCaptchaImage($this->num1 . ' + ' . $this->num2);
     }
 
-    public function toJSON()
-    {
-        return [];
-    }
-
     private function generateCaptchaImage(string $text): string
     {
         $width = 180;
@@ -54,7 +49,18 @@ new #[Layout('components.layouts.clean')] #[Title('Registrarse - Agostini Distri
         $textColor = imagecolorallocate($image, 20, 20, 20);
         imagefilledrectangle($image, 0, 0, $width, $height, $bg);
 
-        for ($i = 0; $i < 10; $i++) {
+        $fontPath = public_path('fonts/captcha/DejaVuSansMono.ttf');
+        $fontSize = 22;
+        $angle = rand(-6, 6);
+        $box = imagettfbbox($fontSize, $angle, $fontPath, $text);
+        $textWidth = $box[2] - $box[0];
+        $textHeight = $box[1] - $box[7];
+        $x = (int) (($width - $textWidth) / 2);
+        $y = (int) (($height - $textHeight) / 2 + $textHeight);
+        imagettftext($image, $fontSize, $angle, $x + 1, $y + 1, $textColor, $fontPath, $text);
+        imagettftext($image, $fontSize, $angle, $x, $y, $textColor, $fontPath, $text);
+
+        for ($i = 0; $i < 15; $i++) {
             $randomColor = imagecolorallocate($image, rand(100, 255), rand(100, 255), rand(100, 255));
             imageline($image, rand(0, $width), rand(0, $height), rand(0, $width), rand(0, $height), $randomColor);
         }
@@ -63,12 +69,6 @@ new #[Layout('components.layouts.clean')] #[Title('Registrarse - Agostini Distri
             $dotColor = imagecolorallocate($image, rand(150, 230), rand(150, 230), rand(150, 230));
             imagesetpixel($image, rand(0, $width), rand(0, $height), $dotColor);
         }
-
-        $font = 5;
-        $x = ($width - (strlen($text) * imagefontwidth($font))) / 2;
-        $y = ($height - imagefontheight($font)) / 2;
-        imagestring($image, $font, (int)$x, (int)$y, $text, $textColor);
-        imagestring($image, $font, (int)$x + 1, (int)$y, $text, $textColor);
 
         ob_start();
         imagepng($image);
@@ -211,7 +211,7 @@ new #[Layout('components.layouts.clean')] #[Title('Registrarse - Agostini Distri
                                 <p class="text-xs font-bold uppercase text-gray-500 mb-2">Seguridad</p>
                                 <div class="flex items-center gap-4">
                                     <div class="bg-white p-2 rounded-xl border border-gray-200 shadow-inner">
-                                        <img src="{{ $captcha_image }}" class="h-10">
+                                        <img src="{{ $captcha_image }}" class="h-16 w-auto md:h-20">
                                     </div>
                                     <x-button icon="o-arrow-path" wire:click="generateCaptcha" class="btn-ghost btn-circle btn-sm text-gray-400" />
                                 </div>
