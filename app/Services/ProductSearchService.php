@@ -79,9 +79,16 @@ class ProductSearchService
         }
 
         // 🧭 Ordenamiento
+        $allowedColumns = ['description', 'created_at', 'featured', 'price', 'brand', 'category', 'model'];
         $orderBy = $params['order_by'] ?? 'description';
-        $orderDirection = $params['order_direction'] ?? 'asc';
-        $query->orderBy("products.$orderBy", $orderDirection);
+        $rawDirection = $params['order_direction'] ?? '';
+        $orderDirection = in_array($rawDirection, ['asc', 'desc']) ? $rawDirection : 'asc';
+
+        if (in_array($orderBy, $allowedColumns)) {
+            $query->orderBy("products.$orderBy", $orderDirection);
+        } else {
+            $query->orderBy('products.description', $orderDirection);
+        }
 
         return $itemsPerPage === 1
           ? $query->first()

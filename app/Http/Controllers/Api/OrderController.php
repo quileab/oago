@@ -58,8 +58,10 @@ class OrderController extends Controller
         }
         Log::info("Actualizando productos en el pedido: {$order->id}");
 
+        $existingItems = $order->items()->get()->keyBy('product_id');
+
         foreach ($request->products as $productData) {
-            $item = $order->items()->where('product_id', $productData['id'])->first();
+            $item = $existingItems->get($productData['id']);
 
             if ($item) {
                 // Si la cantidad es 0, eliminar el item

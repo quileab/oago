@@ -12,9 +12,10 @@ class ListPriceController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $listPrices = ListPrice::all();
+        $perPage = $request->input('per_page', 50);
+        $listPrices = ListPrice::paginate($perPage);
 
         return response()->json($listPrices, 200);
     }

@@ -5,7 +5,6 @@ namespace App\Livewire;
 use App\Enums\Role;
 use App\Helpers\SettingsHelper;
 use App\Models\AltUser;
-use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
@@ -31,7 +30,6 @@ class WebNavbar extends Component
         $loggedInUser = current_user();
 
         if ($loggedInUser && $loggedInUser->role === Role::SALES) {
-            // ... (rest of sales logic remains same)
             if (! session('sales_acting_as_customer_id')) {
                 $firstCustomer = $loggedInUser->getManagedCustomersQuery()->first();
                 if ($firstCustomer) {
@@ -40,10 +38,6 @@ class WebNavbar extends Component
             }
 
             $this->actingAsId = session('sales_acting_as_customer_id');
-            if ($this->actingAsId) {
-                $actingUser = User::find($this->actingAsId);
-                $this->actingAsName = $actingUser ? $actingUser->full_name : 'Unknown';
-            }
 
             $this->loadCustomers();
         }
@@ -76,13 +70,16 @@ class WebNavbar extends Component
             $this->salesCustomers = $customerQuery->take(10)->get();
 
             if ($this->actingAsId) {
-                $actingUser = User::find($this->actingAsId);
-                if (! $loggedInUser->getManagedCustomersQuery()->where('id', $this->actingAsId)->exists()) {
+                $actingUser = $loggedInUser->getManagedCustomersQuery()
+                    ->where('id', $this->actingAsId)
+                    ->first();
+
+                if ($actingUser) {
+                    $this->actingAsName = $actingUser->full_name;
+                } else {
                     session()->forget('sales_acting_as_customer_id');
                     $this->actingAsId = null;
                     $this->actingAsName = null;
-                } else {
-                    $this->actingAsName = $actingUser ? $actingUser->full_name : 'Unknown';
                 }
             }
         } else {

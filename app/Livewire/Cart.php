@@ -104,8 +104,12 @@ class Cart extends Component
     {
         $cart = Session::get('cart', []);
         $this->total = 0;
+
+        $productIds = array_column($cart, 'product_id');
+        $products = Product::whereIn('id', $productIds)->get()->keyBy('id');
+
         foreach ($cart as $item) {
-            $product = Product::find($item['product_id']);
+            $product = $products->get($item['product_id']);
             $orderedQuantity = (int) $item['quantity'];
             $billableQuantity = $orderedQuantity;
 
@@ -123,12 +127,14 @@ class Cart extends Component
     public function render()
     {
         $cart = Session::get('cart', []);
-        $enrichedCart = [];
 
+        $productIds = array_keys($cart);
+        $products = Product::whereIn('id', $productIds)->get()->keyBy('id');
+
+        $enrichedCart = [];
         foreach ($cart as $productId => $item) {
-            $product = Product::find($productId);
-            if ($product) {
-                $item['product_model'] = $product;
+            if ($products->has($productId)) {
+                $item['product_model'] = $products->get($productId);
             }
             $enrichedCart[$productId] = $item;
         }

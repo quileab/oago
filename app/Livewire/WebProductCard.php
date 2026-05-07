@@ -2,7 +2,6 @@
 
 namespace App\Livewire;
 
-use App\Models\Product;
 use Illuminate\Database\Eloquent\Model;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -30,8 +29,10 @@ class WebProductCard extends Component
 
     public function mount($product)
     {
-        if ($product instanceof Model) {
-            $this->local_product = $product->toArray();
+        $productModel = $product instanceof Model ? $product : null;
+
+        if ($productModel) {
+            $this->local_product = $productModel->toArray();
             if (isset($product->description_html)) {
                 $this->local_product['description_html'] = $product->description_html;
             }
@@ -39,13 +40,11 @@ class WebProductCard extends Component
             $this->local_product = (array) $product;
         }
 
-        $productId = $this->local_product['id'] ?? null;
-        $productModel = $productId ? Product::find($productId) : null;
-
-        $this->user_price = $this->local_product['user_price'] ?? ($productModel ? current_user()?->getProductPrice($productModel) : 0) ?? 0;
+        $this->user_price = $this->local_product['user_price']
+            ?? ($productModel ? current_user()?->getProductPrice($productModel) : null)
+            ?? 0;
         $this->offer_price = $this->local_product['offer_price'] ?? 0;
 
-        // Inicializar siempre con el valor por defecto del bulto
         $this->qtty = $this->local_product['qtty_package'] ?? 1;
     }
 
