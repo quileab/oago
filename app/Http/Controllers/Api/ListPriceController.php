@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\ListPrice;
+use Dedoc\Scramble\Attributes\Response;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -12,7 +14,8 @@ class ListPriceController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    #[Response(status: 200, type: 'App\Models\ListPrice[]')]
+    public function index(): JsonResponse
     {
         $listPrices = ListPrice::all();
 
@@ -22,12 +25,13 @@ class ListPriceController extends Controller
     /**
      * Store (or update) a resource.
      */
-    public function store(Request $request)
+    #[Response(status: 201, type: 'App\Models\ListPrice')]
+    public function store(Request $request): JsonResponse
     {
         // check if product exists where product_id and list_id
         $listPrice_exists = ListPrice::where('product_id', $request->product_id)->where('list_id', $request->list_id)->first();
         if ($listPrice_exists) {
-            return $this->update($request, $listPrice_exists->product_id, $listPrice_exists->list_id);
+            return $this->update($request, (int) $listPrice_exists->product_id, (int) $listPrice_exists->list_id);
         }
         $validator = Validator::make($request->all(), [
             'product_id' => 'required|exists:products,id',
@@ -52,7 +56,8 @@ class ListPriceController extends Controller
     /**
      * Display the specified resource using product ID.
      */
-    public function show($product_id, $list_id)
+    #[Response(status: 200, type: 'App\Models\ListPrice')]
+    public function show(int $product_id, int $list_id): JsonResponse
     {
         $listPrice = ListPrice::where('product_id', $product_id)
             ->where('list_id', $list_id)
@@ -65,7 +70,7 @@ class ListPriceController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, $product_id, $list_id)
+    public function update(Request $request, int $product_id, int $list_id): JsonResponse
     {
         $listPrice = ListPrice::where('product_id', $product_id)
             ->where('list_id', $list_id)
@@ -90,7 +95,7 @@ class ListPriceController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy($product_id, $list_id)
+    public function destroy(int $product_id, int $list_id): JsonResponse
     {
         $listPrice = ListPrice::where('product_id', $product_id)
             ->where('list_id', $list_id)

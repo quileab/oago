@@ -4,12 +4,16 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Exception;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
-    public function login(Request $request)
+    /**
+     * @return JsonResponse
+     */
+    public function login(Request $request): JsonResponse
     {
         try {
             $request->validate([
@@ -36,7 +40,10 @@ class AuthController extends Controller
 
     }
 
-    public function register(Request $request)
+    /**
+     * @return JsonResponse<User>
+     */
+    public function register(Request $request): JsonResponse
     {
         try {
             $fields = $request->validate([
@@ -63,7 +70,10 @@ class AuthController extends Controller
         ]);
     }
 
-    public function logout(Request $request)
+    /**
+     * @return JsonResponse
+     */
+    public function logout(Request $request): JsonResponse
     {
         $request->user()->tokens()->delete();
 

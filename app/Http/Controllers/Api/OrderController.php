@@ -4,14 +4,19 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use Dedoc\Scramble\Attributes\Response;
 use Exception;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 class OrderController extends Controller
 {
-    // Listar pedidos pendientes
-    public function listPendingOrders()
+    /**
+     * Listar pedidos pendientes.
+     */
+    #[Response(status: 200, type: 'App\Models\Order[]')]
+    public function listPendingOrders(): JsonResponse
     {
         $orders = Order::where('status', 'pending')->with('items.product')->get();
 
@@ -26,8 +31,12 @@ class OrderController extends Controller
         return response()->json($filteredOrders, 200);
     }
 
-    // Actualizar el estado de un pedido
-    public function updateOrderStatus(Request $request, Order $order)
+    /**
+     * Actualizar el estado de un pedido.
+     *
+     * @return array{message: string}
+     */
+    public function updateOrderStatus(Request $request, Order $order): JsonResponse
     {
         $request->validate([
             'status' => 'required|string|max:20',
@@ -40,8 +49,11 @@ class OrderController extends Controller
         ], 200);
     }
 
-    // Actualizar los productos en un pedido
-    public function updateOrderProducts(Request $request, Order $order)
+    /**
+     * Actualizar los productos en un pedido.
+     */
+    #[Response(status: 200, type: 'App\Models\Order')]
+    public function updateOrderProducts(Request $request, Order $order): JsonResponse
     {
         Log::info("Request: { json_encode($request) }");
         try {

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Enums\Role;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
@@ -14,9 +15,9 @@ class UserController extends Controller
     /**
      * Display a listing of the resource.
      *
-     * @response array{data: Users[]}
+     * @return array<int, User>
      */
-    public function index(Request $request)
+    public function index(Request $request): JsonResponse
     {
         $query = User::query();
 
@@ -35,8 +36,10 @@ class UserController extends Controller
 
     /**
      * Store a newly created resource in storage or update an existing one.
+     *
+     * @return User
      */
-    public function store(Request $request)
+    public function store(Request $request): JsonResponse
     {
         // Buscamos si el usuario ya existe por ID
         $existingUser = User::find($request->id);
@@ -121,11 +124,11 @@ class UserController extends Controller
 
     /**
      * Display the specified resource.
+     *
+     * @return User
      */
-    public function show($id)
+    public function show(User $user): JsonResponse
     {
-        $user = User::findOrFail($id);
-
         if (auth()->id() !== $user->id && auth()->user()->role !== Role::ADMIN) {
             abort(403, 'Unauthorized to view this user profile.');
         }
@@ -135,11 +138,11 @@ class UserController extends Controller
 
     /**
      * Update the specified resource in storage.
+     *
+     * @return User
      */
-    public function update(Request $request, $id)
+    public function update(Request $request, User $user): JsonResponse
     {
-        $user = User::findOrFail($id);
-
         if (auth()->id() !== $user->id && auth()->user()->role !== Role::ADMIN) {
             abort(403, 'Unauthorized to update this user profile.');
         }
@@ -210,10 +213,8 @@ class UserController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy($id)
+    public function destroy(User $user): JsonResponse
     {
-        $user = User::findOrFail($id);
-
         if (auth()->id() !== $user->id && auth()->user()->role !== Role::ADMIN) {
             abort(403, 'Unauthorized to delete this user profile.');
         }

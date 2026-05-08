@@ -117,7 +117,7 @@ class Product extends Model
         return $videoId ? "https://img.youtube.com/vi/{$videoId}/mqdefault.jpg" : asset('imgs/fallback.webp');
     }
 
-    public function listPrices()
+    public function listPrices(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(ListPrice::class); // Un producto puede tener múltiples precios en diferentes listas
     }
