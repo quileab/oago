@@ -164,32 +164,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 }
 
                 if ($action === 'init_db') {
-                    $output .= "Inicializando base de datos y creando administrador...\n";
+                    $output .= "Limpiando base de datos e inicializando administrador (ID 1)...\n";
                     try {
                         $exitCode = $kernel->call('app:create-admin-user');
                         $cmdOutput = Artisan::output();
-                        $output .= "INICIALIZACIÓN (Código: $exitCode):\n".($cmdOutput ?: '¡Éxito! Base de datos inicializada.');
+                        $output .= "INICIALIZACIÓN (Código: $exitCode):\n".($cmdOutput ?: '¡Éxito! Base de datos reiniciada y administrador creado.');
                     } catch (Throwable $e) {
                         $output .= "Error usando Artisan Kernel: " . $e->getMessage() . "\n";
-                        $output .= "Intentando creación directa vía Eloquent...\n";
+                        $output .= "Intentando limpieza y creación directa...\n";
                         
-                        $email = 'admin@admin.com';
-                        if (\App\Models\User::where('email', $email)->exists()) {
-                            $output .= "El usuario admin ya existe.\n";
-                        } else {
-                            \App\Models\User::create([
-                                'name' => 'admin',
-                                'lastname' => 'admin',
-                                'role' => \App\Enums\Role::ADMIN,
-                                'address' => 'admin',
-                                'city' => 'admin',
-                                'postal_code' => '9999',
-                                'phone' => '+5493482111111',
-                                'email' => $email,
-                                'password' => \Illuminate\Support\Facades\Hash::make('Webstore18743'),
-                            ]);
-                            $output .= "Usuario admin creado exitosamente (vía Eloquent).\n";
+                        // Intentar migrar desde cero en el fallback también
+                        try {
+                            $kernel->call('migrate:fresh', ['--force' => true]);
+                            $output .= "Tablas limpiadas y migradas con éxito.\n";
+                        } catch (Throwable $migrateError) {
+                            $output .= "Error al limpiar tablas: " . $migrateError->getMessage() . "\n";
                         }
+
+                        $email = 'admin@admin.com';
+                        // Eliminar si existe para asegurar ID 1
+                        \App\Models\User::where('email', $email)->orWhere('id', 1)->delete();
+                        
+                        \App\Models\User::create([
+                            'id' => 1,
+                            'name' => 'admin',
+                            'lastname' => 'admin',
+                            'role' => \App\Enums\Role::ADMIN,
+                            'address' => 'admin',
+                            'city' => 'admin',
+                            'postal_code' => '9999',
+                            'phone' => '+5493482111111',
+                            'email' => $email,
+                            'password' => \Illuminate\Support\Facades\Hash::make('Webstore18743'),
+                        ]);
+                        $output .= "Usuario admin (ID: 1) creado exitosamente.\n";
                         
                         $output .= "Ejecutando seeders...\n";
                         (new \Database\Seeders\SettingsSeeder())->run();

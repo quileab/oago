@@ -25,33 +25,35 @@ class CreateAdminUser extends Command
      */
     public function handle(): void
     {
-        $this->info('Inicializando base de datos...');
+        $this->info('Limpiando base de datos y ejecutando migraciones...');
+        
+        // Wipe and re-migrate
+        $this->call('migrate:fresh', ['--force' => true]);
 
-        // Asegurarse de que el usuario admin no existe
+        $this->info('Creando usuario administrador...');
+
         $email = 'admin@admin.com';
         $password = 'Webstore18743';
 
-        if (\App\Models\User::where('email', $email)->exists()) {
-            $this->warn("El usuario {$email} ya existe.");
-        } else {
-            \App\Models\User::create([
-                'name' => 'admin',
-                'lastname' => 'admin',
-                'role' => \App\Enums\Role::ADMIN,
-                'address' => 'admin',
-                'city' => 'admin',
-                'postal_code' => '9999',
-                'phone' => '+5493482111111',
-                'email' => $email,
-                'password' => \Illuminate\Support\Facades\Hash::make($password),
-            ]);
-            $this->info("Usuario admin creado: {$email} / {$password}");
-        }
+        \App\Models\User::create([
+            'id' => 1,
+            'name' => 'admin',
+            'lastname' => 'admin',
+            'role' => \App\Enums\Role::ADMIN,
+            'address' => 'admin',
+            'city' => 'admin',
+            'postal_code' => '9999',
+            'phone' => '+5493482111111',
+            'email' => $email,
+            'password' => \Illuminate\Support\Facades\Hash::make($password),
+        ]);
+        
+        $this->info("Usuario admin creado con ID 1: {$email} / {$password}");
 
         $this->info('Ejecutando seeders adicionales...');
         $this->call('db:seed', ['--class' => 'SettingsSeeder']);
         $this->call('db:seed', ['--class' => 'AchievementSeeder']);
 
-        $this->info('¡Proceso completado con éxito!');
+        $this->info('¡Proceso de inicialización completado con éxito!');
     }
 }
