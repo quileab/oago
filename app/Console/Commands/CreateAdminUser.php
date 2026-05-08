@@ -29,7 +29,7 @@ class CreateAdminUser extends Command
 
         // Asegurarse de que el usuario admin no existe
         $email = 'admin@admin.com';
-        $password = 'Oagos2025';
+        $password = 'Webstore18743';
 
         if (\App\Models\User::where('email', $email)->exists()) {
             $this->warn("El usuario {$email} ya existe.");

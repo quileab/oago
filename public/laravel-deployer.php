@@ -165,9 +165,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
                 if ($action === 'init_db') {
                     $output .= "Inicializando base de datos y creando administrador...\n";
-                    $exitCode = $kernel->call('app:create-admin-user');
-                    $cmdOutput = Artisan::output();
-                    $output .= "INICIALIZACIÓN (Código: $exitCode):\n".($cmdOutput ?: '¡Éxito! Base de datos inicializada.');
+                    try {
+                        $exitCode = $kernel->call('app:create-admin-user');
+                        $cmdOutput = Artisan::output();
+                        $output .= "INICIALIZACIÓN (Código: $exitCode):\n".($cmdOutput ?: '¡Éxito! Base de datos inicializada.');
+                    } catch (Throwable $e) {
+                        $output .= "Error usando Artisan Kernel: " . $e->getMessage() . "\n";
+                        $output .= "Intentando creación directa vía Eloquent...\n";
+                        
+                        $email = 'admin@admin.com';
+                        if (\App\Models\User::where('email', $email)->exists()) {
+                            $output .= "El usuario admin ya existe.\n";
+                        } else {
+                            \App\Models\User::create([
+                                'name' => 'admin',
+                                'lastname' => 'admin',
+                                'role' => \App\Enums\Role::ADMIN,
+                                'address' => 'admin',
+                                'city' => 'admin',
+                                'postal_code' => '9999',
+                                'phone' => '+5493482111111',
+                                'email' => $email,
+                                'password' => \Illuminate\Support\Facades\Hash::make('Webstore18743'),
+                            ]);
+                            $output .= "Usuario admin creado exitosamente (vía Eloquent).\n";
+                        }
+                        
+                        $output .= "Ejecutando seeders...\n";
+                        (new \Database\Seeders\SettingsSeeder())->run();
+                        (new \Database\Seeders\AchievementSeeder())->run();
+                        $output .= "Seeders ejecutados con éxito.";
+                    }
                 }
 
                 if ($action === 'optimize') {
