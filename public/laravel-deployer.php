@@ -163,6 +163,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $output .= "MIGRACIONES (Código: $exitCode):\n".($cmdOutput ?: 'Ejecutado correctamente (sin cambios pendientes o salida vacía).');
                 }
 
+                if ($action === 'init_db') {
+                    $output .= "Inicializando base de datos y creando administrador...\n";
+                    $exitCode = $kernel->call('app:create-admin-user');
+                    $cmdOutput = Artisan::output();
+                    $output .= "INICIALIZACIÓN (Código: $exitCode):\n".($cmdOutput ?: '¡Éxito! Base de datos inicializada.');
+                }
+
                 if ($action === 'optimize') {
                     $output .= "Solicitando optimización de caches...\n";
                     $exitCode = $kernel->call('optimize');
@@ -331,7 +338,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             <div class="card">
                 <h3>App</h3>
                 <form method="POST"><input type="hidden" name="action" value="migrate"><button>5. Migraciones</button></form>
-                <form method="POST"><input type="hidden" name="action" value="optimize"><button>6. Optimizar Todo</button></form>
+                <form method="POST"><input type="hidden" name="action" value="init_db"><button style="background:#3182ce">6. Inicializar DB (Admin)</button></form>
+                <form method="POST"><input type="hidden" name="action" value="optimize"><button>7. Optimizar Todo</button></form>
                 <form method="POST"><input type="hidden" name="action" value="check"><button style="background:#4a5568">Verificar Permisos</button></form>
                 <form method="POST"><input type="hidden" name="action" value="logs"><button style="background:#4a5568">Ver Últimos Logs</button></form>
                 <form method="POST" onsubmit="return confirm('¿Limpiar cache de bootstrap manualmente?');">
