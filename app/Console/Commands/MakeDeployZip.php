@@ -135,8 +135,8 @@ class MakeDeployZip extends Command
                 continue;
             }
 
-            // 4. Excluir archivos de base de datos local (sqlite) y otros archivos ZIP
-            if (Str::endsWith($zipPath, '.sqlite') || Str::endsWith($zipPath, '.zip')) {
+            // 4. Excluir archivos de base de datos local (sqlite), otros archivos ZIP y archivos SQL
+            if (Str::endsWith($zipPath, '.sqlite') || Str::endsWith($zipPath, '.zip') || Str::endsWith($zipPath, '.sql')) {
                 continue;
             }
 
