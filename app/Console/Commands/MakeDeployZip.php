@@ -146,6 +146,7 @@ class MakeDeployZip extends Command
             }
 
             $zip->addFile($filePath, $zipPath);
+            $zip->setCompressionName($zipPath, ZipArchive::CM_DEFLATE);
             $count++;
         }
 
