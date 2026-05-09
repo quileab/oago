@@ -10,6 +10,15 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Session;
 
+/**
+ * @property int $id
+ * @property int $user_id
+ * @property float $total_price
+ * @property string|null $sending_method
+ * @property string $status
+ * @property-read \App\Models\User $user
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\OrderItem> $items
+ */
 class Order extends Model
 {
     // protected $fillable = ['status'];
@@ -28,17 +37,17 @@ class Order extends Model
         'status',
     ];
 
-    public function user()
+    public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    public function items()
+    public function items(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(OrderItem::class);
     }
 
-    public function shipping()
+    public function shipping(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
         return $this->hasOne(ShippingDetail::class);
     }

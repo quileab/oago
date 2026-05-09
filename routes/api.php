@@ -51,7 +51,7 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // Rutas de Usuarios que tienen validación interna de propiedad (IDOR check)
-    Route::get('users/{id}', [UserController::class, 'show']);
-    Route::put('users/{id}', [UserController::class, 'update']);
-    Route::delete('users/{id}', [UserController::class, 'destroy']);
+    Route::get('users/{user}', [UserController::class, 'show']);
+    Route::put('users/{user}', [UserController::class, 'update']);
+    Route::delete('users/{user}', [UserController::class, 'destroy']);
 });

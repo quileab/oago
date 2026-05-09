@@ -163,6 +163,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $output .= "MIGRACIONES (Código: $exitCode):\n".($cmdOutput ?: 'Ejecutado correctamente (sin cambios pendientes o salida vacía).');
                 }
 
+                if ($action === 'init_db') {
+                    $output .= "Limpiando base de datos e inicializando administrador (ID 1)...\n";
+                    try {
+                        $exitCode = $kernel->call('app:create-admin-user');
+                        $cmdOutput = Artisan::output();
+                        $output .= "INICIALIZACIÓN (Código: $exitCode):\n".($cmdOutput ?: '¡Éxito! Base de datos reiniciada y administrador creado.');
+                    } catch (Throwable $e) {
+                        $output .= "Error usando Artisan Kernel: " . $e->getMessage() . "\n";
+                        $output .= "Intentando limpieza y creación directa...\n";
+                        
+                        // Intentar migrar desde cero en el fallback también
+                        try {
+                            $kernel->call('migrate:fresh', ['--force' => true]);
+                            $output .= "Tablas limpiadas y migradas con éxito.\n";
+                        } catch (Throwable $migrateError) {
+                            $output .= "Error al limpiar tablas: " . $migrateError->getMessage() . "\n";
+                        }
+
+                        $email = 'admin@admin.com';
+                        // Eliminar si existe para asegurar ID 1
+                        \App\Models\User::where('email', $email)->orWhere('id', 1)->delete();
+                        
+                        \App\Models\User::create([
+                            'id' => 1,
+                            'name' => 'admin',
+                            'lastname' => 'admin',
+                            'role' => \App\Enums\Role::ADMIN,
+                            'address' => 'admin',
+                            'city' => 'admin',
+                            'postal_code' => '9999',
+                            'phone' => '+5493482111111',
+                            'email' => $email,
+                            'password' => \Illuminate\Support\Facades\Hash::make('Webstore18743'),
+                        ]);
+                        $output .= "Usuario admin (ID: 1) creado exitosamente.\n";
+                        
+                        $output .= "Ejecutando seeders...\n";
+                        (new \Database\Seeders\SettingsSeeder())->run();
+                        (new \Database\Seeders\AchievementSeeder())->run();
+                        $output .= "Seeders ejecutados con éxito.";
+                    }
+                }
+
                 if ($action === 'optimize') {
                     $output .= "Solicitando optimización de caches...\n";
                     $exitCode = $kernel->call('optimize');
@@ -331,7 +374,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             <div class="card">
                 <h3>App</h3>
                 <form method="POST"><input type="hidden" name="action" value="migrate"><button>5. Migraciones</button></form>
-                <form method="POST"><input type="hidden" name="action" value="optimize"><button>6. Optimizar Todo</button></form>
+                <form method="POST"><input type="hidden" name="action" value="init_db"><button style="background:#3182ce">6. Inicializar DB (Admin)</button></form>
+                <form method="POST"><input type="hidden" name="action" value="optimize"><button>7. Optimizar Todo</button></form>
                 <form method="POST"><input type="hidden" name="action" value="check"><button style="background:#4a5568">Verificar Permisos</button></form>
                 <form method="POST"><input type="hidden" name="action" value="logs"><button style="background:#4a5568">Ver Últimos Logs</button></form>
                 <form method="POST" onsubmit="return confirm('¿Limpiar cache de bootstrap manualmente?');">
