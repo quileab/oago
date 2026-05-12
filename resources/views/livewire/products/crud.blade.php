@@ -58,6 +58,9 @@ new class extends Component
                 'featured' => false,
                 'visibility' => 'visible',
                 'tags' => '',
+                'in_stock' => true,
+                'allow_reservation' => false,
+                'by_bulk' => false,
             ];
             $this->selectedTags = [];
             foreach ($this->listNames() as $list) {
@@ -151,11 +154,28 @@ new class extends Component
     {
         $rules = [
             'formData.description' => 'required|string|max:100',
+            'formData.description_html' => 'nullable|string|max:250',
             'formData.brand' => 'nullable|string|max:30',
             'formData.category' => 'nullable|string|max:50',
+            'formData.model' => 'nullable|string|max:130',
+            'formData.sku' => 'nullable|string|max:50',
+            'formData.barcode' => 'nullable|string|max:50',
+            'formData.product_type' => 'nullable|string|max:30',
             'formData.stock' => 'required|numeric',
             'formData.qtty_package' => 'required|numeric|min:1',
             'formData.qtty_unit' => 'required|numeric|min:1',
+            'formData.weight' => 'nullable|numeric',
+            'formData.lenght' => 'nullable|numeric',
+            'formData.width' => 'nullable|numeric',
+            'formData.height' => 'nullable|numeric',
+            'formData.price' => 'nullable|numeric',
+            'formData.offer_price' => 'nullable|numeric',
+            'formData.offer_start' => 'nullable|date',
+            'formData.offer_end' => 'nullable|date',
+            'formData.bonus_threshold' => 'nullable|integer',
+            'formData.bonus_amount' => 'nullable|integer',
+            'formData.tax_status' => 'nullable|string|max:10',
+            'formData.visibility' => 'required|string|max:10',
             'photo' => 'nullable|image|max:10240',
             'extraPhotos.*' => 'image|max:10240',
             'extraVideos.*' => 'nullable|url',
@@ -185,7 +205,7 @@ new class extends Component
         foreach ($this->prices as $listId => $price) {
             ListPrice::updateOrCreate(
                 ['product_id' => $product->id, 'list_id' => $listId],
-                ['price' => $price, 'unit_price' => $price / max(1, $product->qtty_unit)]
+                ['price' => $price, 'unit_price' => $price / max(1, $product->qtty_unit ?? 1)]
             );
         }
 
@@ -405,11 +425,14 @@ new class extends Component
                     </div>
                 </x-card>
 
-                <x-card title="Publicación" separator shadow class="bg-base-100">
+                <x-card title="Publicación y Venta" separator shadow class="bg-base-100">
                     <div class="space-y-4">
-                        <div class="flex flex-col gap-4">
-                            <x-checkbox label="Producto Publicado" wire:model="formData.published" tight />
-                            <x-checkbox label="Producto Destacado" wire:model="formData.featured" tight />
+                        <div class="grid grid-cols-2 gap-4">
+                            <x-checkbox label="Publicado" wire:model="formData.published" tight />
+                            <x-checkbox label="Destacado" wire:model="formData.featured" tight />
+                            <x-checkbox label="En Stock" wire:model="formData.in_stock" tight />
+                            <x-checkbox label="Permitir Reserva" wire:model="formData.allow_reservation" tight />
+                            <x-checkbox label="Venta por Bulto" wire:model="formData.by_bulk" tight />
                         </div>
                         <x-select label="Visibilidad" wire:model="formData.visibility" :options="[
                             ['id' => 'visible', 'name' => 'Visible'],
@@ -428,6 +451,17 @@ new class extends Component
                     </x-slot:title>
                     
                     <div class="space-y-3 max-h-[600px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-200">
+                        <div class="p-3 border-2 border-primary/20 rounded-xl bg-primary/5 mb-4">
+                            <x-input label="Precio Base (Default)" 
+                                     wire:model="formData.price" 
+                                     type="number" 
+                                     step="0.01" 
+                                     prefix="$"
+                                     class="font-extrabold text-primary" />
+                        </div>
+
+                        <div class="divider text-[10px] uppercase opacity-40">Listas de Precios</div>
+
                         @foreach($this->listNames() as $list)
                             <div class="p-3 border border-base-content/5 rounded-xl hover:border-primary/30 transition-colors bg-base-200/20">
                                 <x-input label="{{ $list->name }}" 
@@ -451,12 +485,27 @@ new class extends Component
                         </div>
                         
                         <x-input label="Marca" wire:model="formData.brand" placeholder="Ej: Monroe" />
+                        <x-input label="Modelo" wire:model="formData.model" placeholder="Ej: Adventure" />
+                        
                         <x-input label="Categoría" wire:model="formData.category" placeholder="Ej: Suspensión" />
+                        <x-input label="Tipo de Producto" wire:model="formData.product_type" placeholder="Ej: Repuesto" />
+
+                        <x-input label="SKU" wire:model="formData.sku" icon="o-hashtag" placeholder="Ej: MON-123" />
+                        <x-input label="Código de Barras" wire:model="formData.barcode" icon="o-qr-code" placeholder="Ej: 779..." />
 
                         <div class="grid grid-cols-3 gap-4 md:col-span-2">
                             <x-input label="Stock Actual" type="number" wire:model="formData.stock" icon="o-cube" />
                             <x-input label="Unidades x Bulto" type="number" wire:model="formData.qtty_package" hint="Empaque" />
                             <x-input label="Unidades Totales" type="number" wire:model="formData.qtty_unit" hint="Contenido" />
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <x-alert icon="o-information-circle" class="alert-info shadow-sm mb-4"
+                                     title="Gestión Masiva Disponible">
+                                Atributos como <b>Etiquetas</b>, <b>Descripción HTML</b>, <b>Publicación</b> y <b>Bonificaciones</b> también pueden editarse grupalmente en 
+                                <a href="/products/extras" class="link link-primary font-bold">Productos Extras</a>.
+                            </x-alert>
+                            <x-textarea label="Descripción HTML (Snippet)" wire:model="formData.description_html" placeholder="Ej: <b>Negro</b>..." rows="2" />
                         </div>
 
                         <div class="md:col-span-2">
@@ -467,6 +516,30 @@ new class extends Component
                                     icon="o-tag" 
                                     hint="Seleccione para categorizar el producto" />
                         </div>
+                    </div>
+                </x-card>
+
+                <x-card title="Dimensiones y Peso" separator shadow class="bg-base-100">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <x-input label="Peso (kg)" type="number" step="0.001" wire:model="formData.weight" icon="o-scale" />
+                        <x-input label="Largo (cm)" type="number" step="0.001" wire:model="formData.lenght" icon="o-arrows-right-left" />
+                        <x-input label="Ancho (cm)" type="number" step="0.001" wire:model="formData.width" icon="o-arrows-right-left" />
+                        <x-input label="Alto (cm)" type="number" step="0.001" wire:model="formData.height" icon="o-arrows-up-down" />
+                    </div>
+                </x-card>
+
+                <x-card title="Ofertas y Bonificaciones" separator shadow class="bg-base-100">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <x-input label="Precio de Oferta" type="number" step="0.01" wire:model="formData.offer_price" prefix="$" icon="o-tag" />
+                        <x-input label="Estado de Impuestos" wire:model="formData.tax_status" placeholder="Ej: taxable" />
+                        
+                        <x-input label="Inicio de Oferta" type="date" wire:model="formData.offer_start" />
+                        <x-input label="Fin de Oferta" type="date" wire:model="formData.offer_end" />
+
+                        <div class="divider md:col-span-2 text-xs uppercase opacity-50">Bonificación (Ej: 23+1)</div>
+                        
+                        <x-input label="Umbral de Bono" type="number" wire:model="formData.bonus_threshold" hint="Cantidad requerida" />
+                        <x-input label="Cantidad de Bono" type="number" wire:model="formData.bonus_amount" hint="Cantidad regalada" />
                     </div>
                 </x-card>
 

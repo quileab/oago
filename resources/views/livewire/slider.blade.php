@@ -1,22 +1,27 @@
 <?php
 
-use Livewire\Volt\Component;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Livewire\Volt\Component;
 use Livewire\WithFileUploads;
 use Mary\Traits\Toast;
-use Illuminate\Support\Str;
 
-new class extends Component {
-    use WithFileUploads, Toast;
+new class extends Component
+{
+    use Toast, WithFileUploads;
 
     public $selectedImageFile;
+
+    public $replacementImageFile;
+
     public $editModal = false;
+
     public $editingSlide = [
         'id' => '',
         'title' => '',
         'description' => '',
         'url' => '',
-        'urlText' => ''
+        'urlText' => '',
     ];
 
     // Configuración general del slider
@@ -24,15 +29,16 @@ new class extends Component {
         'autoplay' => true,
         'interval' => 5000,
         'withoutArrows' => false,
-        'withoutIndicators' => false
+        'withoutIndicators' => false,
     ];
 
-    private $sliderPath = 'slider';
-    private $jsonFile = 'slider/slider.json';
+    private $sliderPath = '';
+
+    private $jsonFile = 'slider.json';
 
     public function mount()
     {
-        $disk = Storage::disk('public');
+        $disk = Storage::disk('slider_public');
         if ($disk->exists($this->jsonFile)) {
             $data = json_decode($disk->get($this->jsonFile), true);
             if (isset($data['config'])) {
@@ -43,11 +49,11 @@ new class extends Component {
 
     public function saveConfig()
     {
-        $disk = Storage::disk('public');
+        $disk = Storage::disk('slider_public');
         $data = $disk->exists($this->jsonFile) ? json_decode($disk->get($this->jsonFile), true) : ['slides' => []];
 
         // Si el JSON viejo era un array plano o de slides, normalizar
-        if (!isset($data['slides'])) {
+        if (! isset($data['slides'])) {
             $data = ['slides' => $data, 'config' => []];
         }
 
@@ -58,23 +64,28 @@ new class extends Component {
 
     public function getImagesProperty()
     {
-        $disk = Storage::disk('public');
+        $disk = Storage::disk('slider_public');
 
-        if (!$disk->exists($this->jsonFile)) {
+        if (! $disk->exists($this->jsonFile)) {
             $this->generateJsonFromFiles();
         }
 
-        $data = json_decode($disk->get($this->jsonFile), true);
+        $data = json_decode($disk->get($this->jsonFile), true) ?? [];
 
         // Normalización de estructura nueva/vieja
-        $files_in_json = isset($data['slides']) ? $data['slides'] : $data;
+        $files_in_json = $data['slides'] ?? $data;
+
+        if (! is_array($files_in_json)) {
+            $files_in_json = [];
+        }
 
         $files_on_disk = $disk->files($this->sliderPath);
         $files_on_disk_basename = array_map('basename', $files_on_disk);
 
         // Filter out files from JSON that are no longer on disk
-        $existing_files = array_filter($files_in_json, function($file) use ($files_on_disk_basename) {
+        $existing_files = array_filter($files_in_json, function ($file) use ($files_on_disk_basename) {
             $path = is_array($file) ? $file['id'] : $file;
+
             return in_array(basename($path), $files_on_disk_basename);
         });
 
@@ -89,11 +100,12 @@ new class extends Component {
             $files_in_json = $existing_files;
         }
 
-        return collect($files_in_json)->map(function($f) use ($disk) {
+        return collect($files_in_json)->map(function ($f) use ($disk) {
             $id = is_array($f) ? $f['id'] : $f;
+
             return [
                 'id' => $id,
-                'image_url' => asset('storage/' . $id) . '?v=' . ($disk->exists($id) ? $disk->lastModified($id) : time()),
+                'image_url' => asset('imgs/slider/'.$id).'?v='.($disk->exists($id) ? $disk->lastModified($id) : time()),
                 'name' => basename($id),
                 'title' => is_array($f) ? ($f['title'] ?? '') : '',
                 'description' => is_array($f) ? ($f['description'] ?? '') : '',
@@ -105,16 +117,18 @@ new class extends Component {
 
     public function edit($id)
     {
-        $disk = Storage::disk('public');
+        $disk = Storage::disk('slider_public');
         $data = json_decode($disk->get($this->jsonFile), true);
         $slides = isset($data['slides']) ? $data['slides'] : $data;
 
-        $slide = collect($slides)->first(function($f) use ($id) {
+        $slide = collect($slides)->first(function ($f) use ($id) {
             $path = is_array($f) ? $f['id'] : $f;
+
             return $path === $id;
         });
 
         if ($slide) {
+            $this->reset('replacementImageFile');
             $this->editingSlide = [
                 'id' => is_array($slide) ? $slide['id'] : $slide,
                 'title' => is_array($slide) ? ($slide['title'] ?? '') : '',
@@ -128,15 +142,40 @@ new class extends Component {
 
     public function save()
     {
-        $disk = Storage::disk('public');
+        $disk = Storage::disk('slider_public');
+
+        // Si se subió una nueva imagen para reemplazar
+        if ($this->replacementImageFile) {
+            $this->validate([
+                'replacementImageFile' => 'image|max:1024',
+            ]);
+
+            $ext = $this->replacementImageFile->getClientOriginalExtension();
+            $filename = time().'_'.Str::random(10).'.'.$ext;
+
+            // Guardar nueva
+            $path = $this->replacementImageFile->storeAs($this->sliderPath, $filename, 'slider_public');
+
+            // Borrar antigua si existe y es distinta
+            $oldId = $this->editingSlide['id'];
+            if ($oldId && $disk->exists($oldId)) {
+                $disk->delete($oldId);
+            }
+
+            // Actualizar ID en el slide actual
+            $this->editingSlide['id'] = basename($path);
+            $this->reset('replacementImageFile');
+        }
+
         $data = json_decode($disk->get($this->jsonFile), true);
         $slides = isset($data['slides']) ? $data['slides'] : $data;
 
-        $newSlides = collect($slides)->map(function($f) {
+        $newSlides = collect($slides)->map(function ($f) {
             $path = is_array($f) ? $f['id'] : $f;
             if ($path === $this->editingSlide['id']) {
                 return $this->editingSlide;
             }
+
             return $f;
         })->toArray();
 
@@ -157,13 +196,14 @@ new class extends Component {
             'selectedImageFile' => 'required|image|max:1024',
         ]);
 
-        $disk = Storage::disk('public');
+        $disk = Storage::disk('slider_public');
         $ext = $this->selectedImageFile->getClientOriginalExtension();
-        $filename = time() . '_' . Str::random(10) . '.' . $ext;
+        $filename = time().'_'.Str::random(10).'.'.$ext;
 
-        $path = $this->selectedImageFile->storeAs($this->sliderPath, $filename, 'public');
+        $path = $this->selectedImageFile->storeAs($this->sliderPath, $filename, 'slider_public');
 
-        $this->addImageToJson($path);
+        // storeAs returns the full path, but since we are in the root of the disk, it's just the filename
+        $this->addImageToJson(basename($path));
 
         $this->reset('selectedImageFile');
         $this->success('Imagen subida con éxito.');
@@ -171,21 +211,21 @@ new class extends Component {
 
     public function delete($path)
     {
-        Storage::disk('public')->delete($path);
+        Storage::disk('slider_public')->delete($path);
         $this->removeImageFromJson($path);
         $this->success('Imagen eliminada.');
     }
 
     public function reorderImages($orderedItems)
     {
-        $disk = Storage::disk('public');
+        $disk = Storage::disk('slider_public');
         $data = json_decode($disk->get($this->jsonFile), true);
         $slides = isset($data['slides']) ? $data['slides'] : $data;
         $orderedIds = collect($orderedItems)->pluck('value')->toArray();
 
         $newOrder = [];
         foreach ($orderedIds as $id) {
-            $slide = collect($slides)->first(function($f) use ($id) {
+            $slide = collect($slides)->first(function ($f) use ($id) {
                 return (is_array($f) ? $f['id'] : $f) === $id;
             });
             if ($slide) {
@@ -205,16 +245,17 @@ new class extends Component {
 
     private function generateJsonFromFiles()
     {
-        $disk = Storage::disk('public');
+        $disk = Storage::disk('slider_public');
         $files = $disk->files($this->sliderPath);
 
         // Exclude slider.json itself
-        $imageFiles = array_filter($files, fn($file) => basename($file) !== 'slider.json');
+        $imageFiles = array_filter($files, fn ($file) => basename($file) !== 'slider.json');
 
         // Sort by old naming convention if present
         usort($imageFiles, function ($a, $b) {
             preg_match('/slide \((\\d+)\)/', basename($a), $aMatch);
             preg_match('/slide \((\\d+)\)/', basename($b), $bMatch);
+
             return ($aMatch[1] ?? PHP_INT_MAX) <=> ($bMatch[1] ?? PHP_INT_MAX);
         });
 
@@ -223,7 +264,7 @@ new class extends Component {
 
     private function addImageToJson($path)
     {
-        $disk = Storage::disk('public');
+        $disk = Storage::disk('slider_public');
         $data = json_decode($disk->get($this->jsonFile), true);
 
         $newSlide = ['id' => $path, 'title' => '', 'description' => '', 'url' => '', 'urlText' => ''];
@@ -241,12 +282,13 @@ new class extends Component {
 
     private function removeImageFromJson($path)
     {
-        $disk = Storage::disk('public');
+        $disk = Storage::disk('slider_public');
         $data = json_decode($disk->get($this->jsonFile), true);
         $slides = isset($data['slides']) ? $data['slides'] : $data;
 
-        $newSlides = array_filter($slides, function($image) use ($path) {
+        $newSlides = array_filter($slides, function ($image) use ($path) {
             $currentPath = is_array($image) ? $image['id'] : $image;
+
             return $currentPath !== $path;
         });
 
@@ -345,8 +387,17 @@ new class extends Component {
 
     <x-modal wire:model="editModal" title="Editar Texto del Slide" class="backdrop-blur">
         <div class="grid gap-4">
-            <img src="{{ asset('storage/' . $editingSlide['id']) }}" class="w-full h-48 object-cover rounded-lg border border-base-300 shadow-inner" /> 
-            <x-input label="Título" wire:model="editingSlide.title" placeholder="Título que aparece en grande" />   
+            <div class="relative group">
+                <img src="{{ asset('imgs/slider/' . $editingSlide['id']) }}" class="w-full h-48 object-cover rounded-lg border border-base-300 shadow-inner" />
+                <div class="absolute inset-0 bg-black/20 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                     <span class="text-white text-xs font-bold bg-black/50 px-2 py-1 rounded">Vista Previa Actual</span>
+                </div>
+            </div>
+            
+            <x-file wire:model="replacementImageFile" label="Reemplazar Imagen" accept="image/*" hint="Opcional: Suba una nueva para cambiar la imagen actual" />
+            
+            <x-input label="Título" wire:model="editingSlide.title" placeholder="Título que aparece en grande" />
+   
             <x-textarea label="Descripción" wire:model="editingSlide.description" placeholder="Texto descriptivo inferior" rows="2" />
             <div class="grid grid-cols-2 gap-4">
                 <x-input label="Texto del Botón" wire:model="editingSlide.urlText" placeholder="Ej: Ver Más" />     

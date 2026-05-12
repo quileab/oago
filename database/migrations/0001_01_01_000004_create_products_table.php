@@ -13,14 +13,14 @@ return new class extends Migration
     {
         Schema::create('products', function (Blueprint $table) {
             $table->id();
-            $table->string('barcode', 50)->nullable();
-            $table->string('sku', 50)->nullable();
+            $table->string('barcode', 50)->default('');
+            $table->string('sku', 50)->default('');
             $table->string('product_type', 30)->nullable();
-            $table->string('brand', 30)->nullable();
-            $table->string('model', 130)->nullable();
-            $table->string('category', 50)->nullable();
+            $table->string('brand', 30)->default('');
+            $table->string('model', 130)->default('');
+            $table->string('category', 50)->default('');
             $table->string('description', 100);
-            $table->string('description_html', 250)->nullable();
+            $table->string('description_html', 250)->default('');
             $table->boolean('published')->default(1);
             $table->boolean('featured')->default(0);
             $table->string('visibility', 10);
@@ -41,7 +41,7 @@ return new class extends Migration
             $table->decimal('height', 12, 3)->nullable();
             $table->decimal('price', 12, 2)->default(0);
             $table->decimal('offer_price', 12, 2)->default(0);
-            $table->string('tags', 50)->nullable();
+            $table->string('tags', 50)->default('');
             $table->string('image_url', 250)->nullable();
             $table->timestamps();
         });

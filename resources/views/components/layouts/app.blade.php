@@ -67,6 +67,7 @@
                     <x-menu-sub title="Productos" icon="o-cube">
                         <x-menu-item title="Gestión de Productos" icon="o-square-3-stack-3d" link="/products" />
                         <x-menu-item title="Atrib. Extras Web" icon="s-square-3-stack-3d" link="/products/extras" />
+                        <x-menu-item title="Administrar Listas" icon="o-list-bullet" link="/products/lists" />
                     </x-menu-sub>
                     <x-menu-sub title="Web" icon="o-paint-brush">
                         <x-menu-item title="Slider" icon="o-photo" link="/slider" />

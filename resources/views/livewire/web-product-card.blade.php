@@ -6,7 +6,7 @@
             <!-- Columna Imagen (Aumentada al 45%) -->
             <div class="w-[45%] relative bg-gray-50 flex items-center justify-center overflow-hidden border-r border-gray-100">
                 @if($product->featured)
-                    <div class="absolute top-0 left-0 z-10">
+                    <div class="absolute top-0 left-0">
                         <span class="text-[9px] font-bold px-1.5 py-0.5 text-white bg-red-600 rounded-br-lg shadow-sm">
                             ⭐
                         </span>

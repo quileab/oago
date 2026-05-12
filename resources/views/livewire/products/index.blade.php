@@ -1,17 +1,15 @@
 <?php
 
-use App\Models\ListName;
-use App\Models\ListPrice;
 use App\Models\Product;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Facades\Storage;
 use Livewire\Volt\Component;
 use Livewire\WithFileUploads;
 use Livewire\WithPagination;
 use Mary\Traits\Toast;
 
-new class extends Component {
-    use WithPagination, WithFileUploads, Toast;
+new class extends Component
+{
+    use Toast, WithFileUploads, WithPagination;
 
     public string $search = '';
 

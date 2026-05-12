@@ -1,4 +1,4 @@
-<div class="w-full bg-gray-800 text-gray-100 flex justify-between items-center px-2 py-0 my-0 sticky z-20">
+<div class="w-full bg-gray-800 text-gray-100 flex justify-between items-center px-2 py-0 my-0 sticky z-50">
   <img src="{{ asset('imgs/brand.webp') }}" class="w-auto h-16 p-2 mx-3 hidden md:block" />
   <img src="{{ asset('imgs/brand-logo.webp') }}" class="w-auto h-16 p-2 mx-3 md:hidden" />
 

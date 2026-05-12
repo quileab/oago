@@ -107,7 +107,7 @@ new class extends Component
             <div class="grid grid-cols-1 md:grid-cols-2">
                 <div class="relative bg-gray-50 flex flex-col items-center justify-center p-8 border-b md:border-b-0 md:border-r border-gray-100">
                     @if($product->featured)
-                        <div class="absolute top-4 left-4 z-10">
+                        <div class="absolute top-4 left-4">
                             <span class="px-3 py-1 text-xs font-black text-white bg-red-600 rounded-full shadow-lg">PRODUCTO DESTACADO ⭐</span>
                         </div>
                     @endif

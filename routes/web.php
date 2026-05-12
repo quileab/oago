@@ -110,6 +110,7 @@ Route::middleware(['auth', 'check_guest'])->group(function () {
     Volt::route('/alt-users/create', 'users.alts.crud')->middleware('is_admin'); // New route for adding alt user
     Volt::route('/products', 'products.index')->middleware('is_admin');
     Volt::route('/products/extras', 'products.extras')->middleware('is_admin');
+    Volt::route('/products/lists', 'products.lists')->middleware('is_admin');
     Volt::route('/product/{id?}', 'products.crud')->middleware('is_admin');
     Volt::route('/product/details/{id?}', 'web-product-detail');
     Volt::route('/slider', 'slider')->middleware('is_admin');

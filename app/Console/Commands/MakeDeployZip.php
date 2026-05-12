@@ -11,69 +11,130 @@ use ZipArchive;
 
 class MakeDeployZip extends Command
 {
-    protected $signature = 'make:deploy-zip {--name=deploy.zip} {--no_brand}';
+    protected $signature = 'make:deploy-zip {--name=deploy.zip} {--no_brand} {--include-assets}';
 
-    protected $description = 'Genera un paquete ZIP para despliegue en hosting compartido';
+    protected $description = 'Genera un paquete ZIP para despliegue detectando el mejor método (7-Zip o Nativo)';
 
     public function handle()
     {
         $noBrand = $this->option('no_brand');
-        $this->info('🚀 Iniciando proceso de empaquetado...');
+        $includeAssets = $this->option('include-assets');
+        $zipName = $this->option('name');
+        $zipPath = base_path($zipName);
+
+        $this->info('🚀 Iniciando proceso de empaquetado unificado...');
+
         if ($noBrand) {
             $this->info('🚫 Opción --no_brand activa: se excluirán imágenes de marca y sliders.');
         }
 
-        // 1. Ejecutar npm run build y publicar assets de Livewire
+        // 1. Preparación de Assets
         $this->info('📦 Ejecutando npm run build...');
         $process = new Process(['npm', 'run', 'build']);
         $process->setTimeout(300);
         $process->run();
 
         if (! $process->isSuccessful()) {
-            $this->error('❌ Error al ejecutar npm run build.');
-
+            $this->error('❌ Error en npm run build.');
             return 1;
         }
 
-        $this->info('📡 Publicando assets de Livewire...');
-        $this->call('livewire:publish', ['--assets' => true]);
-
-        // 2. Definir ruta final. Usaremos un nombre temporal único.
-        $zipName = $this->option('name');
-        $finalPath = base_path($zipName);
-        $tempZipName = 'temp_'.time().'_'.$zipName;
-        $tempPath = base_path($tempZipName);
-
-        // Limpieza previa
-        if (file_exists($finalPath)) {
-            @unlink($finalPath);
-        }
-        if (file_exists($tempPath)) {
-            @unlink($tempPath);
+        if ($includeAssets) {
+            $this->info('📡 Publicando assets de Livewire...');
+            $this->call('livewire:publish', ['--assets' => true]);
+        } else {
+            $this->info('⏩ Omitiendo publicación de assets.');
         }
 
+        if (file_exists($zipPath)) {
+            @unlink($zipPath);
+        }
+
+        // 2. Detección de 7-Zip
+        $sevenZipPath = $this->getSevenZipPath();
+
+        if ($sevenZipPath) {
+            return $this->useSevenZip($sevenZipPath, $zipPath, $noBrand);
+        }
+
+        return $this->useNativeZip($zipPath, $noBrand);
+    }
+
+    private function getSevenZipPath(): ?string
+    {
+        // 1. Intentar ruta estándar de Windows
+        $winPath = 'C:\Program Files\7-Zip\7z.exe';
+        if (PHP_OS_FAMILY === 'Windows' && file_exists($winPath)) {
+            return $winPath;
+        }
+
+        // 2. Intentar buscar en el PATH (Linux o Windows con PATH configurado)
+        $command = PHP_OS_FAMILY === 'Windows' ? 'where 7z' : 'which 7z';
+        $process = Process::fromShellCommandline($command);
+        $process->run();
+
+        if ($process->isSuccessful()) {
+            return trim($process->getOutput());
+        }
+
+        return null;
+    }
+
+    private function useSevenZip(string $binary, string $zipPath, bool $noBrand): int
+    {
+        $this->info("💎 Usando 7-Zip para máxima compatibilidad (Motor: $binary)");
+
+        $exclusions = [
+            'vendor', 'node_modules', '.git', '.env', 
+            'storage/logs/*', 'storage/framework/cache/data/*', 
+            'storage/framework/sessions/*', 'storage/framework/views/*', 
+            'storage/app/private/*', 'storage/app/livewire-tmp/*',
+            'bootstrap/cache/*', 'public/storage', 
+            '*.zip', '*.sql', '*.sqlite', 
+            '.agents', '.claude', '.gemini', '.vscode', '.postman', 
+            '.DS_Store', 'Thumbs.db'
+        ];
+
+        if ($noBrand) {
+            $exclusions[] = 'public/imgs/*';
+        }
+
+        $command = [$binary, 'a', '-tzip', $zipPath, '.'];
+        foreach ($exclusions as $exclude) {
+            $command[] = "-xr!$exclude";
+        }
+
+        $this->info('🤐 Comprimiendo...');
+        $process = new Process($command, base_path());
+        $process->setTimeout(600);
+        $process->run();
+
+        if (! $process->isSuccessful()) {
+            $this->error('❌ Error al ejecutar 7-Zip.');
+            return 1;
+        }
+
+        $this->info("✅ ¡Éxito! Paquete generado con 7-Zip: " . basename($zipPath));
+        return 0;
+    }
+
+    private function useNativeZip(string $zipPath, bool $noBrand): int
+    {
+        $this->warn('⚠️ 7-Zip no detectado. Usando librería nativa PHP ZipArchive.');
+        
         $zip = new ZipArchive;
-        if ($zip->open($tempPath, ZipArchive::CREATE) !== true) {
-            $this->error('❌ No se pudo crear el archivo ZIP en la raíz.');
-
+        if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
+            $this->error('❌ No se pudo crear el archivo ZIP.');
             return 1;
         }
-
-        $this->info('📂 Analizando y agregando archivos...');
 
         // Agregar carpetas esenciales vacías
         $essentialDirs = [
-            'storage/app/public',
-            'storage/app/livewire-tmp',
-            'storage/framework/cache/data',
-            'storage/framework/sessions',
-            'storage/framework/views',
-            'storage/logs',
-            'bootstrap/cache',
+            'storage/app/public', 'storage/app/livewire-tmp', 
+            'storage/framework/cache/data', 'storage/framework/sessions', 
+            'storage/framework/views', 'storage/logs', 'bootstrap/cache'
         ];
-        foreach ($essentialDirs as $dir) {
-            $zip->addEmptyDir($dir);
-        }
+        foreach ($essentialDirs as $dir) { $zip->addEmptyDir($dir); }
 
         $rootPath = realpath(base_path());
         $files = new RecursiveIteratorIterator(
@@ -85,100 +146,53 @@ class MakeDeployZip extends Command
         foreach ($files as $name => $file) {
             $filePath = $file->getRealPath();
             $relativePath = ltrim(str_replace($rootPath, '', $filePath), DIRECTORY_SEPARATOR);
+            $zipPathInternal = str_replace(DIRECTORY_SEPARATOR, '/', $relativePath);
 
-            // Convert Windows separators to Linux separators for ZIP internal structure
-            $zipPath = str_replace(DIRECTORY_SEPARATOR, '/', $relativePath);
-
-            // --- REGLAS DE EXCLUSIÓN ESTRICTAS ---
-
-            // 1. Excluir carpetas pesadas, cache de imágenes y de desarrollo
-            if ($zipPath === 'vendor' || Str::startsWith($zipPath, 'vendor/') ||
-                Str::startsWith($zipPath, 'node_modules/') ||
-                Str::contains($zipPath, 'image_cache/') ||
-                Str::startsWith($zipPath, 'public/storage') || // EXCLUIR el link de storage
-                Str::startsWith($zipPath, '.git/')) {
-                // EXCEPCIÓN: Permitir public/vendor (donde se publican assets como Livewire)
-                if (! Str::startsWith($zipPath, 'public/vendor/')) {
+            // Reglas de exclusión (Paridad con 7z)
+            if (Str::startsWith($zipPathInternal, 'vendor/') || 
+                Str::startsWith($zipPathInternal, 'node_modules/') || 
+                Str::startsWith($zipPathInternal, '.git/') ||
+                Str::startsWith($zipPathInternal, 'storage/logs/') ||
+                Str::startsWith($zipPathInternal, 'storage/framework/') ||
+                Str::startsWith($zipPathInternal, 'storage/app/private/') ||
+                Str::startsWith($zipPathInternal, 'storage/app/livewire-tmp/') ||
+                Str::startsWith($zipPathInternal, 'bootstrap/cache/') ||
+                Str::startsWith($zipPathInternal, 'public/storage') ||
+                Str::endsWith($zipPathInternal, '.zip') || 
+                Str::endsWith($zipPathInternal, '.sql') || 
+                Str::endsWith($zipPathInternal, '.sqlite') ||
+                Str::startsWith($zipPathInternal, '.agents') ||
+                Str::startsWith($zipPathInternal, '.claude') ||
+                Str::startsWith($zipPathInternal, '.gemini') ||
+                Str::startsWith($zipPathInternal, '.vscode') ||
+                Str::startsWith($zipPathInternal, '.postman') ||
+                basename($zipPathInternal) === '.DS_Store' ||
+                basename($zipPathInternal) === 'Thumbs.db' ||
+                $zipPathInternal === '.env'
+            ) {
+                // Permitir public/vendor
+                if (! Str::startsWith($zipPathInternal, 'public/vendor/')) {
                     continue;
                 }
             }
 
-            // 1.1 Exclusión de Branding (si se solicita)
-            if ($noBrand) {
-                if (Str::startsWith($zipPath, 'public/imgs/') || Str::startsWith($zipPath, 'storage/app/public/slider/')) {
-                    continue;
-                }
-            }
-
-            // 2. Excluir carpeta storage (excepto app/public que es lo que se vincula) y bootstrap/cache
-            // Nota: El código actual excluye TODO storage/.
-            if (Str::startsWith($zipPath, 'storage/')) {
-                // Permitir archivos en storage/app/public/ para que el link simbólico funcione en destino
-                if (! Str::startsWith($zipPath, 'storage/app/public/')) {
-                    continue;
-                }
-            }
-
-            if (Str::startsWith($zipPath, 'bootstrap/cache/')) {
+            if ($noBrand && Str::startsWith($zipPathInternal, 'public/imgs/')) {
                 continue;
             }
 
-            // 3. Excluir archivos ocultos, PERO permitir los de public/build (como .vite/)
-            $pathParts = explode('/', $zipPath);
-            if (collect($pathParts)->contains(function ($part) use ($zipPath) {
-                if (Str::startsWith($zipPath, 'public/build/')) {
-                    return false; // No excluir nada dentro de public/build
-                }
+            if ($zipPathInternal === basename($zipPath)) continue;
 
-                return Str::startsWith($part, '.') && $part !== '.htaccess';
-            })) {
-                continue;
+            $zip->addFile($filePath, $zipPathInternal);
+            if (method_exists($zip, 'setEncryptionName')) {
+                $zip->setEncryptionName($zipPathInternal, ZipArchive::EM_NONE);
             }
-
-            // 4. Excluir archivos de base de datos local (sqlite), otros archivos ZIP y archivos SQL
-            if (Str::endsWith($zipPath, '.sqlite') || Str::endsWith($zipPath, '.zip') || Str::endsWith($zipPath, '.sql')) {
-                continue;
-            }
-
-            // 5. No incluirse a sí mismo
-            if ($zipPath === $tempZipName || $zipPath === $zipName) {
-                continue;
-            }
-
-            $zip->addFile($filePath, $zipPath);
-            $zip->setCompressionName($zipPath, ZipArchive::CM_DEFLATE);
             $count++;
         }
 
-        $this->info("🤐 Comprimiendo {$count} archivos... (esto puede tardar)");
+        $this->info("🤐 Comprimiendo {$count} archivos con ZipArchive...");
+        $zip->close();
 
-        // El error Permission Denied suele ser aquí. Intentamos capturarlo.
-        try {
-            $closed = $zip->close();
-        } catch (\Exception $e) {
-            $closed = false;
-        }
-
-        if (! $closed) {
-            $this->error('❌ Error: Windows o un Antivirus bloqueó el cierre del archivo ZIP.');
-            $this->line('💡 Intenta desactivar temporalmente el Antivirus o cerrar programas que usen la carpeta.');
-            if (file_exists($tempPath)) {
-                @unlink($tempPath);
-            }
-
-            return 1;
-        }
-
-        // 3. Renombrar al nombre final
-        if (! @rename($tempPath, $finalPath)) {
-            $this->error("❌ No se pudo renombrar el archivo a {$zipName}, pero se creó como {$tempZipName}");
-
-            return 1;
-        }
-
-        $this->info("✅ ¡Éxito! Paquete generado: {$zipName}");
-        $this->line('🚀 Listo para subir a tu hosting compartido.');
-
+        $this->info("✅ ¡Éxito! Paquete generado (Nativo): " . basename($zipPath));
         return 0;
     }
 }

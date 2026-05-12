@@ -1,25 +1,31 @@
 <?php
 
-use Livewire\Volt\Component;
 use Illuminate\Support\Facades\Storage;
+use Livewire\Volt\Component;
 
-new class extends Component {
+new class extends Component
+{
     public function slides()
     {
-        $disk = Storage::disk('public');
-        $jsonPath = 'slider/slider.json';
+        $disk = Storage::disk('slider_public');
+        $jsonPath = 'slider.json';
 
-        if (!$disk->exists($jsonPath)) {
+        if (! $disk->exists($jsonPath)) {
             return [];
         }
 
-        $data = json_decode($disk->get($jsonPath), true);
-        $items = isset($data['slides']) ? $data['slides'] : $data;
+        $data = json_decode($disk->get($jsonPath), true) ?? [];
+        $items = $data['slides'] ?? $data;
 
-        return collect($items)->map(function($item) {
+        if (! is_array($items)) {
+            return [];
+        }
+
+        return collect($items)->map(function ($item) {
             $path = is_array($item) ? $item['id'] : $item;
+
             return [
-                'image' => asset('storage/' . $path),
+                'image' => asset('imgs/slider/'.$path),
                 'title' => is_array($item) ? ($item['title'] ?? '') : '',
                 'description' => is_array($item) ? ($item['description'] ?? '') : '',
                 'url' => is_array($item) ? ($item['url'] ?? '') : '',
@@ -30,20 +36,21 @@ new class extends Component {
 
     public function config()
     {
-        $disk = Storage::disk('public');
-        $jsonPath = 'slider/slider.json';
+        $disk = Storage::disk('slider_public');
+        $jsonPath = 'slider.json';
         $defaultConfig = [
             'autoplay' => true,
             'interval' => 5000,
             'withoutArrows' => false,
-            'withoutIndicators' => false
+            'withoutIndicators' => false,
         ];
 
-        if (!$disk->exists($jsonPath)) {
+        if (! $disk->exists($jsonPath)) {
             return $defaultConfig;
         }
 
         $data = json_decode($disk->get($jsonPath), true);
+
         return array_merge($defaultConfig, $data['config'] ?? []);
     }
 

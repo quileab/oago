@@ -57,6 +57,14 @@ return [
             'throw' => false,
         ],
 
+        'slider_public' => [
+            'driver' => 'local',
+            'root' => public_path('imgs/slider'),
+            'url' => env('APP_URL').'/imgs/slider',
+            'visibility' => 'public',
+            'throw' => false,
+        ],
+
     ],
 
     /*
