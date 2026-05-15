@@ -10,9 +10,6 @@ use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
-    /**
-     * @return JsonResponse
-     */
     public function login(Request $request): JsonResponse
     {
         try {
@@ -70,9 +67,6 @@ class AuthController extends Controller
         ]);
     }
 
-    /**
-     * @return JsonResponse
-     */
     public function logout(Request $request): JsonResponse
     {
         $request->user()->tokens()->delete();

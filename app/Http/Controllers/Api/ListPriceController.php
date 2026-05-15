@@ -3,12 +3,18 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\ListName;
 use App\Models\ListPrice;
+use App\Services\PriceListService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class ListPriceController extends Controller
 {
+    public function __construct(protected PriceListService $priceService)
+    {
+    }
+
     /**
      * Display a listing of the resource.
      */
@@ -25,11 +31,6 @@ class ListPriceController extends Controller
      */
     public function store(Request $request)
     {
-        // check if product exists where product_id and list_id
-        $listPrice_exists = ListPrice::where('product_id', $request->product_id)->where('list_id', $request->list_id)->first();
-        if ($listPrice_exists) {
-            return $this->update($request, $listPrice_exists->product_id, $listPrice_exists->list_id);
-        }
         $validator = Validator::make($request->all(), [
             'product_id' => 'required|exists:products,id',
             'list_id' => 'required|exists:list_names,id',
@@ -41,13 +42,25 @@ class ListPriceController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        // Crear o actualizar el precio (por restricción única en `product_id` y `list_id`)
-        $listPrice = ListPrice::updateOrCreate(
-            ['product_id' => $request->product_id, 'list_id' => $request->list_id],
+        $normalized = $this->priceService->normalize(
+            $request->list_id,
             $request->only(['price', 'unit_price'])
         );
 
-        return response()->json($listPrice, 201);
+        $list_id = $normalized['list_id'];
+        $data = $normalized['data'];
+
+        // Si es una creación y no viene precio base (e.g. viene de lista U), aseguramos 0
+        if (!isset($data['price'])) {
+            $data['price'] = 0;
+        }
+
+        $listPrice = ListPrice::updateOrCreate(
+            ['product_id' => $request->product_id, 'list_id' => $list_id],
+            $data
+        );
+
+        return response()->json($listPrice, $listPrice->wasRecentlyCreated ? 201 : 200);
     }
 
     /**
@@ -55,11 +68,12 @@ class ListPriceController extends Controller
      */
     public function show($product_id, $list_id)
     {
+        $list_id = $this->priceService->resolveBaseListId($list_id);
+
         $listPrice = ListPrice::where('product_id', $product_id)
             ->where('list_id', $list_id)
             ->firstOrFail();
 
-        // return price of product_id
         return response()->json($listPrice, 200);
     }
 
@@ -68,10 +82,6 @@ class ListPriceController extends Controller
      */
     public function update(Request $request, $product_id, $list_id)
     {
-        $listPrice = ListPrice::where('product_id', $product_id)
-            ->where('list_id', $list_id)
-            ->firstOrFail();
-
         $validator = Validator::make($request->all(), [
             'price' => 'numeric|min:0',
             'unit_price' => 'nullable|numeric|min:0',
@@ -81,12 +91,23 @@ class ListPriceController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $listPrice->update($request->only(['price', 'unit_price']));
+        $normalized = $this->priceService->normalize(
+            $list_id,
+            $request->only(['price', 'unit_price'])
+        );
 
-        // return response()->json($listPrice, 200);
-        // just return ok when no errors
+        $list_id = $normalized['list_id'];
+        $data = $normalized['data'];
+
+        $listPrice = ListPrice::where('product_id', $product_id)
+            ->where('list_id', $list_id)
+            ->firstOrFail();
+
+        $listPrice->update($data);
+
         return response()->json(['message' => 'OK'], 200);
     }
+
 
     /**
      * Remove the specified resource from storage.

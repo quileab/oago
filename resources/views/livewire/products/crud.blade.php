@@ -19,6 +19,8 @@ new class extends Component
 
     public array $prices = [];
 
+    public array $unit_prices = [];
+
     public array $selectedTags = [];
 
     public $photo;
@@ -44,6 +46,7 @@ new class extends Component
                     ->where('list_id', $list->id)
                     ->first();
                 $this->prices[$list->id] = $listPrice ? $listPrice->price : 0;
+                $this->unit_prices[$list->id] = $listPrice ? $listPrice->unit_price : 0;
             }
             $this->loadExistingMedia();
         } else {
@@ -65,6 +68,7 @@ new class extends Component
             $this->selectedTags = [];
             foreach ($this->listNames() as $list) {
                 $this->prices[$list->id] = 0;
+                $this->unit_prices[$list->id] = 0;
             }
         }
         $this->uploadKey = uniqid();
@@ -114,7 +118,7 @@ new class extends Component
 
     public function listNames()
     {
-        return ListName::all();
+        return app(\App\Services\PriceListService::class)->getPrincipalLists();
     }
 
     public function availableTags()
@@ -203,9 +207,16 @@ new class extends Component
 
         // Handle Prices
         foreach ($this->prices as $listId => $price) {
+            $unitPrice = $this->unit_prices[$listId] ?? 0;
+
+            // Si el unit_price es 0, intentamos calcularlo automáticamente como fallback
+            if ($unitPrice == 0 && $price > 0) {
+                $unitPrice = $price / max(1, $product->qtty_unit ?? 1);
+            }
+
             ListPrice::updateOrCreate(
                 ['product_id' => $product->id, 'list_id' => $listId],
-                ['price' => $price, 'unit_price' => $price / max(1, $product->qtty_unit ?? 1)]
+                ['price' => $price, 'unit_price' => $unitPrice]
             );
         }
 
@@ -361,7 +372,7 @@ new class extends Component
     }
 }; ?>
 
-<div class="max-w-7xl mx-auto p-4">
+<div class="w-full mx-auto p-4">
     <x-header :title="$product ? 'Editar Producto #' . $product->id : 'Nuevo Producto'" separator progress-indicator>
         <x-slot:actions>
             <x-button label="Volver" icon="o-arrow-left" link="/products" class="btn-ghost" />
@@ -369,9 +380,9 @@ new class extends Component
     </x-header>
 
     <x-form wire:submit="save">
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
             {{-- Columna Izquierda (Side): Imagen Principal, Estado y Listas de Precios --}}
-            <div class="lg:col-span-4 space-y-6">
+            <div class="lg:col-span-2 space-y-6">
                 <x-card title="Imagen Principal" separator shadow class="bg-base-100">
                     <div class="flex flex-col items-center">
                         <div class="flex flex-col items-center mb-6" 
@@ -464,12 +475,21 @@ new class extends Component
 
                         @foreach($this->listNames() as $list)
                             <div class="p-3 border border-base-content/5 rounded-xl hover:border-primary/30 transition-colors bg-base-200/20">
-                                <x-input label="{{ $list->name }}" 
-                                         wire:model="prices.{{ $list->id }}" 
-                                         type="number" 
-                                         step="0.01" 
-                                         prefix="$"
-                                         class="font-bold" />
+                                <div class="grid grid-cols-2 gap-3">
+                                    <x-input label="{{ $list->name }}" 
+                                             wire:model="prices.{{ $list->id }}" 
+                                             type="number" 
+                                             step="0.01" 
+                                             prefix="$"
+                                             class="font-bold" />
+                                    
+                                    <x-input label="Unitario" 
+                                             wire:model="unit_prices.{{ $list->id }}" 
+                                             type="number" 
+                                             step="0.01" 
+                                             prefix="$"
+                                             class="text-xs" />
+                                </div>
                             </div>
                         @endforeach
                     </div>
@@ -477,7 +497,7 @@ new class extends Component
             </div>
 
             {{-- Columna Derecha (Main): Información General y Multimedia Extra --}}
-            <div class="lg:col-span-8 space-y-6">
+            <div class="lg:col-span-3 space-y-6">
                 <x-card title="Información General" separator shadow class="bg-base-100">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="md:col-span-2">

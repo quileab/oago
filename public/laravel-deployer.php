@@ -1,8 +1,13 @@
 <?php
 
+use App\Enums\Role;
+use App\Models\User;
+use Database\Seeders\AchievementSeeder;
+use Database\Seeders\SettingsSeeder;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Facade;
+use Illuminate\Support\Facades\Hash;
 
 // 1. FORZAR DIAGNÓSTICO
 error_reporting(E_ALL);
@@ -170,39 +175,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         $cmdOutput = Artisan::output();
                         $output .= "INICIALIZACIÓN (Código: $exitCode):\n".($cmdOutput ?: '¡Éxito! Base de datos reiniciada y administrador creado.');
                     } catch (Throwable $e) {
-                        $output .= "Error usando Artisan Kernel: " . $e->getMessage() . "\n";
+                        $output .= 'Error usando Artisan Kernel: '.$e->getMessage()."\n";
                         $output .= "Intentando limpieza y creación directa...\n";
-                        
+
                         // Intentar migrar desde cero en el fallback también
                         try {
                             $kernel->call('migrate:fresh', ['--force' => true]);
                             $output .= "Tablas limpiadas y migradas con éxito.\n";
                         } catch (Throwable $migrateError) {
-                            $output .= "Error al limpiar tablas: " . $migrateError->getMessage() . "\n";
+                            $output .= 'Error al limpiar tablas: '.$migrateError->getMessage()."\n";
                         }
 
                         $email = 'admin@admin.com';
                         // Eliminar si existe para asegurar ID 1
-                        \App\Models\User::where('email', $email)->orWhere('id', 1)->delete();
-                        
-                        \App\Models\User::create([
+                        User::where('email', $email)->orWhere('id', 1)->delete();
+
+                        User::create([
                             'id' => 1,
                             'name' => 'admin',
                             'lastname' => 'admin',
-                            'role' => \App\Enums\Role::ADMIN,
+                            'role' => Role::ADMIN,
                             'address' => 'admin',
                             'city' => 'admin',
                             'postal_code' => '9999',
                             'phone' => '+5493482111111',
                             'email' => $email,
-                            'password' => \Illuminate\Support\Facades\Hash::make('Webstore18743'),
+                            'password' => Hash::make('Webstore18743'),
                         ]);
                         $output .= "Usuario admin (ID: 1) creado exitosamente.\n";
-                        
+
                         $output .= "Ejecutando seeders...\n";
-                        (new \Database\Seeders\SettingsSeeder())->run();
-                        (new \Database\Seeders\AchievementSeeder())->run();
-                        $output .= "Seeders ejecutados con éxito.";
+                        (new SettingsSeeder)->run();
+                        (new AchievementSeeder)->run();
+                        $output .= 'Seeders ejecutados con éxito.';
                     }
                 }
 

@@ -23,7 +23,7 @@ class AuthServiceProvider extends ServiceProvider
         $this->registerPolicies();
 
         $this->app->resolving('auth', function ($auth) {
-            if (request()->session()->has('is_alt_login')) {
+            if (request()->hasSession() && request()->session()->has('is_alt_login')) {
                 $auth->setDefaultDriver('alt');
             }
         });

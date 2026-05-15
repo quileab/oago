@@ -2,7 +2,10 @@
 
 namespace App\Console\Commands;
 
+use App\Enums\Role;
+use App\Models\User;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Hash;
 
 class CreateAdminUser extends Command
 {
@@ -26,7 +29,7 @@ class CreateAdminUser extends Command
     public function handle(): void
     {
         $this->info('Limpiando base de datos y ejecutando migraciones...');
-        
+
         // Wipe and re-migrate
         $this->call('migrate:fresh', ['--force' => true]);
 
@@ -35,19 +38,19 @@ class CreateAdminUser extends Command
         $email = 'admin@admin.com';
         $password = 'Webstore18743';
 
-        \App\Models\User::create([
+        User::create([
             'id' => 1,
             'name' => 'admin',
             'lastname' => 'admin',
-            'role' => \App\Enums\Role::ADMIN,
+            'role' => Role::ADMIN,
             'address' => 'admin',
             'city' => 'admin',
             'postal_code' => '9999',
             'phone' => '+5493482111111',
             'email' => $email,
-            'password' => \Illuminate\Support\Facades\Hash::make($password),
+            'password' => Hash::make($password),
         ]);
-        
+
         $this->info("Usuario admin creado con ID 1: {$email} / {$password}");
 
         $this->info('Ejecutando seeders adicionales...');

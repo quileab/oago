@@ -4,7 +4,11 @@ namespace App\Models;
 
 use App\Helpers\SettingsHelper;
 use App\Mail\OrderMail;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -16,8 +20,8 @@ use Illuminate\Support\Facades\Session;
  * @property float $total_price
  * @property string|null $sending_method
  * @property string $status
- * @property-read \App\Models\User $user
- * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\OrderItem> $items
+ * @property-read User $user
+ * @property-read Collection<int, OrderItem> $items
  */
 class Order extends Model
 {
@@ -37,17 +41,17 @@ class Order extends Model
         'status',
     ];
 
-    public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    public function items(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function items(): HasMany
     {
         return $this->hasMany(OrderItem::class);
     }
 
-    public function shipping(): \Illuminate\Database\Eloquent\Relations\HasOne
+    public function shipping(): HasOne
     {
         return $this->hasOne(ShippingDetail::class);
     }

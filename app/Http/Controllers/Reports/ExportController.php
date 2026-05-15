@@ -18,8 +18,9 @@ class ExportController extends Controller
 
         $handle = fopen($filename, 'w+');
 
-        // get unique list_id columns from list_prices table to $listPrices
-        $listPrices = ListPrice::select('list_id')->distinct()->get();
+        // Obtener todas las listas de nombres para las columnas
+        $listNames = \App\Models\ListName::all();
+        $priceService = app(\App\Services\PriceListService::class);
 
         // get all products
         $products = Product::with('listPrices')->get();
@@ -27,14 +28,11 @@ class ExportController extends Controller
         $headers = [
             'Content-type' => 'text/csv',
             'Content-disposition' => 'attachment; filename=/'.$filename_download,
-            // "Pragma" => "no-cache",
-            // "Cache-Control" => "must-revalidate, post-check=0, pre-check=0",
-            // "Expires" => "0"
         ];
 
         $csv_headers = ['id', 'brand', 'model', 'description', 'description_html', 'tags', 'price'];
-        foreach ($listPrices as $listPrice) {
-            $csv_headers[] = 'list_'.$listPrice->list_id;
+        foreach ($listNames as $list) {
+            $csv_headers[] = $list->name;
         }
         fputcsv($handle, $csv_headers);
 
@@ -47,8 +45,8 @@ class ExportController extends Controller
             $row[] = strip_tags($product->description_html);
             $row[] = $product->tags;
             $row[] = $product->price;
-            foreach ($listPrices as $listPrice) {
-                $row[] = $product->listPrices->where('list_id', $listPrice->list_id)->first()->price ?? '0';
+            foreach ($listNames as $list) {
+                $row[] = $priceService->getEffectivePrice($list->id, $product->id) ?? '0';
             }
             fputcsv($handle, $row);
         }
@@ -65,8 +63,9 @@ class ExportController extends Controller
 
         $handle = fopen($filename, 'w+');
 
-        // get unique list_id columns from list_prices table to $listPrices
-        $listPrices = ListPrice::select('list_id')->distinct()->get();
+        // Obtener todas las listas de nombres para las columnas
+        $listNames = \App\Models\ListName::all();
+        $priceService = app(\App\Services\PriceListService::class);
 
         // get all products
         $products = Product::with('listPrices')
@@ -78,14 +77,11 @@ class ExportController extends Controller
         $headers = [
             'Content-type' => 'text/csv',
             'Content-disposition' => 'attachment; filename=/'.$filename_download,
-            // "Pragma" => "no-cache",
-            // "Cache-Control" => "must-revalidate, post-check=0, pre-check=0",
-            // "Expires" => "0"
         ];
 
         $csv_headers = ['id', 'brand', 'model', 'description', 'description_html', 'tags', 'price'];
-        foreach ($listPrices as $listPrice) {
-            $csv_headers[] = 'list_'.$listPrice->list_id;
+        foreach ($listNames as $list) {
+            $csv_headers[] = $list->name;
         }
         fputcsv($handle, $csv_headers);
 
@@ -98,8 +94,8 @@ class ExportController extends Controller
             $row[] = strip_tags($product->description_html);
             $row[] = $product->tags;
             $row[] = $product->price;
-            foreach ($listPrices as $listPrice) {
-                $row[] = $product->listPrices->where('list_id', $listPrice->list_id)->first()->price ?? '0';
+            foreach ($listNames as $list) {
+                $row[] = $priceService->getEffectivePrice($list->id, $product->id) ?? '0';
             }
             fputcsv($handle, $row);
         }
@@ -108,6 +104,7 @@ class ExportController extends Controller
 
         return response()->download($filename, $filename_download, $headers)->deleteFileAfterSend(true);
     }
+
 
     public function exportUsersOrderStats(): BinaryFileResponse
     {

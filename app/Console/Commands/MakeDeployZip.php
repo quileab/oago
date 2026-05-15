@@ -36,6 +36,7 @@ class MakeDeployZip extends Command
 
         if (! $process->isSuccessful()) {
             $this->error('❌ Error en npm run build.');
+
             return 1;
         }
 
@@ -85,14 +86,14 @@ class MakeDeployZip extends Command
         $this->info("💎 Usando 7-Zip para máxima compatibilidad (Motor: $binary)");
 
         $exclusions = [
-            'vendor', 'node_modules', '.git', '.env', 
-            'storage/logs/*', 'storage/framework/cache/data/*', 
-            'storage/framework/sessions/*', 'storage/framework/views/*', 
+            'vendor', 'node_modules', '.git', '.env',
+            'storage/logs/*', 'storage/framework/cache/data/*',
+            'storage/framework/sessions/*', 'storage/framework/views/*',
             'storage/app/private/*', 'storage/app/livewire-tmp/*',
-            'bootstrap/cache/*', 'public/storage', 
-            '*.zip', '*.sql', '*.sqlite', 
-            '.agents', '.claude', '.gemini', '.vscode', '.postman', 
-            '.DS_Store', 'Thumbs.db'
+            'bootstrap/cache/*', 'public/storage',
+            '*.zip', '*.sql', '*.sqlite',
+            '.agents', '.claude', '.gemini', '.vscode', '.postman',
+            '.DS_Store', 'Thumbs.db',
         ];
 
         if ($noBrand) {
@@ -111,30 +112,35 @@ class MakeDeployZip extends Command
 
         if (! $process->isSuccessful()) {
             $this->error('❌ Error al ejecutar 7-Zip.');
+
             return 1;
         }
 
-        $this->info("✅ ¡Éxito! Paquete generado con 7-Zip: " . basename($zipPath));
+        $this->info('✅ ¡Éxito! Paquete generado con 7-Zip: '.basename($zipPath));
+
         return 0;
     }
 
     private function useNativeZip(string $zipPath, bool $noBrand): int
     {
         $this->warn('⚠️ 7-Zip no detectado. Usando librería nativa PHP ZipArchive.');
-        
+
         $zip = new ZipArchive;
         if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
             $this->error('❌ No se pudo crear el archivo ZIP.');
+
             return 1;
         }
 
         // Agregar carpetas esenciales vacías
         $essentialDirs = [
-            'storage/app/public', 'storage/app/livewire-tmp', 
-            'storage/framework/cache/data', 'storage/framework/sessions', 
-            'storage/framework/views', 'storage/logs', 'bootstrap/cache'
+            'storage/app/public', 'storage/app/livewire-tmp',
+            'storage/framework/cache/data', 'storage/framework/sessions',
+            'storage/framework/views', 'storage/logs', 'bootstrap/cache',
         ];
-        foreach ($essentialDirs as $dir) { $zip->addEmptyDir($dir); }
+        foreach ($essentialDirs as $dir) {
+            $zip->addEmptyDir($dir);
+        }
 
         $rootPath = realpath(base_path());
         $files = new RecursiveIteratorIterator(
@@ -149,8 +155,8 @@ class MakeDeployZip extends Command
             $zipPathInternal = str_replace(DIRECTORY_SEPARATOR, '/', $relativePath);
 
             // Reglas de exclusión (Paridad con 7z)
-            if (Str::startsWith($zipPathInternal, 'vendor/') || 
-                Str::startsWith($zipPathInternal, 'node_modules/') || 
+            if (Str::startsWith($zipPathInternal, 'vendor/') ||
+                Str::startsWith($zipPathInternal, 'node_modules/') ||
                 Str::startsWith($zipPathInternal, '.git/') ||
                 Str::startsWith($zipPathInternal, 'storage/logs/') ||
                 Str::startsWith($zipPathInternal, 'storage/framework/') ||
@@ -158,8 +164,8 @@ class MakeDeployZip extends Command
                 Str::startsWith($zipPathInternal, 'storage/app/livewire-tmp/') ||
                 Str::startsWith($zipPathInternal, 'bootstrap/cache/') ||
                 Str::startsWith($zipPathInternal, 'public/storage') ||
-                Str::endsWith($zipPathInternal, '.zip') || 
-                Str::endsWith($zipPathInternal, '.sql') || 
+                Str::endsWith($zipPathInternal, '.zip') ||
+                Str::endsWith($zipPathInternal, '.sql') ||
                 Str::endsWith($zipPathInternal, '.sqlite') ||
                 Str::startsWith($zipPathInternal, '.agents') ||
                 Str::startsWith($zipPathInternal, '.claude') ||
@@ -180,7 +186,9 @@ class MakeDeployZip extends Command
                 continue;
             }
 
-            if ($zipPathInternal === basename($zipPath)) continue;
+            if ($zipPathInternal === basename($zipPath)) {
+                continue;
+            }
 
             $zip->addFile($filePath, $zipPathInternal);
             if (method_exists($zip, 'setEncryptionName')) {
@@ -192,7 +200,8 @@ class MakeDeployZip extends Command
         $this->info("🤐 Comprimiendo {$count} archivos con ZipArchive...");
         $zip->close();
 
-        $this->info("✅ ¡Éxito! Paquete generado (Nativo): " . basename($zipPath));
+        $this->info('✅ ¡Éxito! Paquete generado (Nativo): '.basename($zipPath));
+
         return 0;
     }
 }

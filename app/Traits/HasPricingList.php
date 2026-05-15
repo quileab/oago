@@ -21,14 +21,13 @@ trait HasPricingList
      */
     public function getProductPrice(Product $product): ?float
     {
-        if (! $this->list) {
+        if (! $this->list_id) {
             return (float) $product->price;
         }
 
-        $listPrice = $this->list->listPrices()
-            ->where('product_id', $product->id)
-            ->first();
+        $priceService = app(\App\Services\PriceListService::class);
+        $price = $priceService->getEffectivePrice($this->list_id, $product->id);
 
-        return (float) ($listPrice->price ?? $product->price ?? 0);
+        return $price ?? (float) ($product->price ?? 0);
     }
 }

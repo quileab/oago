@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Helpers\SettingsHelper;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 
@@ -117,7 +118,7 @@ class Product extends Model
         return $videoId ? "https://img.youtube.com/vi/{$videoId}/mqdefault.jpg" : asset('imgs/fallback.webp');
     }
 
-    public function listPrices(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function listPrices(): HasMany
     {
         return $this->hasMany(ListPrice::class); // Un producto puede tener múltiples precios en diferentes listas
     }

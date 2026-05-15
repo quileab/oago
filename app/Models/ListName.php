@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 /**
  * @property int $id
  * @property string $name
- * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\ListPrice> $listPrices
+ * @property-read Collection<int, ListPrice> $listPrices
  */
 class ListName extends Model
 {
