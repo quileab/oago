@@ -156,13 +156,14 @@ class UserController extends Controller
             'phone' => 'nullable|string|max:50',
             'email' => ['email', Rule::unique('users', 'email')->ignore($user->id)],
             'password' => 'nullable|string|min:3',
-            'list_id' => 'nullable|exists:list_names,id',
         ];
 
         if (auth()->user()->role === Role::ADMIN) {
             $rules['role'] = ['string', Rule::in(array_map(fn ($role) => $role->value, Role::cases()))];
+            $rules['list_id'] = 'nullable|exists:list_names,id';
         } else {
             $request->offsetUnset('role');
+            $request->offsetUnset('list_id');
         }
 
         $validatedData = $request->validate($rules);
@@ -190,8 +191,11 @@ class UserController extends Controller
             'postal_code' => $validatedData['postal_code'] ?? $user->postal_code,
             'phone' => $validatedData['phone'] ?? $user->phone,
             'email' => $validatedData['email'] ?? $user->email,
-            'list_id' => $validatedData['list_id'] ?? $user->list_id,
         ];
+
+        if (auth()->user()->role === Role::ADMIN && isset($validatedData['list_id'])) {
+            $dataToUpdate['list_id'] = $validatedData['list_id'];
+        }
 
         if (isset($validatedData['password'])) {
             $dataToUpdate['password'] = Hash::make($validatedData['password']);

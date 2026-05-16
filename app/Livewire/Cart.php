@@ -132,9 +132,20 @@ class Cart extends Component
         $products = Product::whereIn('id', $productIds)->get()->keyBy('id');
 
         $enrichedCart = [];
+        $user = current_user();
+
         foreach ($cart as $productId => $item) {
             if ($products->has($productId)) {
-                $item['product_model'] = $products->get($productId);
+                $product = $products->get($productId);
+                $item['product_model'] = $product;
+
+                if ($user) {
+                    $item['current_price'] = $user->getProductPrice($product);
+                    $item['is_price_changed'] = abs((float) $item['price'] - (float) $item['current_price']) > 0.01;
+                }
+
+                $item['is_stock_insufficient'] = $product->stock < $item['quantity'];
+                $item['available_stock'] = $product->stock;
             }
             $enrichedCart[$productId] = $item;
         }
@@ -157,16 +168,16 @@ class Cart extends Component
 
     public function jsonCartUpdate()
     {
-        if (Auth::check() || Auth::guard('alt')->check()) {
+        if (current_user_cart_id()) {
             $jsonCart = json_encode(Session::get('cart'));
-            file_put_contents(storage_path('app/private/'.Auth::id().'_cart.json'), $jsonCart);
+            file_put_contents(storage_path('app/private/'.current_user_cart_id().'_cart.json'), $jsonCart);
         }
     }
 
     public function jsonCartDelete()
     {
-        if (file_exists(storage_path('app/private/'.Auth::id().'_cart.json'))) {
-            unlink(storage_path('app/private/'.Auth::id().'_cart.json'));
+        if (current_user_cart_id() && file_exists(storage_path('app/private/'.current_user_cart_id().'_cart.json'))) {
+            unlink(storage_path('app/private/'.current_user_cart_id().'_cart.json'));
         }
     }
 

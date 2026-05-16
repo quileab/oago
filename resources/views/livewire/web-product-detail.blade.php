@@ -207,7 +207,7 @@ new class extends Component
                     </div>
 
                     <div class="mb-8 prose prose-slate max-w-none text-gray-600 leading-relaxed text-sm">
-                        {!! $product->description_html !!}
+                        {!! strip_tags($product->description_html, '<p><br><b><strong><i><em><ul><ol><li><a><span><div>') !!}
                     </div>
 
                     @if(!Auth::guest())

@@ -31,7 +31,7 @@
                 </li>
             </ul>
             <div class="mt-6 w-full grayscale opacity-70 hover:grayscale-0 hover:opacity-100 transition-all duration-500 rounded-xl overflow-hidden">
-                {!! App\Helpers\SettingsHelper::settings('company_map_iframe', '') !!}
+                {!! strip_tags(App\Helpers\SettingsHelper::settings('company_map_iframe', ''), '<iframe>') !!}
             </div>
         </div>
 
@@ -48,7 +48,7 @@
                        target="_blank" 
                        class="p-3 bg-slate-800 rounded-xl hover:bg-orange-500 hover:text-white transition-all duration-300 shadow-lg group">
                         <div class="w-6 h-6 group-hover:scale-110 transition-transform flex items-center justify-center">
-                            {!! $network['icon_svg'] !!}
+                            {!! strip_tags($network['icon_svg'], '<svg><path><g><circle><rect><polygon><line><polyline>') !!}
                         </div>
                     </a>
                 @endforeach
@@ -70,7 +70,7 @@
                target="_blank" class="relative block p-4 bg-green-500 text-white rounded-full shadow-2xl hover:bg-green-600 transition-all duration-300 hover:scale-110 active:scale-95">
                <div class="w-8 h-8 flex items-center justify-center">
                    @if($whatsapp && isset($whatsapp['icon_svg']))
-                       {!! $whatsapp['icon_svg'] !!}
+                       {!! strip_tags($whatsapp['icon_svg'], '<svg><path><g><circle><rect><polygon><line><polyline>') !!}
                    @else
                        <x-icon name="o-chat-bubble-left-ellipsis" class="w-8 h-8" />
                    @endif

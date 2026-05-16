@@ -75,7 +75,7 @@
                 @endif
                 
                 <div class="text-[11px] leading-relaxed text-gray-600 line-clamp-3 border-t border-gray-50 pt-1 overflow-hidden">
-                    {!! $product->description_html !!}
+                    {!! strip_tags($product->description_html, '<p><br><b><strong><i><em><ul><ol><li><a><span><div>') !!}
                 </div>
             </div>
         </div>

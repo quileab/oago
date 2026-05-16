@@ -2,30 +2,37 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\OrderStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
-use Dedoc\Scramble\Attributes\Response;
-use Exception;
+use App\Models\Product;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 
 class OrderController extends Controller
 {
     /**
      * Listar pedidos pendientes.
+     *
+     * @return JsonResponse<array<int, mixed>>
      */
-    #[Response(status: 200, type: 'App\Models\Order[]')]
-    public function listPendingOrders(): JsonResponse
+    public function listPendingOrders(Request $request): JsonResponse
     {
-        $orders = Order::where('status', 'pending')->with('items.product')->get();
+        $orders = Order::with(['user', 'items.product', 'shipping'])->where('status', OrderStatus::PENDING)->get();
 
         $filteredOrders = $orders->map(function ($order) {
-            $order->items = $order->items->filter(function ($item) {
-                return $item->quantity > 0 && $item->price > 0;
-            })->values(); // Re-index the collection after filtering
-
-            return $order;
+            return [
+                'id' => $order->id,
+                'user' => $order->user,
+                'items' => $order->items,
+                'shipping' => $order->shipping,
+                'total_price' => $order->total_price,
+                'status' => $order->status,
+                'created_at' => $order->created_at,
+            ];
         });
 
         return response()->json($filteredOrders, 200);
@@ -39,7 +46,7 @@ class OrderController extends Controller
     public function updateOrderStatus(Request $request, Order $order): JsonResponse
     {
         $request->validate([
-            'status' => 'required|string|max:20',
+            'status' => ['required', Rule::enum(OrderStatus::class)],
         ]);
 
         $order->update(['status' => $request->status]);
@@ -52,55 +59,64 @@ class OrderController extends Controller
     /**
      * Actualizar los productos en un pedido.
      */
-    #[Response(status: 200, type: 'App\Models\Order')]
     public function updateOrderProducts(Request $request, Order $order): JsonResponse
     {
         Log::info("Request: { json_encode($request) }");
         try {
             $request->validate([
-                'products' => 'required|array',
-                'products.*.id' => 'required|exists:products,id',
-                'products.*.quantity' => 'required|integer|min:0',  // Permitir 0 para eliminar
-                'products.*.price' => 'required|numeric|min:0',
+                'items' => 'required|array',
+                'items.*.product_id' => 'required|exists:products,id',
+                'items.*.quantity' => 'required|integer|min:1',
+                'items.*.price' => 'required|numeric|min:0',
             ]);
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             return response()->json([
-                'message' => $e->getMessage(),
+                'message' => 'Error de validación: '.$e->getMessage(),
             ], 400);
         }
-        Log::info("Actualizando productos en el pedido: {$order->id}");
 
-        $existingItems = $order->items()->get()->keyBy('product_id');
+        try {
+            DB::transaction(function () use ($request, $order) {
+                $order->items()->delete();
 
-        foreach ($request->products as $productData) {
-            $item = $existingItems->get($productData['id']);
+                $total = 0;
+                $productIds = array_column($request->items, 'product_id');
+                $products = Product::whereIn('id', $productIds)->get()->keyBy('id');
 
-            if ($item) {
-                // Si la cantidad es 0, eliminar el item
-                if ($productData['quantity'] === 0) {
-                    $item->delete();
-                } else {
-                    // Si existe, actualizar la cantidad y el precio
-                    $item->update([
-                        'quantity' => $productData['quantity'],
-                        'price' => $productData['price'],
-                    ]);
-                }
-            } else {
-                // Si no existe, agregar el item al pedido
-                if ($productData['quantity'] > 0) {
+                foreach ($request->items as $item) {
                     $order->items()->create([
-                        'product_id' => $productData['id'],
-                        'quantity' => $productData['quantity'],
-                        'price' => $productData['price'],
+                        'product_id' => $item['product_id'],
+                        'quantity' => $item['quantity'],
+                        'price' => $item['price'],
                     ]);
-                }
-            }
-        }
 
-        return response()->json([
-            'message' => 'Productos del pedido actualizados con éxito.',
-            'order' => $order->load('items.product'),
-        ], 200);
+                    $product = $products->get($item['product_id']);
+                    $orderedQuantity = (int) $item['quantity'];
+                    $billableQuantity = $orderedQuantity;
+
+                    if ($product && $product->hasBonus() && $product->bonus_threshold > 0) {
+                        $bonusThreshold = $product->bonus_threshold + $product->bonus_amount;
+                        $timesBonusApplies = floor($orderedQuantity / $bonusThreshold);
+                        $freeUnits = $timesBonusApplies * $product->bonus_amount;
+                        $billableQuantity = $orderedQuantity - $freeUnits;
+                    }
+
+                    $total += (float) $item['price'] * $billableQuantity;
+                }
+
+                $order->update(['total_price' => $total]);
+            });
+
+            return response()->json([
+                'message' => 'Productos del pedido '.$order->id.' actualizados: OK',
+                'order' => $order->load('items.product'),
+            ], 200);
+        } catch (\Exception $e) {
+            Log::error('Error actualizando productos de orden API: '.$e->getMessage());
+
+            return response()->json([
+                'message' => 'Error interno al actualizar el pedido.',
+            ], 500);
+        }
     }
 }

@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Psr\Http\Message\ResponseInterface;
 
 class ImageProxyController extends Controller
 {
@@ -85,10 +86,45 @@ class ImageProxyController extends Controller
 
         // 6. Descarga y conversión
         try {
-            $response = Http::timeout(5)->get($remoteUrl);
+            $maxSize = 5 * 1024 * 1024; // 5MB limit
+
+            $response = Http::timeout(5)
+                ->withOptions([
+                    'on_headers' => function (ResponseInterface $response) use ($maxSize, $remoteUrl) {
+                        if ($response->hasHeader('Content-Length') && (int) $response->getHeaderLine('Content-Length') > $maxSize) {
+                            throw new \RuntimeException("ImageProxy: Archivo demasiado grande (Header) para URL: {$remoteUrl}");
+                        }
+
+                        $contentType = $response->getHeaderLine('Content-Type');
+                        if ($contentType && ! str_starts_with($contentType, 'image/')) {
+                            throw new \RuntimeException("ImageProxy: Content-Type no válido ({$contentType}) para URL: {$remoteUrl}");
+                        }
+                    },
+                    'progress' => function ($downloadTotal, $downloadedBytes) use ($maxSize, $remoteUrl) {
+                        if ($downloadedBytes > $maxSize) {
+                            throw new \RuntimeException("ImageProxy: Archivo demasiado grande (Stream) para URL: {$remoteUrl}");
+                        }
+                    },
+                ])
+                ->get($remoteUrl);
 
             if ($response->successful()) {
+                $contentType = $response->header('Content-Type');
+                $contentLength = $response->header('Content-Length');
                 $imageContent = $response->body();
+
+                // Safety net (also for testability with Http::fake which ignores Guzzle callbacks)
+                if ($contentType && ! str_starts_with($contentType, 'image/')) {
+                    Log::warning("ImageProxy: Content-Type no válido ({$contentType}) detectado tras descarga: {$remoteUrl}");
+
+                    return $serveLocal($fallback);
+                }
+
+                if (($contentLength && (int) $contentLength > $maxSize) || strlen($imageContent) > $maxSize) {
+                    Log::warning("ImageProxy: Archivo demasiado grande detectado tras descarga: {$remoteUrl}");
+
+                    return $serveLocal($fallback);
+                }
 
                 if (empty($imageContent)) {
                     return $serveLocal($fallback);
@@ -136,7 +172,12 @@ class ImageProxyController extends Controller
                 ]);
             }
         } catch (\Exception $e) {
-            Log::error('ImageProxy download error: '.$e->getMessage());
+            $msg = $e->getMessage();
+            if (str_contains($msg, 'ImageProxy:')) {
+                Log::warning($msg);
+            } else {
+                Log::error('ImageProxy download error: '.$msg);
+            }
         }
 
         // Si nada funcionó, fallback final

@@ -2,8 +2,8 @@
 
 namespace App\Livewire;
 
-// use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 use Mary\Traits\Toast;
 
@@ -13,14 +13,19 @@ class WebSearchFilter extends Component
 
     public $categories = [];
 
-    public $category;
+    #[Url(history: true)]
+    public $category = null;
 
     public $brands = [];
 
-    public $brand;
+    #[Url(history: true)]
+    public $brand = null;
 
-    // public $tag;
-    public $search;
+    #[Url(history: true)]
+    public $search = null;
+
+    #[Url(history: true)]
+    public $tag = null;
 
     public function mount()
     {
@@ -44,10 +49,6 @@ class WebSearchFilter extends Component
             ->get()
             ->map(fn ($item) => ['id' => $item->brand, 'brand' => $item->brand])
             ->toArray();
-
-        $this->category = session()->get('category') ?: null;
-        $this->search = session()->get('search') ?: null;
-        $this->brand = session()->get('brand') ?: null;
     }
 
     public function render()
@@ -73,31 +74,20 @@ class WebSearchFilter extends Component
     public function clearSearch()
     {
         $this->search = null;
-        session()->forget('search');
-        $this->dispatch('updateProducts', ['resetPage' => true]);
+        $this->dispatch('updateProducts', filters: ['search' => null, 'resetPage' => true]);
         $this->handleRedirect();
     }
 
     public function goSearch()
     {
-        if ($this->category && strlen($this->category)) {
-            session()->put('category', $this->category);
-        } else {
-            session()->forget('category');
-        }
-        if ($this->brand && strlen($this->brand)) {
-            session()->put('brand', $this->brand);
-        } else {
-            session()->forget('brand');
-        }
-        if ($this->search && strlen($this->search)) {
-            session()->put('search', $this->search);
-        } else {
-            session()->forget('search');
-        }
-        session()->forget('similar');
-        $this->dispatch('updateProducts', ['resetPage' => true]);
-        // set session noslider
+        $this->dispatch('updateProducts', filters: [
+            'category' => $this->category,
+            'brand' => $this->brand,
+            'search' => $this->search,
+            'tag' => $this->tag,
+            'resetPage' => true,
+        ]);
+
         session()->put('noslider', true);
         $this->handleRedirect();
     }
@@ -106,6 +96,7 @@ class WebSearchFilter extends Component
     {
         $this->search = null;
         $this->brand = null;
+        $this->tag = null;
         $this->goSearch();
     }
 
@@ -113,6 +104,7 @@ class WebSearchFilter extends Component
     {
         $this->search = null;
         $this->category = null;
+        $this->tag = null;
         $this->goSearch();
     }
 
@@ -120,28 +112,31 @@ class WebSearchFilter extends Component
     {
         $this->category = null;
         $this->brand = null;
-        session()->forget('tag');
+        $this->tag = null;
         $this->goSearch();
     }
 
     public function addTag($tag)
     {
-        // clear other filters
-        $this->search = null;
-        $this->category = null;
-        $this->brand = null;
-        session()->forget(['search', 'category', 'brand']);
-
-        // if session has tag is the same, remove it
-        if (session()->has('tag') && session('tag') == $tag) {
-            session()->forget('tag');
-            $this->dispatch('updateProducts', ['resetPage' => true]);
-            $this->handleRedirect();
-
-            return;
+        // if current tag is the same, remove it
+        if ($this->tag === $tag) {
+            $this->tag = null;
+        } else {
+            $this->tag = $tag;
+            // clear other filters when adding a tag
+            $this->search = null;
+            $this->category = null;
+            $this->brand = null;
         }
-        session()->put('tag', $tag);
-        $this->dispatch('updateProducts', ['resetPage' => true]);
+
+        $this->dispatch('updateProducts', filters: [
+            'search' => $this->search,
+            'category' => $this->category,
+            'brand' => $this->brand,
+            'tag' => $this->tag,
+            'resetPage' => true,
+        ]);
+
         $this->handleRedirect();
     }
 }

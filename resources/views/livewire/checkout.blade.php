@@ -61,10 +61,33 @@ new class extends Component {
         if (session()->get('cart') == null) {
             return redirect('/');
         }
+        
         $this->cart_content = session()->get('cart');
         $this->total = 0;
-        foreach ($this->cart_content as $item) {
-            $this->total += $item['price'] * $item['quantity'];
+
+        $productIds = array_column($this->cart_content, 'product_id');
+        $products = \App\Models\Product::whereIn('id', $productIds)->get()->keyBy('id');
+
+        foreach ($this->cart_content as $productId => $item) {
+            $product = $products->get($item['product_id']);
+            $orderedQuantity = (int) $item['quantity'];
+            $billableQuantity = $orderedQuantity;
+
+            if ($product && $product->hasBonus() && $product->bonus_threshold > 0) {
+                $bonusThreshold = $product->bonus_threshold + $product->bonus_amount;
+                $timesBonusApplies = floor($orderedQuantity / $bonusThreshold);
+                $freeUnits = $timesBonusApplies * $product->bonus_amount;
+                $billableQuantity = $orderedQuantity - $freeUnits;
+            }
+
+            $itemSubtotal = (float) $item['price'] * $billableQuantity;
+            
+            // Enrich item
+            $this->cart_content[$productId]['billable_quantity'] = $billableQuantity;
+            $this->cart_content[$productId]['subtotal'] = $itemSubtotal;
+            $this->cart_content[$productId]['is_bonus_applied'] = $orderedQuantity > $billableQuantity;
+
+            $this->total += $itemSubtotal;
         }
 
         // data address & city take from auth user
@@ -81,14 +104,40 @@ new class extends Component {
         if (!current_user()) {
             return redirect()->route('login');
         }
+
+        $rules = [
+            'data.sending_method' => 'required|string',
+            'data.payment_method' => 'required|string',
+            'data.information' => 'nullable|string|max:240',
+            'data.payment_detail' => 'nullable|string|max:100',
+        ];
+
+        // Conditional rules for transportation
+        if (($this->data['sending_method'] ?? '') !== 'Envío a cargo de la Empresa a Dirección Registrada') {
+            $rules['data.transport_detail'] = 'required|string|max:100';
+        }
+
+        // Conditional rules for alternative address
+        if (($this->data['sending_method'] ?? '') === 'Envío a cargo de la Empresa (Dirección Alternativa)') {
+            $rules['data.contact_name'] = 'required|string|max:100';
+            $rules['data.contact_number'] = 'required|string|max:50';
+            $rules['data.sending_address'] = 'required|string|max:100';
+            $rules['data.sending_city'] = 'required|string|max:50';
+        }
+
+        $this->validate($rules);
+
         // remove tags & sanitize data from "information"
         $this->data['information'] = strip_tags($this->data['information'] ?? '');
         
-        // TODO: validate data
-        if (Auth::guard('alt')->check()) {
-            \App\Models\AltOrder::placeOrder(shipping: $this->data);
-        } else {
-            \App\Models\Order::placeOrder(shipping: $this->data);
+        try {
+            if (Auth::guard('alt')->check()) {
+                \App\Models\AltOrder::placeOrder(shipping: $this->data);
+            } else {
+                \App\Models\Order::placeOrder(shipping: $this->data);
+            }
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->error($e->getMessage(), position: 'toast-bottom');
         }
     }
 
@@ -112,10 +161,15 @@ new class extends Component {
                 @foreach ($cart_content as $item)
                     <tr class="odd:bg-gray-100/5">
                         <td>{{ $item['product_id'] }}</td>
-                        <td>{{ $item['name'] }}</td>
+                        <td>
+                            {{ $item['name'] }}
+                            @if ($item['is_bonus_applied'] ?? false)
+                                <span class="ml-2 badge badge-error badge-xs text-[9px] font-bold uppercase">Bonificado</span>
+                            @endif
+                        </td>
                         <td class="text-right">${{ number_format($item['price'], 2) }}</td>
                         <td class="text-center">{{ $item['quantity'] }}</td>
-                        <td class="text-right">${{ number_format($item['price'] * $item['quantity'], 2) }}</td>
+                        <td class="text-right font-bold text-green-600">${{ number_format($item['subtotal'], 2) }}</td>
                     </tr>
                 @endforeach
             </tbody>
@@ -172,7 +226,8 @@ new class extends Component {
                 maxlength="240" />
 
             <x-slot:actions>
-                <x-button wire:click="save" icon="o-check" class="btn-primary w-full md:w-auto px-12" type="submit" spinner="save"
+                <x-button wire:click="save" icon="o-check" class="btn-primary w-full md:w-auto px-12" type="submit" 
+                    spinner="save" wire:loading.attr="disabled"
                     label="Confirmar Pedido" />
             </x-slot:actions>
         </x-form>

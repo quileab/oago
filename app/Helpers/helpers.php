@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\AltUser;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 
@@ -27,5 +28,19 @@ if (! function_exists('current_user')) {
         }
 
         return $user;
+    }
+}
+
+if (! function_exists('current_user_cart_id')) {
+    function current_user_cart_id()
+    {
+        $user = current_user();
+        if (! $user) {
+            return null;
+        }
+
+        $prefix = ($user instanceof AltUser) ? 'alt' : 'web';
+
+        return "{$prefix}_{$user->id}";
     }
 }
