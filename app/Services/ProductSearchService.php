@@ -7,13 +7,12 @@ namespace App\Services;
 use App\Models\Product;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
+use App\Services\PriceListService;
 
 class ProductSearchService
 {
     public function searchProducts(array $params, int $itemsPerPage = 15, bool $featured = false): Product|LengthAwarePaginator|null
     {
-        $user = current_user();
-
         $query = Product::query()
             ->where('published', 1)
             ->where('visibility', '!=', 'hidden')
@@ -27,12 +26,13 @@ class ProductSearchService
         // 🔍 Buscar por ID
         if (isset($params['id'])) {
             $query->where('products.id', $params['id']);
-
-            if ($user) {
-                $this->addUserPriceJoin($query, $user);
+            $product = $query->first();
+            
+            if ($product) {
+                $this->hydratePrices(collect([$product]));
             }
 
-            return $query->first();
+            return $product;
         }
 
         // ⭐ Mostrar destacados y ultimos productos si no hay filtros
@@ -44,7 +44,6 @@ class ProductSearchService
             empty($params['similar']) &&
             empty($params['tag'])
         ) {
-            // last created products and featured products first
             $query->orderBy('featured', 'desc')
                 ->orderBy('created_at', 'desc');
         }
@@ -73,11 +72,6 @@ class ProductSearchService
             });
         }
 
-        // 💰 Agregar precios si hay usuario
-        if ($user) {
-            $this->addUserPriceJoin($query, $user);
-        }
-
         // 🧭 Ordenamiento
         $allowedColumns = ['description', 'created_at', 'featured', 'price', 'brand', 'category', 'model'];
         $orderBy = $params['order_by'] ?? 'description';
@@ -90,41 +84,78 @@ class ProductSearchService
             $query->orderBy('products.description', $orderDirection);
         }
 
-        return $itemsPerPage === 1
+        $results = $itemsPerPage === 1
           ? $query->first()
           : $query->paginate($itemsPerPage);
+
+        // 💰 Hidratar precios de forma masiva
+        if ($results instanceof LengthAwarePaginator) {
+            $this->hydratePrices($results->getCollection());
+        } elseif ($results instanceof Product) {
+            $this->hydratePrices(collect([$results]));
+        }
+
+        return $results;
     }
 
     public function searchRelatedProducts(Product $product, int $limit = 9)
     {
-        $user = current_user();
-
-        $query = Product::query()
+        $products = Product::query()
             ->where('published', 1)
             ->where('product_type', $product->product_type)
             ->where('visibility', '!=', 'hidden')
             ->where('products.id', '!=', $product->id)
             ->inRandomOrder()
-            ->limit($limit);
+            ->limit($limit)
+            ->get();
 
-        if ($user) {
-            $this->addUserPriceJoin($query, $user);
-        }
+        $this->hydratePrices($products);
 
-        return $query->get()->map(function ($product) {
+        return $products->map(function ($product) {
             $product->qtty = $product->qtty_package;
 
             return $product;
         });
     }
 
+    /**
+     * Carga de forma eficiente los precios específicos del usuario para una colección de productos.
+     */
+    protected function hydratePrices($products): void
+    {
+        $user = current_user();
+        if (!$user || !$user->list_id || $products->isEmpty()) {
+            return;
+        }
+
+        $priceService = app(PriceListService::class);
+        $baseListId = $priceService->resolveBaseListId($user->list_id);
+        
+        // Cargar precios base en una sola consulta
+        $listPrices = DB::table('list_prices')
+            ->where('list_id', $baseListId)
+            ->whereIn('product_id', $products->pluck('id'))
+            ->get()
+            ->keyBy('product_id');
+
+        $isUnitList = str_ends_with(trim($user->list->name ?? ''), 'U');
+
+        foreach ($products as $product) {
+            $lp = $listPrices->get($product->id);
+            if ($lp) {
+                if ($isUnitList) {
+                    $product->user_price = (float) ($lp->unit_price ?: $lp->price);
+                } else {
+                    $product->user_price = (float) $lp->price;
+                }
+            } else {
+                $product->user_price = (float) $product->price;
+            }
+        }
+    }
+
     protected function addUserPriceJoin($query, $user): void
     {
-        $query->leftJoin('list_prices', function ($join) use ($user) {
-            $join->on('products.id', '=', 'list_prices.product_id')
-                ->where('list_prices.list_id', $user->list_id);
-        });
-
-        $query->select('products.*', 'list_prices.price as user_price');
+        // Este método queda obsoleto con la nueva hidratación masiva
     }
 }

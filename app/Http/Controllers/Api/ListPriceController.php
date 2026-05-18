@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\ListName;
+use App\Http\Requests\Api\StoreListPriceRequest;
 use App\Models\ListPrice;
 use App\Services\PriceListService;
 use Illuminate\Http\Request;
@@ -29,22 +29,13 @@ class ListPriceController extends Controller
     /**
      * Store (or update) a resource.
      */
-    public function store(Request $request)
+    public function store(StoreListPriceRequest $request)
     {
-        $validator = Validator::make($request->all(), [
-            'product_id' => 'required|exists:products,id',
-            'list_id' => 'required|exists:list_names,id',
-            'price' => 'required|numeric|min:0',
-            'unit_price' => 'nullable|numeric|min:0',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
+        $validatedData = $request->validated();
 
         $normalized = $this->priceService->normalize(
-            $request->list_id,
-            $request->only(['price', 'unit_price'])
+            $validatedData['list_id'],
+            array_intersect_key($validatedData, array_flip(['price', 'unit_price']))
         );
 
         $list_id = $normalized['list_id'];
@@ -56,7 +47,7 @@ class ListPriceController extends Controller
         }
 
         $listPrice = ListPrice::updateOrCreate(
-            ['product_id' => $request->product_id, 'list_id' => $list_id],
+            ['product_id' => $validatedData['product_id'], 'list_id' => $list_id],
             $data
         );
 

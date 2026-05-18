@@ -37,7 +37,7 @@
                                 @foreach ($cart as $item)
                                     <tr class="even:bg-slate-100/5 odd:bg-slate-100/10">
                                         <td class="text-center">
-                                            <x-image-proxy url="http://190.183.254.154/regente_img/{{ $item['product_id'] . '.jpg' }}"
+                                            <x-image-proxy url="{{ config(\'services.regente.base_url\') . $item[\'product_id\'] . \'.jpg\' }}"
                                                 alt="{{ $item['product_id'] }}" class="w-16 h-16 object-cover" />
                                         </td>
                                         <td>
@@ -106,7 +106,7 @@
                                 
                                 <div class="flex items-start gap-4 mb-3">
                                     <div class="w-20 h-20 rounded-lg overflow-hidden shrink-0 bg-white">
-                                        <x-image-proxy url="http://190.183.254.154/regente_img/{{ $item['product_id'] . '.jpg' }}" alt="{{ $item['product_id'] }}" class="w-full h-full object-cover" />
+                                        <x-image-proxy url="{{ config(\'services.regente.base_url\') . $item[\'product_id\'] . \'.jpg\' }}" alt="{{ $item[\'product_id\'] }}" class="w-full h-full object-cover" />
                                     </div>
                                     <div class="flex-1 pr-6">
                                         <h4 class="font-bold text-sm leading-tight text-white line-clamp-2">{{ $item['name'] }}</h4>

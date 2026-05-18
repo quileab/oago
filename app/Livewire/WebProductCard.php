@@ -93,7 +93,12 @@ class WebProductCard extends Component
 
     public function buy()
     {
-        $this->dispatch('addToCart', product: $this->local_product['id'], quantity: (int) $this->qtty);
+        $this->dispatch('addToCart', product: [
+            'id' => $this->local_product['id'],
+            'description' => $this->local_product['description'],
+            'user_price' => $this->user_price,
+            'qtty_package' => $this->local_product['qtty_package'] ?? 1,
+        ], quantity: (int) $this->qtty);
 
         // RESET: Volvemos a la cantidad base después de agregar
         $this->qtty = $this->local_product['qtty_package'] ?? 1;

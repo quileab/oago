@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'regente' => [
+        'base_url' => env('REGENTE_IMG_BASE_URL', 'http://190.183.254.154/regente_img/'),
+    ],
+
 ];

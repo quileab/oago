@@ -4,18 +4,16 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\Role;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\StoreUserRequest;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
     /**
      * Display a listing of the resource.
-     *
-     * @return array<int, User>
      */
     public function index(Request $request): JsonResponse
     {
@@ -36,40 +34,11 @@ class UserController extends Controller
 
     /**
      * Store a newly created resource in storage or update an existing one.
-     *
-     * @return User
      */
-    public function store(Request $request): JsonResponse
+    public function store(StoreUserRequest $request): JsonResponse
     {
-        // Buscamos si el usuario ya existe por ID
-        $existingUser = User::find($request->id);
-
-        $rules = [
-            'id' => 'required|integer',
-            'name' => 'required|string|max:30',
-            'lastname' => 'required|string|max:30',
-            'address' => 'nullable|string|max:100',
-            'city' => 'nullable|string|max:30',
-            'postal_code' => 'nullable|string|max:10',
-            'phone' => 'nullable|string|max:50',
-            'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($existingUser?->id)],
-            'password' => 'nullable|string|min:3',
-        ];
-
-        // Solo validamos ID único si NO existe el usuario
-        if (! $existingUser) {
-            $rules['id'] .= '|unique:users,id';
-        }
-
-        if (auth()->user()->role === Role::ADMIN) {
-            $rules['role'] = ['required', 'string', Rule::in(array_map(fn ($role) => $role->value, Role::cases()))];
-            $rules['list_id'] = 'nullable|exists:list_names,id';
-        } else {
-            $request->merge(['role' => Role::CUSTOMER->value]);
-            $request->merge(['list_id' => null]);
-        }
-
-        $validatedData = $request->validate($rules);
+        $validatedData = $request->validated();
+        $existingUser = User::find($validatedData['id']);
 
         $warnings = [];
         $defaults = [
@@ -98,15 +67,12 @@ class UserController extends Controller
             'list_id' => $validatedData['list_id'] ?? null,
         ];
 
-        // Solo actualizamos el password si se envía uno nuevo
         if (! empty($validatedData['password'])) {
             $userData['password'] = Hash::make($validatedData['password']);
         } elseif (! $existingUser) {
-            // Si es un usuario nuevo y no viene password, usamos el ID como password
             $userData['password'] = Hash::make((string) $validatedData['id']);
         }
 
-        // Usamos updateOrCreate para manejar ambos casos
         $user = User::updateOrCreate(
             ['id' => $validatedData['id']],
             $userData
@@ -124,8 +90,6 @@ class UserController extends Controller
 
     /**
      * Display the specified resource.
-     *
-     * @return User
      */
     public function show(User $user): JsonResponse
     {
@@ -138,8 +102,6 @@ class UserController extends Controller
 
     /**
      * Update the specified resource in storage.
-     *
-     * @return User
      */
     public function update(Request $request, User $user): JsonResponse
     {
@@ -154,16 +116,13 @@ class UserController extends Controller
             'city' => 'nullable|string|max:30',
             'postal_code' => 'nullable|string|max:10',
             'phone' => 'nullable|string|max:50',
-            'email' => ['email', Rule::unique('users', 'email')->ignore($user->id)],
+            'email' => ['email', \Illuminate\Validation\Rule::unique('users', 'email')->ignore($user->id)],
             'password' => 'nullable|string|min:3',
         ];
 
         if (auth()->user()->role === Role::ADMIN) {
-            $rules['role'] = ['string', Rule::in(array_map(fn ($role) => $role->value, Role::cases()))];
+            $rules['role'] = ['string', \Illuminate\Validation\Rule::in(array_map(fn ($role) => $role->value, Role::cases()))];
             $rules['list_id'] = 'nullable|exists:list_names,id';
-        } else {
-            $request->offsetUnset('role');
-            $request->offsetUnset('list_id');
         }
 
         $validatedData = $request->validate($rules);
@@ -183,26 +142,12 @@ class UserController extends Controller
             }
         }
 
-        $dataToUpdate = [
-            'name' => $validatedData['name'] ?? $user->name,
-            'lastname' => $validatedData['lastname'] ?? $user->lastname,
-            'address' => $validatedData['address'] ?? $user->address,
-            'city' => $validatedData['city'] ?? $user->city,
-            'postal_code' => $validatedData['postal_code'] ?? $user->postal_code,
-            'phone' => $validatedData['phone'] ?? $user->phone,
-            'email' => $validatedData['email'] ?? $user->email,
-        ];
-
-        if (auth()->user()->role === Role::ADMIN && isset($validatedData['list_id'])) {
-            $dataToUpdate['list_id'] = $validatedData['list_id'];
-        }
+        $dataToUpdate = array_intersect_key($validatedData, array_flip([
+            'name', 'lastname', 'address', 'city', 'postal_code', 'phone', 'email', 'list_id', 'role'
+        ]));
 
         if (isset($validatedData['password'])) {
             $dataToUpdate['password'] = Hash::make($validatedData['password']);
-        }
-
-        if (auth()->user()->role === Role::ADMIN && isset($validatedData['role'])) {
-            $dataToUpdate['role'] = $validatedData['role'];
         }
 
         $user->update($dataToUpdate);
