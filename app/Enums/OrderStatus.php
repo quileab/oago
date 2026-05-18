@@ -24,4 +24,16 @@ enum OrderStatus: string
             self::FAILED => 'Fallido',
         };
     }
+
+    public function color(): string
+    {
+        return match ($this) {
+            self::COMPLETED => 'success',
+            self::PENDING => 'info',
+            self::ON_HOLD => 'warning',
+            self::CANCELLED, self::FAILED => 'error',
+            self::PROCESSING => 'primary',
+            default => 'ghost',
+        };
+    }
 }

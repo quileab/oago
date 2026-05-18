@@ -131,11 +131,11 @@ new class extends Component {
     <x-table :headers="$headers" :rows="$orders" link="/alt-order/{id}/edit" with-pagination
         :cell-decoration="
         ['status' =>  [
-            'bg-red-500/25' => fn(AltOrder $order) => $order->status === 'cancelled',
-            'bg-green-500/25' => fn(AltOrder $order) => $order->status === 'completed',
-            'bg-yellow-500/25' => fn(AltOrder $order) => $order->status === 'on-hold',
-            'bg-blue-500/25' => fn(AltOrder $order) => $order->status === 'pending',
-            'bg-purple-500/25' => fn(AltOrder $order) => $order->status === 'processing',
+            'bg-red-500/20 font-bold' => fn(AltOrder $order) => $order->status->value === 'cancelled',
+            'bg-green-500/20 font-bold' => fn(AltOrder $order) => $order->status->value === 'completed',
+            'bg-yellow-500/20 font-bold' => fn(AltOrder $order) => $order->status->value === 'on-hold',
+            'bg-blue-500/20 font-bold' => fn(AltOrder $order) => $order->status->value === 'pending',
+            'bg-purple-500/20 font-bold' => fn(AltOrder $order) => $order->status->value === 'processing',
         ]]">
         
         @scope('cell_user.fullName', $order)
@@ -151,7 +151,7 @@ new class extends Component {
         @endscope
 
         @scope('cell_status', $order)
-            {{ AltOrder::orderStates($order->status) }}
+            {{ $order->status->label() }}
         @endscope
 
         @scope('cell_total_price', $order)
