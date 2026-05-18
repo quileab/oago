@@ -22,7 +22,7 @@ class OrderService
     /**
      * Procesa la creación o actualización de un pedido.
      */
-    public function placeOrder(array $shippingData): \Illuminate\Http\RedirectResponse
+    public function placeOrder(array $shippingData)
     {
         $cart = Session::get('cart', []);
         if (empty($cart)) {
