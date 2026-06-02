@@ -3,8 +3,11 @@
 use App\Enums\Role;
 use App\Models\ListName;
 use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 
 use function Pest\Laravel\actingAs;
+
+uses(RefreshDatabase::class);
 
 it('prevents a regular user from updating their own list_id', function () {
     // 1. Setup

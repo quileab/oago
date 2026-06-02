@@ -2,8 +2,11 @@
 
 use App\Enums\Role;
 use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 
 use function Pest\Laravel\actingAs;
+
+uses(RefreshDatabase::class);
 
 it('blocks non-admin users from admin API routes', function () {
     $user = User::factory()->create(['role' => Role::CUSTOMER]);

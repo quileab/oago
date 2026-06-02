@@ -1,7 +1,10 @@
 <?php
 
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+
+uses(RefreshDatabase::class);
 
 it('serves fallback for non-image content-type', function () {
     Http::fake([

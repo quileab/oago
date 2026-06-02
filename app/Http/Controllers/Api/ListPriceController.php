@@ -11,17 +11,19 @@ use Illuminate\Support\Facades\Validator;
 
 class ListPriceController extends Controller
 {
-    public function __construct(protected PriceListService $priceService)
-    {
-    }
+    public function __construct(protected PriceListService $priceService) {}
 
     /**
      * Display a listing of the resource.
      */
     public function index(Request $request)
     {
-        $perPage = $request->input('per_page', 50);
-        $listPrices = ListPrice::paginate($perPage);
+        if ($request->has('page') || $request->has('per_page')) {
+            $perPage = $request->input('per_page', 50);
+            $listPrices = ListPrice::paginate($perPage);
+        } else {
+            $listPrices = ListPrice::all();
+        }
 
         return response()->json($listPrices, 200);
     }
@@ -41,8 +43,11 @@ class ListPriceController extends Controller
         $list_id = $normalized['list_id'];
         $data = $normalized['data'];
 
-        // Si es una creación y no viene precio base (e.g. viene de lista U), aseguramos 0
-        if (!isset($data['price'])) {
+        $existingRecord = ListPrice::where('product_id', $validatedData['product_id'])
+            ->where('list_id', $list_id)
+            ->first();
+
+        if (! isset($data['price']) && ! $existingRecord) {
             $data['price'] = 0;
         }
 
@@ -59,11 +64,14 @@ class ListPriceController extends Controller
      */
     public function show($product_id, $list_id)
     {
-        $list_id = $this->priceService->resolveBaseListId($list_id);
+        $requestedListId = (int) $list_id;
+        $baseListId = $this->priceService->resolveBaseListId($requestedListId);
 
         $listPrice = ListPrice::where('product_id', $product_id)
-            ->where('list_id', $list_id)
+            ->where('list_id', $baseListId)
             ->firstOrFail();
+
+        $listPrice->list_id = $requestedListId;
 
         return response()->json($listPrice, 200);
     }
@@ -98,7 +106,6 @@ class ListPriceController extends Controller
 
         return response()->json(['message' => 'OK'], 200);
     }
-
 
     /**
      * Remove the specified resource from storage.

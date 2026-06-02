@@ -6,6 +6,7 @@ use App\Enums\OrderStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\Product;
+use App\Services\PriceListService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -21,21 +22,17 @@ class OrderController extends Controller
      */
     public function listPendingOrders(Request $request): JsonResponse
     {
-        $orders = Order::with(['user', 'items.product', 'shipping'])->where('status', OrderStatus::PENDING)->get();
+        $orders = Order::with(['user', 'items.product', 'shipping'])
+            ->where('status', OrderStatus::PENDING)
+            ->get();
 
-        $filteredOrders = $orders->map(function ($order) {
-            return [
-                'id' => $order->id,
-                'user' => $order->user,
-                'items' => $order->items,
-                'shipping' => $order->shipping,
-                'total_price' => $order->total_price,
-                'status' => $order->status,
-                'created_at' => $order->created_at,
-            ];
+        $orders->each(function ($order) {
+            $order->setRelation('items', $order->items->filter(function ($item) {
+                return $item->quantity > 0 && $item->price > 0;
+            })->values());
         });
 
-        return response()->json($filteredOrders, 200);
+        return response()->json($orders, 200);
     }
 
     /**
@@ -62,6 +59,25 @@ class OrderController extends Controller
     public function updateOrderProducts(Request $request, Order $order): JsonResponse
     {
         Log::info("Request: { json_encode($request) }");
+
+        // Normalizar formato legacy ('products' con 'id') a formato moderno ('items' con 'product_id')
+        if ($request->has('products')) {
+            $normalizedItems = [];
+            foreach ($request->input('products', []) as $prod) {
+                // Legacy usaba quantity=0 para indicar eliminación del producto.
+                // En el flujo nuevo donde borramos todo y recreamos los ítems enviados,
+                // omitimos los ítems con cantidad <= 0 para lograr la eliminación.
+                if (isset($prod['quantity']) && (int) $prod['quantity'] > 0) {
+                    $normalizedItems[] = [
+                        'product_id' => $prod['id'] ?? null,
+                        'quantity' => $prod['quantity'],
+                        'price' => $prod['price'] ?? 0,
+                    ];
+                }
+            }
+            $request->merge(['items' => $normalizedItems]);
+        }
+
         try {
             $request->validate([
                 'items' => 'required|array',
@@ -101,7 +117,13 @@ class OrderController extends Controller
                         $billableQuantity = $orderedQuantity - $freeUnits;
                     }
 
-                    $total += (float) $item['price'] * $billableQuantity;
+                    $orderUser = $order->user;
+                    if ($product && $orderUser) {
+                        $total += app(PriceListService::class)
+                            ->calculateItemPrice($orderUser->list_id ?? 1, $product, $billableQuantity);
+                    } else {
+                        $total += (float) $item['price'] * $billableQuantity;
+                    }
                 }
 
                 $order->update(['total_price' => $total]);

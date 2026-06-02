@@ -4,7 +4,10 @@ use App\Enums\Role;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Session;
+
+uses(RefreshDatabase::class);
 
 it('reproduces the order total inconsistency with bonuses', function () {
     // 1. Setup

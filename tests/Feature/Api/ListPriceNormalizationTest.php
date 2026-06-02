@@ -99,6 +99,6 @@ test('the normalization command works correctly', function () {
         'unit_price' => 12.50,
     ]);
 
-    $this->assertDatabaseMissing('list_names', ['id' => $unitList->id]);
+    $this->assertDatabaseHas('list_names', ['id' => $unitList->id]); // Command no longer deletes U lists
     $this->assertDatabaseMissing('list_prices', ['list_id' => $unitList->id]);
 });

@@ -29,8 +29,12 @@ class ProductController extends Controller
      */
     public function index(Request $request)
     {
-        $perPage = $request->input('per_page', 50);
-        $products = Product::paginate($perPage);
+        if ($request->has('page') || $request->has('per_page')) {
+            $perPage = $request->input('per_page', 50);
+            $products = Product::paginate($perPage);
+        } else {
+            $products = Product::all();
+        }
 
         return response()->json($products, 200);
     }

@@ -2,7 +2,6 @@
 
 use App\Enums\Role;
 use App\Models\ListName;
-use App\Models\ListPrice;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -35,7 +34,7 @@ test('legacy ingestion flow: products and prices are correctly handled', functio
 
     $response = $this->actingAs($admin, 'sanctum')
         ->postJson('/api/products', $productData);
-    
+
     $response->assertStatus(201);
     $this->assertDatabaseHas('products', ['id' => 10059, 'sku' => 'LEG-10059']);
 
@@ -46,7 +45,7 @@ test('legacy ingestion flow: products and prices are correctly handled', functio
             'list_id' => 1, // Base list
             'price' => 12000.00,
         ]);
-    
+
     $response->assertSuccessful();
     $this->assertDatabaseHas('list_prices', [
         'product_id' => 10059,
@@ -61,9 +60,9 @@ test('legacy ingestion flow: products and prices are correctly handled', functio
         ->postJson('/api/list-prices', [
             'product_id' => 10059,
             'list_id' => 2, // Unit list
-            'price' => 1150.00, 
+            'price' => 1150.00,
         ]);
-    
+
     $response->assertSuccessful();
 
     // Verify both prices are merged in the base list ID
@@ -81,17 +80,17 @@ test('legacy ingestion flow: products and prices are correctly handled', functio
     $productData['description'] = 'Producto Actualizado';
     $response = $this->actingAs($admin, 'sanctum')
         ->postJson('/api/products', $productData);
-    
+
     $response->assertStatus(200); // Controller returns 200 on update via store()
     $this->assertDatabaseHas('products', ['id' => 10059, 'description' => 'Producto Actualizado']);
 
     // 7. Verify GET show still returns the correct merged price even if asking for unit list
     $response = $this->actingAs($admin, 'sanctum')
-        ->getJson("/api/list-prices/10059/2"); // Asking for unit list
-    
+        ->getJson('/api/list-prices/10059/2'); // Asking for unit list
+
     $response->assertStatus(200)
         ->assertJson([
-            'list_id' => 1,
+            'list_id' => 2,
             'price' => 12000.00,
             'unit_price' => 1150.00,
         ]);

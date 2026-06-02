@@ -5,6 +5,7 @@ namespace App\Livewire;
 use App\Models\AltOrder;
 use App\Models\Order;
 use App\Models\Product;
+use App\Services\PriceListService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
 use Livewire\Attributes\On;
@@ -107,6 +108,7 @@ class Cart extends Component
 
         $productIds = array_column($cart, 'product_id');
         $products = Product::whereIn('id', $productIds)->get()->keyBy('id');
+        $user = current_user();
 
         foreach ($cart as $item) {
             $product = $products->get($item['product_id']);
@@ -120,7 +122,12 @@ class Cart extends Component
                 $billableQuantity = $orderedQuantity - $freeUnits;
             }
 
-            $this->total += (float) $item['price'] * $billableQuantity;
+            if ($product && $user) {
+                $this->total += app(PriceListService::class)
+                    ->calculateItemPrice($user->list_id ?? 1, $product, $billableQuantity);
+            } else {
+                $this->total += (float) $item['price'] * $billableQuantity;
+            }
         }
     }
 
@@ -142,6 +149,20 @@ class Cart extends Component
                 if ($user) {
                     $item['current_price'] = $user->getProductPrice($product);
                     $item['is_price_changed'] = abs((float) $item['price'] - (float) $item['current_price']) > 0.01;
+
+                    // Calcular total mixto del item para la vista Blade
+                    $quantity = (int) $item['quantity'];
+                    $billableQuantity = $quantity;
+                    if ($product->hasBonus() && $product->bonus_threshold > 0) {
+                        $bonusThreshold = $product->bonus_threshold + $product->bonus_amount;
+                        $timesBonusApplies = floor($quantity / $bonusThreshold);
+                        $freeUnits = $timesBonusApplies * $product->bonus_amount;
+                        $billableQuantity = $quantity - $freeUnits;
+                    }
+                    $item['total_price'] = app(PriceListService::class)
+                        ->calculateItemPrice($user->list_id ?? 1, $product, $billableQuantity);
+                } else {
+                    $item['total_price'] = (float) $item['price'] * (int) $item['quantity'];
                 }
 
                 $item['is_stock_insufficient'] = $product->stock < $item['quantity'];

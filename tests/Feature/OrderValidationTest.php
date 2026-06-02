@@ -4,8 +4,11 @@ use App\Enums\Role;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Validation\ValidationException;
+
+uses(RefreshDatabase::class);
 
 it('prevents placing order if stock is insufficient', function () {
     $user = User::factory()->create(['role' => Role::CUSTOMER]);

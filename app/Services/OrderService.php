@@ -2,14 +2,14 @@
 
 namespace App\Services;
 
+use App\Helpers\SettingsHelper;
+use App\Mail\OrderMail;
 use App\Models\AltOrder;
 use App\Models\AltOrderItem;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\ShippingDetail;
-use App\Helpers\SettingsHelper;
-use App\Mail\OrderMail;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -38,10 +38,10 @@ class OrderService
         try {
             $isAlt = Auth::guard('alt')->check();
             $user = current_user();
-            
+
             // Determinar si es actualización
             $updateOrderId = Session::get('updateOrder');
-            
+
             // Validar stock, precios y calcular total
             $validatedData = $this->validateCart($cart, $user);
             $total = $validatedData['total'];
@@ -49,7 +49,7 @@ class OrderService
 
             $shippingData['total_price'] = $total;
             $shippingData['user_id'] = $user->id;
-            
+
             // Normalizar estado
             if (isset($shippingData['status']) && $shippingData['status'] !== 'pending') {
                 $shippingData['status'] = 'on-hold';
@@ -96,8 +96,8 @@ class OrderService
                         ];
                     }
                 }
-                
-                if (!empty($itemsToInsert)) {
+
+                if (! empty($itemsToInsert)) {
                     $itemModel::insert($itemsToInsert);
                 }
 
@@ -111,9 +111,9 @@ class OrderService
             $this->cleanupSessionAndStorage();
 
             return redirect()->route('ordersuccess', [
-                'order' => $orderCreated->id, 
-                'status' => $orderCreated->status, 
-                'is_alt' => $isAlt
+                'order' => $orderCreated->id,
+                'status' => $orderCreated->status,
+                'is_alt' => $isAlt,
             ]);
 
         } finally {
@@ -133,7 +133,7 @@ class OrderService
         foreach ($cart as $item) {
             $product = $products->get($item['product_id']);
 
-            if (!$product) {
+            if (! $product) {
                 throw ValidationException::withMessages(['cart' => "El producto {$item['name']} ya no está disponible."]);
             }
 
@@ -143,7 +143,7 @@ class OrderService
 
             $currentPrice = $user->getProductPrice($product);
             if (abs((float) $item['price'] - (float) $currentPrice) > 0.01) {
-                throw ValidationException::withMessages(['cart' => "El precio de {$item['name']} ha cambiado ($ " . number_format($currentPrice, 2) . "). Por favor verifique su carrito."]);
+                throw ValidationException::withMessages(['cart' => "El precio de {$item['name']} ha cambiado ($ ".number_format($currentPrice, 2).'). Por favor verifique su carrito.']);
             }
 
             $orderedQuantity = (int) $item['quantity'];
@@ -156,7 +156,8 @@ class OrderService
                 $billableQuantity = $orderedQuantity - $freeUnits;
             }
 
-            $total += (float) $item['price'] * $billableQuantity;
+            $total += app(PriceListService::class)
+                ->calculateItemPrice($user->list_id ?? 1, $product, $billableQuantity);
         }
 
         if ($total == 0) {
@@ -210,7 +211,7 @@ class OrderService
                 Mail::to($adminEmail)->send(new OrderMail($order->id, $isAlt));
             }
         } catch (\Exception $e) {
-            Log::error("Error enviando correo de orden (" . ($isAlt ? 'Alt' : 'Normal') . "): " . $e->getMessage());
+            Log::error('Error enviando correo de orden ('.($isAlt ? 'Alt' : 'Normal').'): '.$e->getMessage());
         }
     }
 
@@ -224,7 +225,7 @@ class OrderService
 
         $cartId = current_user_cart_id();
         if ($cartId) {
-            $path = storage_path('app/private/' . $cartId . '_cart.json');
+            $path = storage_path('app/private/'.$cartId.'_cart.json');
             if (file_exists($path)) {
                 unlink($path);
             }

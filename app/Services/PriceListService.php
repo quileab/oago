@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\ListName;
 use App\Models\ListPrice;
+use App\Models\Product;
 
 class PriceListService
 {
@@ -14,11 +15,11 @@ class PriceListService
     public function normalize(int $listId, array $data): array
     {
         $list = ListName::find($listId);
-        
+
         if ($list && str_ends_with(trim($list->name), 'U')) {
             $baseName = preg_replace('/ U$/', '', trim($list->name));
             // Buscamos la lista base. Usamos LIKE para mayor flexibilidad con espacios legacy.
-            $baseList = ListName::where('name', 'LIKE', $baseName . '%')
+            $baseList = ListName::where('name', 'LIKE', $baseName.'%')
                 ->where('id', '!=', $listId)
                 ->first();
 
@@ -62,7 +63,7 @@ class PriceListService
     public function getEffectivePrice(int $listId, int $productId): ?float
     {
         $list = ListName::find($listId);
-        if (!$list) {
+        if (! $list) {
             return null;
         }
 
@@ -73,17 +74,43 @@ class PriceListService
             ->where('product_id', $productId)
             ->first();
 
-        if (!$listPrice) {
+        if (! $listPrice) {
             return null;
         }
 
         if ($isUnit) {
-            // Si la lista es de tipo "U", preferimos unit_price. 
-            // Si es 0 o null, podemos considerar fallback a price si así se requiere, 
+            // Si la lista es de tipo "U", preferimos unit_price.
+            // Si es 0 o null, podemos considerar fallback a price si así se requiere,
             // pero la lógica de normalización lo mueve a unit_price.
             return (float) ($listPrice->unit_price ?: $listPrice->price);
         }
 
         return (float) $listPrice->price;
+    }
+
+    /**
+     * Calcula el precio total de un ítem aplicando la lógica de cobro mixto (bulto + unidades sueltas).
+     */
+    public function calculateItemPrice(int $listId, Product $product, int $quantity): float
+    {
+        $baseListId = $this->resolveBaseListId($listId);
+        $qttyPackage = max(1, $product->qtty_package);
+
+        $listPrice = ListPrice::where('list_id', $baseListId)
+            ->where('product_id', $product->id)
+            ->first();
+
+        if ($listPrice) {
+            $bulkPrice = (float) $listPrice->price;
+            $unitPrice = (float) ($listPrice->unit_price ?: $listPrice->price);
+        } else {
+            $bulkPrice = (float) ($product->price ?? 0);
+            $unitPrice = (float) ($product->price ?? 0);
+        }
+
+        $packagesQuantity = floor($quantity / $qttyPackage) * $qttyPackage;
+        $extraQuantity = $quantity % $qttyPackage;
+
+        return ($packagesQuantity * $bulkPrice) + ($extraQuantity * $unitPrice);
     }
 }

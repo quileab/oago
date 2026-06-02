@@ -72,7 +72,7 @@
                                                     label="{{floor($item['quantity'] / $item['bulkQuantity'])}} x {{ $item['bulkQuantity']}} + {{ $item['quantity'] - (floor($item['quantity'] / $item['bulkQuantity']) * $item['bulkQuantity'])}}" />
                                             @endif
                                         </td>
-                                        <td class="text-right">${{ number_format($item['price'] * $item['quantity'], 2) }}</td>
+                                        <td class="text-right">${{ number_format($item['total_price'], 2) }}</td>
                                         <td class="text-center">
                                             <x-dropdown>
                                                 <x-slot:trigger>
@@ -131,7 +131,7 @@
                                     </div>
                                     <div class="text-right">
                                         <div class="text-xs text-slate-400 mb-1">Subtotal</div>
-                                        <div class="font-black text-green-400 text-lg">${{ number_format($item['price'] * $item['quantity'], 2) }}</div>
+                                        <div class="font-black text-green-400 text-lg">${{ number_format($item['total_price'], 2) }}</div>
                                     </div>
                                 </div>
 

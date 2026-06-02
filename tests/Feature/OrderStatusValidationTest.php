@@ -4,9 +4,12 @@ use App\Enums\OrderStatus;
 use App\Enums\Role;
 use App\Models\Order;
 use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\putJson;
+
+uses(RefreshDatabase::class);
 
 it('validates order status using OrderStatus Enum', function () {
     $admin = User::factory()->create(['role' => Role::ADMIN]);
