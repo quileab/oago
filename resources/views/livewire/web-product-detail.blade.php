@@ -189,26 +189,62 @@ new class extends Component
                     @if(!Auth::guest())
                         <div class="bg-slate-50 p-6 rounded-2xl mb-8 border border-slate-100">
                             <div class="flex flex-col">
-                                @if($offer_price > 0)
-                                    <span class="text-sm text-red-500 line-through font-bold mb-1">
-                                        Precio regular: $ {{ number_format($user_price, 2, ',', '.') }}
-                                    </span>
-                                    <div class="flex items-baseline gap-2">
-                                        <span class="text-5xl font-black text-green-700 tracking-tighter">
-                                            $ {{ number_format($offer_price, 2, ',', '.') }}
+                                @php
+                                    $qtty_pkg = max(1, $product->qtty_package ?? 1);
+                                    $price_to_calc = $offer_price > 0 ? $offer_price : $user_price;
+                                    $regular_price_to_calc = $user_price;
+                                @endphp
+
+                                @if($qtty_pkg > 1)
+                                    {{-- 1. Precio por bulto master (Grande en verde) --}}
+                                    @if($offer_price > 0)
+                                        <span class="text-sm text-red-500 line-through font-bold mb-1">
+                                            Precio regular: $ {{ number_format($regular_price_to_calc * $qtty_pkg, 2, ',', '.') }} x Bulto
                                         </span>
-                                        <span class="text-xs font-bold text-white bg-green-600 px-2 py-0.5 rounded uppercase">Oferta</span>
-                                    </div>
-                                @else
-                                    <span class="text-5xl font-black text-green-700 tracking-tighter">
-                                        $ {{ number_format($user_price, 2, ',', '.') }}
+                                        <div class="flex items-baseline gap-2 mb-2">
+                                            <span class="text-5xl font-black text-green-700 tracking-tighter">
+                                                $ {{ number_format($price_to_calc * $qtty_pkg, 2, ',', '.') }}
+                                            </span>
+                                            <span class="text-xs font-bold text-white bg-green-600 px-2 py-0.5 rounded uppercase">Oferta</span>
+                                        </div>
+                                    @else
+                                        <div class="flex items-baseline gap-2 mb-2">
+                                            <span class="text-5xl font-black text-green-700 tracking-tighter">
+                                                $ {{ number_format($price_to_calc * $qtty_pkg, 2, ',', '.') }}
+                                            </span>
+                                            <span class="text-sm font-bold text-green-600">x Bulto ({{ $qtty_pkg }} un.)</span>
+                                        </div>
+                                    @endif
+
+                                    {{-- 2. Precio unitario x bulto (Precio de empaque) --}}
+                                    <span class="text-base font-bold text-slate-700 mt-1 flex items-center gap-1">
+                                        <x-icon name="o-cube" class="w-4 h-4 text-slate-400" />
+                                        Precio por empaque: $ {{ number_format($price_to_calc, 2, ',', '.') }}
                                     </span>
+                                @else
+                                    {{-- Caso regular sin bulto master --}}
+                                    @if($offer_price > 0)
+                                        <span class="text-sm text-red-500 line-through font-bold mb-1">
+                                            Precio regular: $ {{ number_format($user_price, 2, ',', '.') }}
+                                        </span>
+                                        <div class="flex items-baseline gap-2 mb-2">
+                                            <span class="text-5xl font-black text-green-700 tracking-tighter">
+                                                $ {{ number_format($offer_price, 2, ',', '.') }}
+                                            </span>
+                                            <span class="text-xs font-bold text-white bg-green-600 px-2 py-0.5 rounded uppercase">Oferta</span>
+                                        </div>
+                                    @else
+                                        <span class="text-5xl font-black text-green-700 tracking-tighter mb-2">
+                                            $ {{ number_format($user_price, 2, ',', '.') }}
+                                        </span>
+                                    @endif
                                 @endif
-                                
-                                @if($product->qtty_unit > 1)
+
+                                {{-- 3. Precio unitario individual (Gris y pequeño) --}}
+                                @if($product->qtty_unit >= 1)
                                     <span class="text-sm font-bold text-slate-500 mt-2 flex items-center gap-1">
-                                        <x-icon name="o-tag" class="w-4 h-4" />
-                                        Precio por unidad: $ {{ number_format(($offer_price > 0 ? $offer_price : $user_price) / $product->qtty_unit, 2, ',', '.') }}
+                                        <x-icon name="o-tag" class="w-4 h-4 text-slate-400" />
+                                        Precio por unidad: $ {{ number_format($price_to_calc / $product->qtty_unit, 2, ',', '.') }} x un.
                                     </span>
                                 @endif
                             </div>

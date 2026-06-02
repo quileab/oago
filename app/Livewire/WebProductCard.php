@@ -58,10 +58,14 @@ class WebProductCard extends Component
             $productObj->id = 0;
         }
 
+        $basePrice = $this->offer_price > 0 ? $this->offer_price : $this->user_price;
+        $unitPrice = isset($productObj->qtty_unit) && $productObj->qtty_unit > 0 ? ($basePrice / $productObj->qtty_unit) : $basePrice;
+
         return view('livewire.web-product-card', [
             'product' => $productObj,
             'display_price' => $this->user_price,
             'display_offer' => $this->offer_price,
+            'unit_price' => $unitPrice,
             'cart' => session()->get('cart', []), // Pasamos el carrito actual para el badge visual
         ]);
     }
