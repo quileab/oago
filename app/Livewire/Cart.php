@@ -167,6 +167,8 @@ class Cart extends Component
 
                 $item['is_stock_insufficient'] = $product->stock < $item['quantity'];
                 $item['available_stock'] = $product->stock;
+            } else {
+                $item['total_price'] = (float) $item['price'] * (int) $item['quantity'];
             }
             $enrichedCart[$productId] = $item;
         }

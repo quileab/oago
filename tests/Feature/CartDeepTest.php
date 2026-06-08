@@ -113,3 +113,28 @@ it('calculates mixed package and unit pricing correctly', function () {
         ->dispatch('addToCart', product: $product->id, quantity: 15)
         ->assertSet('total', 8400.0);
 });
+
+it('renders safely when product in cart is deleted from database', function () {
+    $user = User::factory()->create(['role' => Role::CUSTOMER]);
+    $this->actingAs($user);
+
+    $product = Product::create([
+        'description' => 'Test Product',
+        'price' => 100,
+        'qtty_package' => 1,
+        'visibility' => 'visible',
+        'tax_status' => 'taxable',
+        'published' => true,
+        'model' => 'M1',
+        'brand' => 'B1',
+    ]);
+
+    Volt::test('cart')
+        ->dispatch('addToCart', product: $product->id, quantity: 1)
+        ->assertSet('total', 100.0);
+
+    $product->delete();
+
+    Volt::test('cart')
+        ->assertSee('Test Product');
+});
