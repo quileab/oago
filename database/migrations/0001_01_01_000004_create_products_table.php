@@ -16,9 +16,9 @@ return new class extends Migration
             $table->string('barcode', 50)->default('');
             $table->string('sku', 50)->default('');
             $table->string('product_type', 30)->nullable();
-            $table->string('brand', 30)->default('');
-            $table->string('model', 130)->default('');
-            $table->string('category', 50)->default('');
+            $table->string('brand', 30)->nullable()->default('');
+            $table->string('model', 130)->nullable()->default('');
+            $table->string('category', 50)->nullable()->default('');
             $table->string('description', 100);
             $table->string('description_html', 250)->default('');
             $table->boolean('published')->default(1);

@@ -7,7 +7,6 @@ namespace App\Services;
 use App\Models\Product;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
-use App\Services\PriceListService;
 
 class ProductSearchService
 {
@@ -16,7 +15,7 @@ class ProductSearchService
         $query = Product::query()
             ->where('published', 1)
             ->where('visibility', '!=', 'hidden')
-            ->where('model', '!=', 'consumo interno');
+            ->where(DB::raw('ifnull(model, "")'), '!=', 'consumo interno');
 
         // merge featured from parameter if set
         if ($featured) {
@@ -27,7 +26,7 @@ class ProductSearchService
         if (isset($params['id'])) {
             $query->where('products.id', $params['id']);
             $product = $query->first();
-            
+
             if ($product) {
                 $this->hydratePrices(collect([$product]));
             }
@@ -67,7 +66,7 @@ class ProductSearchService
             $terms = array_filter(explode(' ', $params['search']));
             $query->where(function ($q) use ($terms) {
                 foreach ($terms as $term) {
-                    $q->where(DB::raw('concat(description, " ", model, " ", brand, " ", product_type, " ", category, " ", ifnull(tags, ""))'), 'like', "%$term%");
+                    $q->where(DB::raw('concat(description, " ", ifnull(model, ""), " ", ifnull(brand, ""), " ", ifnull(product_type, ""), " ", ifnull(category, ""), " ", ifnull(tags, ""))'), 'like', "%$term%");
                 }
             });
         }
@@ -124,13 +123,13 @@ class ProductSearchService
     protected function hydratePrices($products): void
     {
         $user = current_user();
-        if (!$user || !$user->list_id || $products->isEmpty()) {
+        if (! $user || ! $user->list_id || $products->isEmpty()) {
             return;
         }
 
         $priceService = app(PriceListService::class);
         $baseListId = $priceService->resolveBaseListId($user->list_id);
-        
+
         // Cargar precios base en una sola consulta
         $listPrices = DB::table('list_prices')
             ->where('list_id', $baseListId)

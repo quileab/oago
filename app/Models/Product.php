@@ -141,4 +141,34 @@ class Product extends Model
 
         return "{$this->bonus_threshold} + {$this->bonus_amount} off !!";
     }
+
+    public function getBrandAttribute(?string $value): string
+    {
+        return $value ?? '';
+    }
+
+    public function setBrandAttribute(?string $value): void
+    {
+        $this->attributes['brand'] = $value ?? '';
+    }
+
+    public function getModelAttribute(?string $value): string
+    {
+        return $value ?? '';
+    }
+
+    public function setModelAttribute(?string $value): void
+    {
+        $this->attributes['model'] = $value ?? '';
+    }
+
+    public function getCategoryAttribute(?string $value): string
+    {
+        return $value ?? '';
+    }
+
+    public function setCategoryAttribute(?string $value): void
+    {
+        $this->attributes['category'] = $value ?? '';
+    }
 }
