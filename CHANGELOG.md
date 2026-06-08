@@ -8,6 +8,13 @@ Este documento resume los cambios significativos entre la rama `v1` y la rama `m
 
 *   **Colas de Trabajo (Queues):** Se corrigió la configuración de Supervisor en producción (`user=oagostini`) y se estableció la rotación de logs para evitar el consumo excesivo de disco.
 
+### 🔌 API REST (Compatibilidad y Optimizaciones)
+
+*   **Retrocompatibilidad y Estándares:** 
+    *   Se mejoró la API en la rama `dev` logrando una total retrocompatibilidad con las implementaciones cliente de la rama `main`, traduciendo internamente modelos de datos legacy (ej. `products` hacia `items` en `OrderController`).
+    *   Se normalizaron los endpoints para mantener respuestas esperadas usando nuevos servicios como `PriceListService` por detrás.
+    *   Se restauraron estrictos tipados de retorno en controladores (Ej. `: JsonResponse`) para cumplir los lineamientos del proyecto en PHP 8.4 y evitar quiebres arquitectónicos.
+
 ### 🛍️ Productos y Ofertas
 
 *   **Sistema de Bonificaciones (Descuento por Cantidad):**

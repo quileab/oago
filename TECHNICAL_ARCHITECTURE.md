@@ -40,6 +40,7 @@ El frontend es altamente dinámico gracias a Livewire:
 - **Volt Components:** El proyecto utiliza componentes Volt (Single File Components) que combinan lógica PHP y vista Blade en un solo archivo para mayor agilidad.
 
 ## 6. API y Servicios (`app/Http/Controllers/Api`)
+- **Retrocompatibilidad:** La API soporta internamente payloads legacy para mantener compatibilidad total con integraciones anteriores (ej. traducción automática de estructuras de pedidos).
 - **ProductSearchService:** Servicio dedicado para la búsqueda avanzada de productos.
 - **Controllers:** Gestión de endpoints para integración con sistemas externos o aplicaciones móviles.
 - **ImageProxyController:** Controlador para gestionar la carga y redimensionamiento de imágenes de productos de forma eficiente.

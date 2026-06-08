@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\StoreListPriceRequest;
 use App\Models\ListPrice;
 use App\Services\PriceListService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -16,7 +17,7 @@ class ListPriceController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request)
+    public function index(Request $request): JsonResponse
     {
         if ($request->has('page') || $request->has('per_page')) {
             $perPage = $request->input('per_page', 50);
@@ -31,7 +32,7 @@ class ListPriceController extends Controller
     /**
      * Store (or update) a resource.
      */
-    public function store(StoreListPriceRequest $request)
+    public function store(StoreListPriceRequest $request): JsonResponse
     {
         $validatedData = $request->validated();
 
@@ -62,7 +63,7 @@ class ListPriceController extends Controller
     /**
      * Display the specified resource using product ID.
      */
-    public function show($product_id, $list_id)
+    public function show(int $product_id, int $list_id): JsonResponse
     {
         $requestedListId = (int) $list_id;
         $baseListId = $this->priceService->resolveBaseListId($requestedListId);
@@ -79,7 +80,7 @@ class ListPriceController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, $product_id, $list_id)
+    public function update(Request $request, int $product_id, int $list_id): JsonResponse
     {
         $validator = Validator::make($request->all(), [
             'price' => 'numeric|min:0',
@@ -110,7 +111,7 @@ class ListPriceController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy($product_id, $list_id)
+    public function destroy(int $product_id, int $list_id): JsonResponse
     {
         $listPrice = ListPrice::where('product_id', $product_id)
             ->where('list_id', $list_id)

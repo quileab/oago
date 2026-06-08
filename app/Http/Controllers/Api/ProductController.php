@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Product;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -27,7 +28,7 @@ class ProductController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request)
+    public function index(Request $request): JsonResponse
     {
         if ($request->has('page') || $request->has('per_page')) {
             $perPage = $request->input('per_page', 50);
@@ -42,7 +43,7 @@ class ProductController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(Request $request): JsonResponse
     {
         if ($request->has('qtty_package') && (int) $request->qtty_package < 1) {
             $old_qtty = $request->qtty_package;
@@ -108,7 +109,7 @@ class ProductController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Product $product)
+    public function show(Product $product): JsonResponse
     {
         // return proper response if product not found
         if (! $product) {
@@ -119,7 +120,7 @@ class ProductController extends Controller
     }
 
     // Actualizar un producto
-    public function update(Request $request, Product $product)
+    public function update(Request $request, Product $product): JsonResponse
     {
         if ($request->has('qtty_package') && (int) $request->qtty_package < 1) {
             $old_qtty = $request->qtty_package;
@@ -181,7 +182,7 @@ class ProductController extends Controller
     }
 
     // Eliminar un producto
-    public function destroy(Product $product)
+    public function destroy(Product $product): JsonResponse
     {
         if ($product->image_url) {
             $this->deleteImageCache($product->image_url);
@@ -192,7 +193,7 @@ class ProductController extends Controller
     }
 
     // Subir la imagen de un producto
-    public function uploadImage(Request $request, Product $product)
+    public function uploadImage(Request $request, Product $product): JsonResponse
     {
         $request->validate([
             'image' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
@@ -215,7 +216,7 @@ class ProductController extends Controller
         return response()->json(['message' => 'No se pudo subir la imagen'], 500);
     }
 
-    public function changeVisibility(Request $request, $product)
+    public function changeVisibility(Request $request, $product): JsonResponse
     {
         $product = Product::find($product);
         // return response()->json(['message' => json_encode($request)], 200);
