@@ -42,7 +42,7 @@ class WebProductCard extends Component
 
         $this->user_price = $this->local_product['user_price']
             ?? ($productModel ? current_user()?->getProductPrice($productModel) : null)
-            ?? 0;
+            ?? ($this->local_product['price'] ?? 0);
         $this->offer_price = $this->local_product['offer_price'] ?? 0;
 
         $this->qtty = $this->local_product['qtty_package'] ?? 1;

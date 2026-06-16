@@ -23,6 +23,17 @@ class SettingsSeeder extends Seeder
             ]
         );
 
+        // Show prices to guests
+        Setting::updateOrCreate(
+            ['key' => 'show_prices_to_guests'],
+            [
+                'value' => '0',
+                'type' => 'boolean',
+                'text' => 'Mostrar Precios a Invitados',
+                'description' => 'Si se activa, los visitantes que no hayan iniciado sesión podrán ver los precios.',
+            ]
+        );
+
         // Number format separator
         Setting::updateOrCreate(
             ['key' => 'number_format_separator'],
