@@ -211,6 +211,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     }
                 }
 
+                if ($action === 'create_default_admin') {
+                    $output .= "Creando usuario administrador por defecto (admin@admin.com / Admin!2026) y configuración...\n";
+                    try {
+                        $kernel->call('migrate', ['--force' => true]);
+                    } catch (Throwable $e) {
+                        $output .= 'Advertencia al migrar: '.$e->getMessage()."\n";
+                    }
+
+                    $email = 'admin@admin.com';
+                    try {
+                        User::where('email', $email)->orWhere('id', 1)->delete();
+                    } catch (Throwable $e) {
+                        $output .= 'Advertencia al limpiar usuario: '.$e->getMessage()."\n";
+                    }
+
+                    try {
+                        User::create([
+                            'id' => 1,
+                            'name' => 'admin',
+                            'lastname' => 'admin',
+                            'role' => Role::ADMIN,
+                            'address' => 'admin',
+                            'city' => 'admin',
+                            'postal_code' => '9999',
+                            'phone' => '+5493482111111',
+                            'email' => $email,
+                            'password' => Hash::make('Admin!2026'),
+                        ]);
+                        $output .= "Usuario admin (ID: 1) creado exitosamente con contraseña 'Admin!2026'.\n";
+                    } catch (Throwable $e) {
+                        $output .= 'Error al crear usuario admin: '.$e->getMessage()."\n";
+                    }
+
+                    try {
+                        $output .= "Ejecutando SettingsSeeder...\n";
+                        (new SettingsSeeder)->run();
+                        $output .= "Seeder de Settings ejecutado con éxito.\n";
+                    } catch (Throwable $e) {
+                        $output .= 'Error al ejecutar SettingsSeeder: '.$e->getMessage()."\n";
+                    }
+                }
+
                 if ($action === 'optimize') {
                     $output .= "Solicitando optimización de caches...\n";
                     $exitCode = $kernel->call('optimize');
@@ -380,6 +422,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 <h3>App</h3>
                 <form method="POST"><input type="hidden" name="action" value="migrate"><button>5. Migraciones</button></form>
                 <form method="POST"><input type="hidden" name="action" value="init_db"><button style="background:#3182ce">6. Inicializar DB (Admin)</button></form>
+                <form method="POST"><input type="hidden" name="action" value="create_default_admin"><button style="background:#10b981">6b. Crear Admin por Defecto (Admin!2026)</button></form>
+
                 <form method="POST"><input type="hidden" name="action" value="optimize"><button>7. Optimizar Todo</button></form>
                 <form method="POST"><input type="hidden" name="action" value="check"><button style="background:#4a5568">Verificar Permisos</button></form>
                 <form method="POST"><input type="hidden" name="action" value="logs"><button style="background:#4a5568">Ver Últimos Logs</button></form>

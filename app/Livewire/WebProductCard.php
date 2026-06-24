@@ -2,7 +2,9 @@
 
 namespace App\Livewire;
 
+use App\Helpers\SettingsHelper;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Mary\Traits\Toast;
@@ -62,6 +64,8 @@ class WebProductCard extends Component
             'display_price' => $this->user_price,
             'display_offer' => $this->offer_price,
             'cart' => session()->get('cart', []), // Pasamos el carrito actual para el badge visual
+            'showPrices' => ! Auth::guest() || SettingsHelper::settings('show_prices_to_guests', false),
+            'guestMessage' => SettingsHelper::settings('show_prices_to_guests', false) ? 'Regístrese para comprar' : 'Regístrese para ver precios',
         ]);
     }
 

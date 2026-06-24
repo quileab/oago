@@ -95,6 +95,18 @@ new class extends Component
 
         return $this->product->qtty_unit > 0 ? $basePrice / $this->product->qtty_unit : $basePrice;
     }
+
+    public function showPrices(): bool
+    {
+        return ! Auth::guest() || \App\Helpers\SettingsHelper::settings('show_prices_to_guests', false);
+    }
+
+    public function guestMessage(): string
+    {
+        return \App\Helpers\SettingsHelper::settings('show_prices_to_guests', false)
+            ? 'Inicie sesión para comprar'
+            : 'Inicie sesión para ver precios y comprar';
+    }
 }; ?>
 
 <div class="max-w-7xl mx-auto p-4 lg:p-6">
@@ -210,7 +222,7 @@ new class extends Component
                         {!! strip_tags($product->description_html, '<p><br><b><strong><i><em><ul><ol><li><a><span><div>') !!}
                     </div>
 
-                    @if(!Auth::guest() || App\Helpers\SettingsHelper::settings('show_prices_to_guests', false))
+                    @if($this->showPrices())
                         <div class="bg-slate-50 p-6 rounded-2xl mb-8 border border-slate-100">
                             <div class="flex flex-col">
                                 @if($offer_price > 0)
@@ -228,54 +240,48 @@ new class extends Component
                                 @endif
                             </div>
                         </div>
+                    @endif
 
-                        @if(!Auth::guest())
-                            <div class="flex justify-between items-center mb-8 px-2">
-                                @php($stockBadge = $this->stockBadge())
-                                <span class="font-black text-sm px-3 py-1.5 rounded-full border {{ $stockBadge['class'] }}"><x-icon :name="$stockBadge['icon']" class="w-4 h-4 inline mr-1" /> {{ $stockBadge['label'] }}</span>
-                                <span class="text-slate-600 font-black bg-white px-4 py-1.5 rounded-full border border-slate-200 shadow-sm text-sm"><x-icon name="o-cube" class="w-4 h-4 inline mr-1" /> Venta por bulto: {{ $product->qtty_package }} un.</span>
-                            </div>
+                    @if(!Auth::guest())
+                        <div class="flex justify-between items-center mb-8 px-2">
+                            @php($stockBadge = $this->stockBadge())
+                            <span class="font-black text-sm px-3 py-1.5 rounded-full border {{ $stockBadge['class'] }}"><x-icon :name="$stockBadge['icon']" class="w-4 h-4 inline mr-1" /> {{ $stockBadge['label'] }}</span>
+                            <span class="text-slate-600 font-black bg-white px-4 py-1.5 rounded-full border border-slate-200 shadow-sm text-sm"><x-icon name="o-cube" class="w-4 h-4 inline mr-1" /> Venta por bulto: {{ $product->qtty_package }} un.</span>
+                        </div>
 
-                            @if($this->canBuy())
-                                <div x-data="{
-                                    qtty: @entangle('qtty'),
-                                    step: {{ $product->qtty_package }},
-                                    add(n) { this.qtty = parseInt(this.qtty) + n },
-                                    sub(n) { if(this.qtty > n) this.qtty -= n; else this.qtty = 1 }
-                                }" class="space-y-4">
+                        @if($this->canBuy())
+                            <div x-data="{
+                                qtty: @entangle('qtty'),
+                                step: {{ $product->qtty_package }},
+                                add(n) { this.qtty = parseInt(this.qtty) + n },
+                                sub(n) { if(this.qtty > n) this.qtty -= n; else this.qtty = 1 }
+                            }" class="space-y-4">
 
-                                    <div class="flex items-stretch h-14 shadow-sm rounded-xl overflow-hidden border-2 border-slate-200">
-                                        <button @click="sub(1)" class="w-20 bg-slate-100 hover:bg-slate-200 text-2xl font-bold text-slate-700 transition-colors border-r-2 border-slate-200">-</button>
-                                        @if($product->qtty_package > 1)
-                                            <button @click="sub(step)" class="w-24 bg-blue-50 hover:bg-blue-100 text-xs font-black text-blue-700 border-r-2 border-slate-200">-{{ $product->qtty_package }}</button>
-                                        @endif
+                                <div class="flex items-stretch h-14 shadow-sm rounded-xl overflow-hidden border-2 border-slate-200">
+                                    <button @click="sub(1)" class="w-20 bg-slate-100 hover:bg-slate-200 text-2xl font-bold text-slate-700 transition-colors border-r-2 border-slate-200">-</button>
+                                    @if($product->qtty_package > 1)
+                                        <button @click="sub(step)" class="w-24 bg-blue-50 hover:bg-blue-100 text-xs font-black text-blue-700 border-r-2 border-slate-200">-{{ $product->qtty_package }}</button>
+                                    @endif
 
-                                        <input type="number" x-model="qtty" class="flex-grow text-center text-xl font-black bg-white focus:outline-none" min="1">
+                                    <input type="number" x-model="qtty" class="flex-grow text-center text-xl font-black bg-white focus:outline-none" min="1">
 
-                                        @if($product->qtty_package > 1)
-                                            <button @click="add(step)" class="w-24 bg-blue-50 hover:bg-blue-100 text-xs font-black text-blue-700 border-l-2 border-slate-200">+{{ $product->qtty_package }}</button>
-                                        @endif
-                                        <button @click="add(1)" class="w-20 bg-slate-100 hover:bg-slate-200 text-2xl font-bold text-slate-700 transition-colors border-l-2 border-slate-200">+</button>
-                                    </div>
-
-                                    <x-button label="AGREGAR AL CARRITO" icon="o-shopping-cart"
-                                        class="w-full h-14 btn-primary text-lg font-black shadow-xl shadow-primary/30"
-                                        wire:click="buy({{ $product->id }})"
-                                        onclick="flyToCart('detail-img-{{ $product->id }}')"
-                                        spinner="buy" />
+                                    @if($product->qtty_package > 1)
+                                        <button @click="add(step)" class="w-24 bg-blue-50 hover:bg-blue-100 text-xs font-black text-blue-700 border-l-2 border-slate-200">+{{ $product->qtty_package }}</button>
+                                    @endif
+                                    <button @click="add(1)" class="w-20 bg-slate-100 hover:bg-slate-200 text-2xl font-bold text-slate-700 transition-colors border-l-2 border-slate-200">+</button>
                                 </div>
-                            @endif
-                        @else
-                            <div class="mt-8 p-6 bg-blue-50 rounded-2xl border border-blue-100 text-center">
-                                <x-icon name="o-lock-closed" class="w-8 h-8 text-blue-400 mx-auto mb-2" />
-                                <p class="text-blue-700 font-bold">Inicie sesión para comprar</p>
-                                <x-button label="Ingresar ahora" link="/login" class="mt-4 btn-sm btn-primary" />
+
+                                <x-button label="AGREGAR AL CARRITO" icon="o-shopping-cart"
+                                    class="w-full h-14 btn-primary text-lg font-black shadow-xl shadow-primary/30"
+                                    wire:click="buy({{ $product->id }})"
+                                    onclick="flyToCart('detail-img-{{ $product->id }}')"
+                                    spinner="buy" />
                             </div>
                         @endif
                     @else
                         <div class="mt-8 p-6 bg-blue-50 rounded-2xl border border-blue-100 text-center">
                             <x-icon name="o-lock-closed" class="w-8 h-8 text-blue-400 mx-auto mb-2" />
-                            <p class="text-blue-700 font-bold">Inicie sesión para ver precios y comprar</p>
+                            <p class="text-blue-700 font-bold">{{ $this->guestMessage() }}</p>
                             <x-button label="Ingresar ahora" link="/login" class="mt-4 btn-sm btn-primary" />
                         </div>
                     @endif
