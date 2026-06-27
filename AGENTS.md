@@ -267,3 +267,316 @@ protected function isAccessible(User $user, ?string $path = null): bool
 - IMPORTANT: Always use `search-docs` tool for version-specific Volt documentation and updated code examples.
 - IMPORTANT: Activate `volt-development` every time you're working with a Volt or single-file component-related task.
 </laravel-boost-guidelines>
+
+---
+
+## OAGO — Project Context
+
+> Auto-generated context for AI agents. Updated: 2026-06-27.
+
+---
+
+### Domain & Purpose
+
+OAGO is a **B2B e-commerce catalog** (TALL stack). Key actors:
+- **Admin** — full system control (products, users, price lists, achievements, settings, slider, logs).
+- **Sales agent** — manages assigned customers, can **impersonate** them to place orders on their behalf.
+- **Customer** — browses catalog with personalized pricing, adds to cart, places orders.
+- **Guest / AltUser** — trial access with configurable TTL; activates via email token.
+- UI language is **Spanish**; code language is **English**.
+- REST API (Sanctum) with auto-generated OpenAPI docs via Scramble at `/api/documentation`.
+
+---
+
+### Auth System — CRITICAL
+
+**Two user types, two guards, one helper:**
+
+| Type | Model | Guard | Table |
+|------|-------|-------|-------|
+| Main users | `User` | `web`, `sanctum` | `users` |
+| Guest/trial | `AltUser` | `alt` | `alt_users` |
+
+**Always use `current_user()` instead of `Auth::user()`.**
+- Checks guards in order: `web` → `sanctum` → `alt`.
+- If role is `sales` AND `session('sales_acting_as_customer_id')` is set → returns the impersonated `User` transparently.
+- `AuthServiceProvider` sets the `alt` guard as default when `session('is_alt_login')` is present.
+
+**Roles** (`App\Enums\Role` — string-backed enum):
+| Case | Value | Notes |
+|------|-------|-------|
+| `None` | `'none'` | No access |
+| `Guest` | `'guest'` | Time-limited trial; checked by `CheckGuestExpiration` middleware |
+| `Customer` | `'customer'` | Catalog + orders + profile |
+| `Sales` | `'sales'` | Customer management + impersonation |
+| `Admin` | `'admin'` | Full access |
+
+**Sales impersonation flow:**
+1. Sales logs in → `WebNavbar` auto-selects first assigned customer on mount.
+2. `setActingCustomer($id)` validates via `getManagedCustomersQuery()` → stores in session.
+3. `current_user()` returns the customer transparently.
+4. Cart is **cleared** on customer switch to prevent price conflicts.
+
+**Guest trial:**
+- `AltUser` with `role=guest` and `!is_internal` → `CheckGuestExpiration` middleware checks TTL.
+- TTL from `SettingsHelper::settings('guest_access_ttl_days', 10)`.
+- Internal users (`is_internal=true`) never expire.
+- Activation: `GET /activate-account/{token}` → changes role to `customer`.
+
+---
+
+### Data Model & Relationships
+
+```
+users ──────────────────────────── list_names (list_id FK)
+  │                                    │
+  ├─ orders ── order_items              ├─ list_prices (product_id + list_id)
+  │               │                    │       │
+  │               └─ products ─────────┘       └─ products
+  │
+  ├─ achievables (morph) ── achievements
+  │
+  └─ customer_sales_agents (customer_id FK) ←── sales_agent morph (User|AltUser)
+
+alt_users ─ same structure as users ─── alt_orders ── alt_order_items
+                                              └─ shipping_details (also for orders)
+```
+
+**Key model details:**
+
+`User` / `AltUser` (shared traits: `HasPricingList`, `HasAchievements`, `HasProfileData`, `ManagesCustomers`):
+- `fullName` accessor → `"Lastname, Name"`
+- `list()` → `BelongsTo(ListName, 'list_id')`
+- `achievements()` → `MorphToMany(Achievement, 'achievable')`
+- `assignedCustomers()` → `MorphMany(CustomerSalesAgent, 'sales_agent')` (only on sales role)
+- `getManagedCustomersQuery()` → admin sees all, sales sees only assigned
+
+`Product`:
+- `hasBonus()` / `getBonusLabelAttribute()` — e.g. `"23 + 1 off !!"`
+- `getMediaAttribute()` — cached array of images + YouTube thumbnails (`product_media_{id}`, 1 day TTL)
+- `qtty_package` — package size for bulk pricing
+- `published`, `featured`, `visibility` — display control
+- Cache cleared on `save` / `delete` via model boot
+
+`Order` / `AltOrder`:
+- `Order::placeOrder(array $shipping)` → delegates to `OrderService::placeOrder()`
+- status cast to `OrderStatus` enum
+- `shipping()` → `HasOne(ShippingDetail)`
+
+`ListName`:
+- Lists ending in `" U"` are **unit price lists** that resolve back to a base list
+
+`Setting`:
+- `key`, `value`, `type` (`number|boolean|json|string`), `text`, `description`
+
+---
+
+### Helpers
+
+**`app/Helpers/helpers.php`** (auto-loaded):
+
+```php
+// Always use instead of Auth::user(). Handles guards + sales impersonation.
+function current_user(): User|AltUser|null
+
+// Returns "web_{userId}" or "alt_{userId}" — cart JSON file key.
+function current_user_cart_id(): string|null
+```
+
+**`app/Helpers/SettingsHelper.php`** (auto-loaded):
+
+```php
+SettingsHelper::settings(string $key, mixed $default = null): mixed
+// Cached forever per key. Cast by 'type': number→float, boolean→bool, json→array.
+
+SettingsHelper::update_setting(string $key, mixed $value): void
+// UpdateOrCreate + flushes cache for that key.
+
+SettingsHelper::getProductTags(): array
+// Shortcut for settings('product_tags', []).
+```
+
+**Known settings keys:**
+| Key | Type | Default | Purpose |
+|-----|------|---------|---------|
+| `guest_access_ttl_days` | number | 10 | Guest trial duration |
+| `order_placed_mail` | string | — | Admin email CC on orders |
+| `product_tags` | json | [] | Available product tags |
+| `image_proxy_allowed_hosts` | json | [] | SSRF whitelist for image proxy |
+
+---
+
+### Pricing System (complex — read carefully)
+
+1. Every user has `list_id` → `ListName`.
+2. Lists ending in `" U"` = unit price lists (resolve to base list).
+3. `PriceListService::getEffectivePrice($listId, $productId)` — resolves bulk vs unit.
+4. `PriceListService::calculateItemPrice($listId, Product, $quantity)`:
+   - Full packages → `price` (bulk); remainder units → `unit_price`.
+   - Package size from `Product::qtty_package`.
+5. `ProductSearchService::hydratePrices()` — bulk loads list prices for paginated results (N+1 prevention).
+6. `User::getProductPrice(Product)` (via `HasPricingList`) — single product lookup.
+
+**Bonus/offer system:**
+- `Product::bonus_threshold > 0` AND `bonus_amount > 0` → quantity offer active.
+- Billable qty = ordered qty − free units (calculated in `Cart` and `OrderService`).
+
+---
+
+### Cart
+
+- Session-based (`session('cart')` keyed by `product_id`).
+- Also persisted to `storage/app/private/{cart_id}_cart.json`.
+- Cart ID = `current_user_cart_id()`.
+- **Cleared on customer switch** (sales impersonation) to prevent price conflicts.
+
+---
+
+### Order Flow
+
+1. `Cart` validates → `OrderService::validateCart()` (stock, price drift, bonus).
+2. DB transaction: create/update `Order`|`AltOrder`, bulk-insert `OrderItem`|`AltOrderItem`, upsert `ShippingDetail`.
+3. Queued `OrderMail` sent (user + optional admin CC from `order_placed_mail` setting).
+4. Session + JSON cart file cleared.
+5. Redirect to `route('ordersuccess')`.
+
+---
+
+### Middleware
+
+Registered in `bootstrap/app.php`:
+
+| Alias | Class | Behavior |
+|-------|-------|----------|
+| `is_admin` | `IsAdminMiddleware` | `current_user()->role->value === 'admin'` → else abort(404) |
+| `is_role` | `IsRoleMiddleware` | Variadic: `is_role:admin,sales` |
+| `check_guest` | `CheckGuestExpiration` | Logs out expired guest AltUser accounts |
+| `ApiLoggerMiddleware` | (prepended to api) | Logs all API requests; masks secrets on 4xx/5xx |
+| `StartSession` | (prepended to api) | Session available in API routes (needed for impersonation) |
+
+---
+
+### Route Groups Summary
+
+```
+Public:           /login, /register, /about, /activate-account/{token}, /proxy-image
+Auth+check_guest: /user/profile, /orders, /alt-orders, /checkout, /product/details/{id?}, etc.
+Admin-only:       /users, /products, /dashboard, /settings, /logs, /slider, /export/*
+API public:       POST /api/register, POST /api/login
+API Sanctum:      /api/user, /api/users/{user}
+API admin:        /api/orders/*, /api/products/*, /api/list-prices/*, /api/users
+```
+
+---
+
+### Components Map
+
+**Standard Livewire (`app/Livewire/`):**
+| Class | Purpose |
+|-------|---------|
+| `Cart` | Cart add/remove/update, bonus calc, JSON persistence |
+| `Dashboard` | Admin charts (ApexCharts), top-5 products |
+| `WebNavbar` | Nav, sales customer switcher, trial counter |
+| `WebProductCard` | Product card with qty controls, dispatches `addToCart` |
+| `WebSearchFilter` | Filters: category, brand, tag, text → dispatches `updateProducts` |
+
+**Livewire Traits (`app/Livewire/Traits/`):**
+- `ManagesModelCrud` — generic `save()` with Toast + optional redirect.
+- `ManagesModelIndex` — generic `delete()`, paginated search with `searchableColumns`.
+
+**Volt Single-File Components** (class-based style, in `resources/views/livewire/`):
+- Auth: `login`, `register`
+- Orders: `orders`, `alt-orders`, `orderitems`, `alt-orderitems`, `checkout`
+- Products (admin): `products/index`, `products/crud`, `products/extras`, `products/lists`
+- Users (admin): `users/index`, `users/crud`, `users/profile`, `users/sales-assign`, `users/sales-assigned`, `users/alts/index`, `users/alts/crud`
+- Catalog: `web-product-detail`, `webproductsmain`, `webslider`, `cart`
+- Other: `achievements/*`, `assign-achievement`, `settings/crud`, `admin/logs`, `slider`, `dashboard`
+
+**Blade Layouts** (`resources/views/components/layouts/`):
+- `app.blade.php` — full layout (navbar + cart)
+- `clean.blade.php` — minimal (login/register)
+- `empty.blade.php` — bare
+
+**View Components** (`app/View/Components/`):
+- `AppBrand` — logo/brand
+- `ImageProxy` → `<x-image-proxy>` — wraps proxy URL
+
+---
+
+### Services
+
+| Service | Key Methods |
+|---------|-------------|
+| `OrderService` | `placeOrder()`, `validateCart()` |
+| `PriceListService` | `getEffectivePrice()`, `calculateItemPrice()` |
+| `ProductSearchService` | `hydratePrices()` (N+1 prevention for catalog) |
+
+---
+
+### Mail & Jobs
+
+- `OrderMail` — order confirmation; queued; user + admin CC.
+- `AltUserWelcomeMail` — welcome + activation link for new AltUser.
+
+---
+
+### Console Commands
+
+| Command | Purpose |
+|---------|---------|
+| `CreateAdminUser` | Creates admin user interactively |
+| `DataImport` | Legacy v1 migration |
+| `MakeDeployZip` | Builds optimized deployment ZIP |
+| `NormalizePriceListsCommand` | Normalizes price list data |
+| `ResetCustomerPasswords` | Bulk password reset |
+
+---
+
+### Key Packages
+
+| Package | Purpose |
+|---------|---------|
+| `robsontenorio/mary` ^2.0 | MaryUI components — use for all UI elements |
+| `dedoc/scramble` ^0.12 | Auto OpenAPI docs → `/api/documentation` |
+| `laravel/pail` ^1.2 | Log tailing in dev |
+| `daisyui` ^5.0 | Tailwind component themes |
+| `apexcharts` ^5.3 | Dashboard charts |
+| `sortablejs` ^1.15 | Drag-and-drop sorting (slider, etc.) |
+
+---
+
+### Test Coverage (`tests/Feature/`)
+
+Existing tests (do **not** delete without approval):
+`ApiOrderUpdateTest`, `AuthSecurityTest`, `CartDeepTest`, `CartPersistenceTest`, `CheckoutTest`, `ComponentTest`, `CustomerSalesAgentTest`, `ImageProxySecurityTest`, `OrderStatusValidationTest`, `OrderTotalConsistencyTest`, `OrderValidationTest`, `PermissionsTest`, `ProductSearchServiceTest`, `UserControllerEscalationTest`, `WebProductsMainTest` + `tests/Feature/Api/`
+
+---
+
+### Database Tables
+
+| Table | Model | Notes |
+|-------|-------|-------|
+| `users` | `User` | Main users |
+| `alt_users` | `AltUser` | Guest/trial users; has `activation_token` |
+| `products` | `Product` | Catalog |
+| `list_names` | `ListName` | Price list groups |
+| `list_prices` | `ListPrice` | Per-product, per-list pricing |
+| `orders` | `Order` | Main user orders |
+| `alt_orders` | `AltOrder` | AltUser orders |
+| `order_items` | `OrderItem` | |
+| `alt_order_items` | `AltOrderItem` | |
+| `shipping_details` | `ShippingDetail` | Shared by both order types |
+| `achievements` | `Achievement` | data cast to array |
+| `achievables` | — | Polymorphic pivot (User, AltUser) |
+| `customer_sales_agents` | `CustomerSalesAgent` | Polymorphic sales_agent (User\|AltUser) |
+| `settings` | `Setting` | App config via `SettingsHelper` |
+| `cache`, `jobs`, `sessions` | — | Laravel infrastructure |
+| `personal_access_tokens` | — | Sanctum |
+
+---
+
+### External Integrations
+
+- **YouTube**: thumbnails only — `https://img.youtube.com/vi/{videoId}/mqdefault.jpg`
+- **Image Proxy** (`ImageProxyController`): fetches/resizes remote product images; SSRF-protected (no private IPs, host whitelist from `image_proxy_allowed_hosts` setting).
+
