@@ -95,6 +95,18 @@ new class extends Component
 
         return $this->product->qtty_unit > 0 ? $basePrice / $this->product->qtty_unit : $basePrice;
     }
+
+    public function showPrices(): bool
+    {
+        return ! Auth::guest() || \App\Helpers\SettingsHelper::settings('show_prices_to_guests', false);
+    }
+
+    public function guestMessage(): string
+    {
+        return \App\Helpers\SettingsHelper::settings('show_prices_to_guests', false)
+            ? 'Inicie sesión para comprar'
+            : 'Inicie sesión para ver precios y comprar';
+    }
 }; ?>
 
 <div class="max-w-7xl mx-auto p-4 lg:p-6">
@@ -210,7 +222,7 @@ new class extends Component
                         {!! strip_tags($product->description_html, '<p><br><b><strong><i><em><ul><ol><li><a><span><div>') !!}
                     </div>
 
-                    @if(!Auth::guest())
+                    @if($this->showPrices())
                         <div class="bg-slate-50 p-6 rounded-2xl mb-8 border border-slate-100">
                             <div class="flex flex-col">
                                 @if($offer_price > 0)
@@ -228,7 +240,9 @@ new class extends Component
                                 @endif
                             </div>
                         </div>
+                    @endif
 
+                    @if(!Auth::guest())
                         <div class="flex justify-between items-center mb-8 px-2">
                             @php($stockBadge = $this->stockBadge())
                             <span class="font-black text-sm px-3 py-1.5 rounded-full border {{ $stockBadge['class'] }}"><x-icon :name="$stockBadge['icon']" class="w-4 h-4 inline mr-1" /> {{ $stockBadge['label'] }}</span>
@@ -267,7 +281,7 @@ new class extends Component
                     @else
                         <div class="mt-8 p-6 bg-blue-50 rounded-2xl border border-blue-100 text-center">
                             <x-icon name="o-lock-closed" class="w-8 h-8 text-blue-400 mx-auto mb-2" />
-                            <p class="text-blue-700 font-bold">Inicie sesión para ver precios y comprar</p>
+                            <p class="text-blue-700 font-bold">{{ $this->guestMessage() }}</p>
                             <x-button label="Ingresar ahora" link="/login" class="mt-4 btn-sm btn-primary" />
                         </div>
                     @endif

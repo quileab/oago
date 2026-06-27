@@ -61,7 +61,7 @@
         $whatsapp = collect(App\Helpers\SettingsHelper::settings('social_networks', []))->firstWhere('platform', 'WhatsApp');
         $companyPhone = App\Helpers\SettingsHelper::settings('company_phone');
         $cleanPhone = $companyPhone ? preg_replace('/[^0-9]/', '', $companyPhone) : null;
-        $whatsappUrl = $cleanPhone ? 'https://wa.me/' . $cleanPhone : ($whatsapp['url'] ?? '#');
+        $whatsappUrl = ($whatsapp && !empty($whatsapp['url'])) ? $whatsapp['url'] : ($cleanPhone ? 'https://wa.me/' . $cleanPhone : '#');
     @endphp
     @if($whatsapp || $cleanPhone)
         <div class="fixed bottom-6 left-6 z-[100] group">

@@ -1,0 +1,30 @@
+[
+    {
+        "name": "Calibre Digital de Precisión 150mm",
+        "brand": "Bremen",
+        "category": "Medición",
+        "description": "Calibre digital fabricado en acero inoxidable con pantalla LCD de fácil lectura. Resolución de 0.01 mm / 0.0005\". Estuche rígido incluido. Ideal para matricería y tornería.",
+        "image_url": "/imgs/ginsumos/calibre_digital.webp"
+    },
+    {
+        "name": "Insertos de Metal Duro para Torneado (Caja x 10 u.)",
+        "brand": "Bremen",
+        "category": "Tornería",
+        "description": "Insertos de carburo de tungsteno con recubrimiento CVD de alta resistencia al desgaste. Ideales para el mecanizado de aceros y fundición a velocidades medias-altas.",
+        "image_url": "/imgs/ginsumos/insertos_torno.webp"
+    },
+    {
+        "name": "Juego de Mechas de Acero Rápido HSS helicoidales",
+        "brand": "Bremen",
+        "category": "Corte y Perforación",
+        "description": "Set de brocas helicoidales HSS rectificadas para perforación de alta precisión en aceros aleados y no aleados, hierro fundido y metales no ferrosos.",
+        "image_url": "/imgs/ginsumos/mechas_acero.webp"
+    },
+    {
+        "name": "Discos de Corte Ultra Finos 4.5\" (115 x 1.0 mm)",
+        "brand": "Bremen",
+        "category": "Abrasivos",
+        "description": "Disco abrasivo plano ultra delgado para cortes rápidos y precisos en aceros inoxidables y aceros al carbono con mínima formación de rebabas.",
+        "image_url": "/imgs/ginsumos/disco_corte.webp"
+    }
+]

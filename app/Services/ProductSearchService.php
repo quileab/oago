@@ -122,8 +122,16 @@ class ProductSearchService
      */
     protected function hydratePrices($products): void
     {
+        if ($products->isEmpty()) {
+            return;
+        }
+
         $user = current_user();
-        if (! $user || ! $user->list_id || $products->isEmpty()) {
+        if (! $user || ! $user->list_id) {
+            foreach ($products as $product) {
+                $product->user_price = (float) $product->price;
+            }
+
             return;
         }
 

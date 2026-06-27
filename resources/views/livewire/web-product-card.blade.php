@@ -47,7 +47,7 @@
                 </div>
 
                 {{-- Precio Alineado a la Derecha --}}
-                @if(!Auth::guest())
+                @if($showPrices)
                     <div class="flex flex-col items-end mb-2 pr-1">
                         @if($display_offer > 0)
                             <div class="flex flex-col items-end">
@@ -83,7 +83,7 @@
 
     @if(Auth::guest())
         <div class="p-2 bg-slate-50 border-t border-slate-100 text-center text-[11px] text-slate-500 font-medium">
-            <x-icon name="o-lock-closed" class="w-3 h-3 inline mr-1" /> Regístrese para ver precios
+            <x-icon name="o-lock-closed" class="w-3 h-3 inline mr-1" /> {{ $guestMessage }}
         </div>
     @else
         <div class="p-2.5 bg-white border-t border-slate-100">
