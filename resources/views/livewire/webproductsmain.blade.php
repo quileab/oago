@@ -4,8 +4,8 @@ use Livewire\Volt\Component;
 use Livewire\WithPagination;
 use Livewire\WithoutUrlPagination;
 use Livewire\Attributes\On;
+use Livewire\Attributes\Url;
 use Mary\Traits\Toast;
-// use Livewire\Attributes\Inject; // Importar el atributo Inject para que el constructor reciba el servicio
 
 new class extends Component {
     use WithPagination, WithoutUrlPagination, Toast;
@@ -14,10 +14,24 @@ new class extends Component {
     public $featured = false;
     public $filter; // for data passed to the component
 
-    // # //[ Inject]
+    #[Url(history: true)]
+    public $search = null;
+
+    #[Url(history: true)]
+    public $category = null;
+
+    #[Url(history: true)]
+    public $brand = null;
+
+    #[Url(history: true)]
+    public $tag = null;
+
+    #[Url(history: true)]
+    public $similar = null;
+
     protected ProductSearchService $productSearchService;
 
-    public function boot() // replace constructor inject with boot
+    public function boot()
     {
         $this->productSearchService = App::make(ProductSearchService::class);
     }
@@ -25,11 +39,11 @@ new class extends Component {
     public function products()
     {
         $params = [
-            'search' => session()->get('search'),
-            'category' => session()->get('category'),
-            'brand' => session()->get('brand'),
-            'similar' => session()->get('similar'),
-            'tag' => session()->get('tag'),
+            'search' => $this->search,
+            'category' => $this->category,
+            'brand' => $this->brand,
+            'similar' => $this->similar,
+            'tag' => $this->tag,
         ];
 
         // if there's a filter, merge it with params
@@ -46,15 +60,24 @@ new class extends Component {
         return $products;
     }
 
-    #[On('updateProducts')]
-    public function with($resetPage = false)
+    public function with()
     {
-        if ($resetPage) {
-            $this->resetPage();
-            // do not update until the page is reset
-            $resetPage = false;
-        }
         return ['products' => $this->products()];
+    }
+
+    #[On('updateProducts')]
+    public function updateFilters($filters = [])
+    {
+        // Update local properties from filters passed in event
+        if (array_key_exists('search', $filters)) $this->search = $filters['search'];
+        if (array_key_exists('category', $filters)) $this->category = $filters['category'];
+        if (array_key_exists('brand', $filters)) $this->brand = $filters['brand'];
+        if (array_key_exists('tag', $filters)) $this->tag = $filters['tag'];
+        if (array_key_exists('similar', $filters)) $this->similar = $filters['similar'];
+
+        if (isset($filters['resetPage']) && $filters['resetPage']) {
+            $this->resetPage();
+        }
     }
 
     public function loadMore()
@@ -83,7 +106,7 @@ new class extends Component {
                     $product->description_html = str_replace('\n', '', $product->description_html);
                 @endphp
                 {{-- <livewire:web-product-card :$product wire:key="{{ $product->id }}" /> --}}
-                <livewire:web-product-card :$product :key="'prod-{{ $product->id }}'.Str::random(16)" />
+                <livewire:web-product-card :$product wire:key="prod-{{ $product->id }}" />
             </div>
         @empty
             <h1 class="text-2xl">No existen productos</h1>

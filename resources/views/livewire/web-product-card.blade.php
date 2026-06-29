@@ -6,7 +6,7 @@
             <!-- Columna Imagen (Aumentada al 45%) -->
             <div class="w-[45%] relative bg-gray-50 flex items-center justify-center overflow-hidden border-r border-gray-100">
                 @if($product->featured)
-                    <div class="absolute top-0 left-0 z-10">
+                    <div class="absolute top-0 left-0">
                         <span class="text-[9px] font-bold px-1.5 py-0.5 text-white bg-red-600 rounded-br-lg shadow-sm">
                             ⭐
                         </span>
@@ -47,65 +47,35 @@
                 </div>
 
                 {{-- Precio Alineado a la Derecha --}}
-                @if(!Auth::guest())
-                        @php
-                            $qtty_pkg = max(1, $product->qtty_package ?? 1);
-                            $price_to_calc = $display_offer > 0 ? $display_offer : $display_price;
-                            $regular_price_to_calc = $display_price;
-                        @endphp
-
-                        @if($qtty_pkg > 1)
-                            {{-- 1. Precio por bulto master (Grande en verde) --}}
-                            @if($display_offer > 0)
-                                <div class="flex flex-col items-end">
-                                    <span class="text-[10px] text-red-500 line-through font-bold leading-none mb-1">
-                                        $ {{ number_format($regular_price_to_calc * $qtty_pkg, 2, ',', '.') }}
-                                    </span>
-                                    <span class="text-2xl font-black text-green-700 leading-none">
-                                        $ {{ number_format($price_to_calc * $qtty_pkg, 2, ',', '.') }}
-                                    </span>
-                                </div>
-                            @else
-                                <span class="text-2xl font-black text-green-700 leading-none">
-                                    $ {{ number_format($price_to_calc * $qtty_pkg, 2, ',', '.') }}
-                                </span>
-                            @endif
-                            <span class="text-[9px] font-bold text-green-600 block text-right mt-1 uppercase tracking-wider">x Bulto ({{ $qtty_pkg }} un.)</span>
-
-                            {{-- 2. Precio unitario x bulto (Precio de lista del empaque) --}}
-                            <span class="text-[11px] font-bold text-slate-600 mt-1.5">
-                                $ {{ number_format($price_to_calc, 2, ',', '.') }} x empaque
-                            </span>
-                        @else
-                            {{-- Caso regular sin bulto master --}}
-                            @if($display_offer > 0)
-                                <div class="flex flex-col items-end">
-                                    <span class="text-[10px] text-red-500 line-through font-bold leading-none mb-1">
-                                        $ {{ number_format($display_price, 2, ',', '.') }}
-                                    </span>
-                                    <span class="text-2xl font-black text-green-700 leading-none">
-                                        $ {{ number_format($display_offer, 2, ',', '.') }}
-                                    </span>
-                                </div>
-                            @else
-                                <span class="text-xl font-black text-green-700 leading-none">
+                @if($showPrices)
+                    <div class="flex flex-col items-end mb-2 pr-1">
+                        @if($display_offer > 0)
+                            <div class="flex flex-col items-end">
+                                <span class="text-[11px] text-red-500 line-through font-bold">
                                     $ {{ number_format($display_price, 2, ',', '.') }}
                                 </span>
-                            @endif
-                        @endif
-
-                        {{-- 3. Precio unitario individual (Gris y pequeño) --}}
-                        @if($product->qtty_unit >= 1)
-                            <span class="text-[10px] text-slate-400 mt-1 text-right">
-                                $ {{ number_format($unit_price, 2, ',', '.') }} x un.
+                                <span class="text-2xl font-black text-green-700 leading-none">
+                                    $ {{ number_format($display_offer, 2, ',', '.') }}
+                                </span>
+                            </div>
+                        @else
+                            <span class="text-xl font-black text-green-700 leading-none">
+                                $ {{ number_format($display_price, 2, ',', '.') }}
                             </span>
                         @endif
+                        
+                        @if($product->qtty_unit > 1)
+                            <span class="text-[11px] font-bold text-slate-500 mt-0.5 text-right">
+                                $ {{ number_format(($display_offer > 0 ? $display_offer : $display_price) / $product->qtty_unit, 2, ',', '.') }} x un.
+                            </span>
+                        @endif
+                    </div>
                 @else
                     <div class="mb-2 text-right text-[10px] text-slate-400 italic">Precios solo usuarios</div>
                 @endif
                 
                 <div class="text-[11px] leading-relaxed text-gray-600 line-clamp-3 border-t border-gray-50 pt-1 overflow-hidden">
-                    {!! $product->description_html !!}
+                    {!! strip_tags($product->description_html, '<p><br><b><strong><i><em><ul><ol><li><a><span><div>') !!}
                 </div>
             </div>
         </div>
@@ -113,7 +83,7 @@
 
     @if(Auth::guest())
         <div class="p-2 bg-slate-50 border-t border-slate-100 text-center text-[11px] text-slate-500 font-medium">
-            <x-icon name="o-lock-closed" class="w-3 h-3 inline mr-1" /> Regístrese para ver precios
+            <x-icon name="o-lock-closed" class="w-3 h-3 inline mr-1" /> {{ $guestMessage }}
         </div>
     @else
         <div class="p-2.5 bg-white border-t border-slate-100">

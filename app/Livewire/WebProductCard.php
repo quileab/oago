@@ -2,8 +2,9 @@
 
 namespace App\Livewire;
 
-use App\Models\Product;
+use App\Helpers\SettingsHelper;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Mary\Traits\Toast;
@@ -30,8 +31,10 @@ class WebProductCard extends Component
 
     public function mount($product)
     {
-        if ($product instanceof Model) {
-            $this->local_product = $product->toArray();
+        $productModel = $product instanceof Model ? $product : null;
+
+        if ($productModel) {
+            $this->local_product = $productModel->toArray();
             if (isset($product->description_html)) {
                 $this->local_product['description_html'] = $product->description_html;
             }
@@ -39,13 +42,11 @@ class WebProductCard extends Component
             $this->local_product = (array) $product;
         }
 
-        $productId = $this->local_product['id'] ?? null;
-        $productModel = $productId ? Product::find($productId) : null;
-
-        $this->user_price = $this->local_product['user_price'] ?? ($productModel ? current_user()?->getProductPrice($productModel) : 0) ?? 0;
+        $this->user_price = $this->local_product['user_price']
+            ?? ($productModel ? current_user()?->getProductPrice($productModel) : null)
+            ?? ($this->local_product['price'] ?? 0);
         $this->offer_price = $this->local_product['offer_price'] ?? 0;
 
-        // Inicializar siempre con el valor por defecto del bulto
         $this->qtty = $this->local_product['qtty_package'] ?? 1;
     }
 
@@ -58,15 +59,13 @@ class WebProductCard extends Component
             $productObj->id = 0;
         }
 
-        $basePrice = $this->offer_price > 0 ? $this->offer_price : $this->user_price;
-        $unitPrice = isset($productObj->qtty_unit) && $productObj->qtty_unit > 0 ? ($basePrice / $productObj->qtty_unit) : $basePrice;
-
         return view('livewire.web-product-card', [
             'product' => $productObj,
             'display_price' => $this->user_price,
             'display_offer' => $this->offer_price,
-            'unit_price' => $unitPrice,
             'cart' => session()->get('cart', []), // Pasamos el carrito actual para el badge visual
+            'showPrices' => ! Auth::guest() || SettingsHelper::settings('show_prices_to_guests', false),
+            'guestMessage' => SettingsHelper::settings('show_prices_to_guests', false) ? 'Regístrese para comprar' : 'Regístrese para ver precios',
         ]);
     }
 
@@ -98,7 +97,12 @@ class WebProductCard extends Component
 
     public function buy()
     {
-        $this->dispatch('addToCart', product: $this->local_product['id'], quantity: (int) $this->qtty);
+        $this->dispatch('addToCart', product: [
+            'id' => $this->local_product['id'],
+            'description' => $this->local_product['description'],
+            'user_price' => $this->user_price,
+            'qtty_package' => $this->local_product['qtty_package'] ?? 1,
+        ], quantity: (int) $this->qtty);
 
         // RESET: Volvemos a la cantidad base después de agregar
         $this->qtty = $this->local_product['qtty_package'] ?? 1;

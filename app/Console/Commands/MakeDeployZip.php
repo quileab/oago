@@ -9,40 +9,54 @@ use RecursiveIteratorIterator;
 use Symfony\Component\Process\Process;
 use ZipArchive;
 
+use function Laravel\Prompts\confirm;
+
 class MakeDeployZip extends Command
 {
-    protected $signature = 'make:deploy-zip {--name=deploy.zip} {--no_brand}';
+    protected $signature = 'make:deploy-zip {--name=deploy.zip} {--include-branding} {--include-assets}';
 
-    protected $description = 'Genera un paquete ZIP para despliegue en hosting compartido';
+    protected $description = 'Genera un paquete ZIP para despliegue detectando el mejor método (7-Zip o Nativo)';
 
     public function handle()
     {
-        $noBrand = $this->option('no_brand');
-        $this->info('🚀 Iniciando proceso de empaquetado...');
+        $includeBranding = $this->option('include-branding') ?: confirm(
+            label: '¿Deseas incluir las imágenes de branding (public/imgs y sliders)?',
+            default: false
+        );
+        $noBrand = ! $includeBranding;
+
+        $includeAssets = $this->option('include-assets');
+        $zipName = $this->option('name');
+
+        // Usaremos un nombre temporal único
+        $finalPath = base_path($zipName);
+        $tempZipName = 'temp_'.time().'_'.$zipName;
+        $tempPath = base_path($tempZipName);
+
+        $this->info('🚀 Iniciando proceso de empaquetado unificado...');
+
         if ($noBrand) {
-            $this->info('🚫 Opción --no_brand activa: se excluirán imágenes de marca y sliders.');
+            $this->info('🚫 Se excluirán imágenes de marca y sliders.');
         }
 
-        // 1. Ejecutar npm run build y publicar assets de Livewire
+        // 1. Preparación de Assets
         $this->info('📦 Ejecutando npm run build...');
         $process = new Process(['npm', 'run', 'build']);
         $process->setTimeout(300);
         $process->run();
 
         if (! $process->isSuccessful()) {
-            $this->error('❌ Error al ejecutar npm run build.');
+            $this->error('❌ Error en npm run build.');
 
             return 1;
         }
 
-        $this->info('📡 Publicando assets de Livewire...');
-        $this->call('livewire:publish', ['--assets' => true]);
-
-        // 2. Definir ruta final. Usaremos un nombre temporal único.
-        $zipName = $this->option('name');
-        $finalPath = base_path($zipName);
-        $tempZipName = 'temp_'.time().'_'.$zipName;
-        $tempPath = base_path($tempZipName);
+        if ($includeAssets) {
+            $this->info('📡 Publicando assets de Livewire...');
+            $this->call('livewire:publish', ['--assets' => true]);
+        } else {
+            $this->info('⏩ Omitiendo publicación de assets. (Usa --include-assets para publicarlos)');
+        }
 
         // Limpieza previa
         if (file_exists($finalPath)) {
@@ -51,6 +65,97 @@ class MakeDeployZip extends Command
         if (file_exists($tempPath)) {
             @unlink($tempPath);
         }
+
+        // 2. Detección de 7-Zip
+        $sevenZipPath = $this->getSevenZipPath();
+
+        if ($sevenZipPath) {
+            return $this->useSevenZip($sevenZipPath, $tempZipName, $tempPath, $zipName, $finalPath, $noBrand);
+        }
+
+        return $this->useNativeZip($tempZipName, $tempPath, $zipName, $finalPath, $noBrand);
+    }
+
+    private function getSevenZipPath(): ?string
+    {
+        // 1. Intentar ruta estándar de Windows
+        $winPath = 'C:\Program Files\7-Zip\7z.exe';
+        if (PHP_OS_FAMILY === 'Windows' && file_exists($winPath)) {
+            return $winPath;
+        }
+
+        // 2. Intentar buscar en el PATH (Linux o Windows con PATH configurado)
+        $command = PHP_OS_FAMILY === 'Windows' ? 'where 7z' : 'which 7z';
+        $process = Process::fromShellCommandline($command);
+        $process->run();
+
+        if ($process->isSuccessful()) {
+            return trim($process->getOutput());
+        }
+
+        return null;
+    }
+
+    private function useSevenZip(string $binary, string $tempZipName, string $tempPath, string $zipName, string $finalPath, bool $noBrand): int
+    {
+        $this->info("💎 Usando 7-Zip para máxima compatibilidad (Motor: $binary)");
+
+        $exclusions = [
+            'vendor', 'node_modules', '.git', '.env',
+            'storage/logs/*', 'storage/framework/cache/data/*',
+            'storage/framework/sessions/*', 'storage/framework/views/*',
+            'storage/app/private/*', 'storage/app/livewire-tmp/*',
+            'bootstrap/cache/*', 'public/storage',
+            '*.zip', '*.sql', '*.sqlite',
+            '.agents', '.claude', '.gemini', '.vscode', '.postman',
+            '.DS_Store', 'Thumbs.db', 'image_cache*',
+        ];
+
+        if ($noBrand) {
+            $exclusions[] = 'public/imgs/*';
+            $exclusions[] = 'storage/app/public/slider/*';
+        }
+
+        $command = [$binary, 'a', '-tzip', $tempPath, '.'];
+        foreach ($exclusions as $exclude) {
+            $command[] = "-xr!$exclude";
+        }
+
+        // Add an exclusion for the temp zip itself
+        $command[] = "-xr!$tempZipName";
+        $command[] = "-xr!$zipName";
+
+        $this->info('🤐 Comprimiendo...');
+        $process = new Process($command, base_path());
+        $process->setTimeout(600);
+        $process->run();
+
+        if (! $process->isSuccessful()) {
+            $this->error('❌ Error al ejecutar 7-Zip.');
+
+            if (file_exists($tempPath)) {
+                @unlink($tempPath);
+            }
+
+            return 1;
+        }
+
+        // Renombrar al nombre final
+        if (! @rename($tempPath, $finalPath)) {
+            $this->error("❌ No se pudo renombrar el archivo a {$zipName}, pero se creó como {$tempZipName}");
+
+            return 1;
+        }
+
+        $this->info("✅ ¡Éxito! Paquete generado con 7-Zip: {$zipName}");
+        $this->line('🚀 Listo para subir a tu hosting compartido.');
+
+        return 0;
+    }
+
+    private function useNativeZip(string $tempZipName, string $tempPath, string $zipName, string $finalPath, bool $noBrand): int
+    {
+        $this->warn('⚠️ 7-Zip no detectado. Usando librería nativa PHP ZipArchive.');
 
         $zip = new ZipArchive;
         if ($zip->open($tempPath, ZipArchive::CREATE) !== true) {
@@ -175,7 +280,7 @@ class MakeDeployZip extends Command
             return 1;
         }
 
-        $this->info("✅ ¡Éxito! Paquete generado: {$zipName}");
+        $this->info("✅ ¡Éxito! Paquete generado (Nativo): {$zipName}");
         $this->line('🚀 Listo para subir a tu hosting compartido.');
 
         return 0;

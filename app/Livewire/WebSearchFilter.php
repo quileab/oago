@@ -74,7 +74,13 @@ class WebSearchFilter extends Component
     {
         $this->search = null;
         session()->forget('search');
-        $this->dispatch('updateProducts', ['resetPage' => true]);
+        $this->dispatch('updateProducts', [
+            'search' => null,
+            'category' => $this->category,
+            'brand' => $this->brand,
+            'tag' => session('tag'),
+            'resetPage' => true
+        ]);
         $this->handleRedirect();
     }
 
@@ -96,7 +102,13 @@ class WebSearchFilter extends Component
             session()->forget('search');
         }
         session()->forget('similar');
-        $this->dispatch('updateProducts', ['resetPage' => true]);
+        $this->dispatch('updateProducts', [
+            'search' => $this->search,
+            'category' => $this->category,
+            'brand' => $this->brand,
+            'tag' => session('tag'),
+            'resetPage' => true
+        ]);
         // set session noslider
         session()->put('noslider', true);
         $this->handleRedirect();
@@ -135,13 +147,25 @@ class WebSearchFilter extends Component
         // if session has tag is the same, remove it
         if (session()->has('tag') && session('tag') == $tag) {
             session()->forget('tag');
-            $this->dispatch('updateProducts', ['resetPage' => true]);
+            $this->dispatch('updateProducts', [
+                'search' => null,
+                'category' => null,
+                'brand' => null,
+                'tag' => null,
+                'resetPage' => true
+            ]);
             $this->handleRedirect();
 
             return;
         }
         session()->put('tag', $tag);
-        $this->dispatch('updateProducts', ['resetPage' => true]);
+        $this->dispatch('updateProducts', [
+            'search' => null,
+            'category' => null,
+            'brand' => null,
+            'tag' => $tag,
+            'resetPage' => true
+        ]);
         $this->handleRedirect();
     }
 }
