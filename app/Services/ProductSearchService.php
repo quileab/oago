@@ -5,6 +5,7 @@
 namespace App\Services;
 
 use App\Helpers\SettingsHelper;
+use App\Models\ListPrice;
 use App\Models\Product;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -142,7 +143,7 @@ class ProductSearchService
         $baseListId = $priceService->resolveBaseListId($user->list_id);
 
         // Cargar precios base en una sola consulta
-        $listPrices = DB::table('list_prices')
+        $listPrices = ListPrice::query()
             ->where('list_id', $baseListId)
             ->whereIn('product_id', $products->pluck('id'))
             ->get()
@@ -152,7 +153,7 @@ class ProductSearchService
         $promoListId = (int) SettingsHelper::settings('promo_list_id');
         $promoListPrices = collect();
         if ($promoListId && $promoListId !== $baseListId) {
-            $promoListPrices = DB::table('list_prices')
+            $promoListPrices = ListPrice::query()
                 ->where('list_id', $promoListId)
                 ->whereIn('product_id', $products->pluck('id'))
                 ->get()

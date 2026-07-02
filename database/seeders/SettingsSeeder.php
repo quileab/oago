@@ -82,10 +82,10 @@ class SettingsSeeder extends Seeder
         Setting::updateOrCreate(
             ['key' => 'promo_list_id'],
             [
-                'value' => 17,
+                'value' => null,
                 'type' => 'number',
                 'text' => 'ID de Lista de Ofertas',
-                'description' => 'El ID de la lista de precios que se utilizará para definir los precios de oferta/promoción.',
+                'description' => 'El ID de la lista de precios que se utilizará para definir los precios de oferta/promoción. Dejar vacío para desactivar.',
             ]
         );
 

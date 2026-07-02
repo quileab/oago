@@ -23,11 +23,18 @@ new class extends Component
         $this->promoListId = (int) \App\Helpers\SettingsHelper::settings('promo_list_id');
     }
 
-    public function setAsPromo(int $id)
+    public function setAsPromo(int $id): void
     {
         \App\Helpers\SettingsHelper::update_setting('promo_list_id', $id);
         $this->promoListId = $id;
         $this->success('Lista configurada como promocional.');
+    }
+
+    public function clearPromo(): void
+    {
+        \App\Helpers\SettingsHelper::update_setting('promo_list_id', null);
+        $this->promoListId = null;
+        $this->success('Lista de ofertas desactivada.');
     }
 
     public function lists()
@@ -154,8 +161,15 @@ new class extends Component
                             @if($pair['base'])
                                 @if($promoListId === $pair['base']->id)
                                     <span class="badge badge-success badge-sm font-bold text-white mr-1">OFERTAS</span>
+                                    <x-button icon="o-x-mark" class="btn-sm btn-ghost btn-circle text-error"
+                                              wire:click="clearPromo"
+                                              wire:confirm="¿Desactivar la lista de ofertas?"
+                                              tooltip="Quitar como Ofertas" spinner />
                                 @else
-                                    <x-button icon="o-star" class="btn-sm btn-ghost btn-circle text-amber-500" wire:click="setAsPromo({{ $pair['base']->id }})" tooltip="Usar para Ofertas" spinner />
+                                    <x-button icon="o-star" class="btn-sm btn-ghost btn-circle text-amber-500"
+                                              wire:click="setAsPromo({{ $pair['base']->id }})"
+                                              wire:confirm="¿Usar esta lista como la lista de ofertas?"
+                                              tooltip="Usar para Ofertas" spinner />
                                 @endif
                                 <x-button icon="o-pencil" class="btn-sm btn-ghost btn-circle" wire:click="edit({{ $pair['base']->id }})" />
                                 <x-button icon="o-trash" class="btn-sm btn-ghost btn-circle text-error" 
@@ -182,8 +196,15 @@ new class extends Component
                             @if($pair['unit'])
                                 @if($promoListId === $pair['unit']->id)
                                     <span class="badge badge-success badge-sm font-bold text-white mr-1">OFERTAS</span>
+                                    <x-button icon="o-x-mark" class="btn-sm btn-ghost btn-circle text-error"
+                                              wire:click="clearPromo"
+                                              wire:confirm="¿Desactivar la lista de ofertas?"
+                                              tooltip="Quitar como Ofertas" spinner />
                                 @else
-                                    <x-button icon="o-star" class="btn-sm btn-ghost btn-circle text-amber-500" wire:click="setAsPromo({{ $pair['unit']->id }})" tooltip="Usar para Ofertas" spinner />
+                                    <x-button icon="o-star" class="btn-sm btn-ghost btn-circle text-amber-500"
+                                              wire:click="setAsPromo({{ $pair['unit']->id }})"
+                                              wire:confirm="¿Usar esta lista como la lista de ofertas?"
+                                              tooltip="Usar para Ofertas" spinner />
                                 @endif
                                 <x-button icon="o-pencil" class="btn-sm btn-ghost btn-circle" wire:click="edit({{ $pair['unit']->id }})" />
                                 <x-button icon="o-trash" class="btn-sm btn-ghost btn-circle text-error" 

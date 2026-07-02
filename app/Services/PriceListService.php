@@ -71,25 +71,17 @@ class PriceListService
         $isUnit = str_ends_with(trim($list->name), 'U');
         $baseListId = $this->resolveBaseListId($listId);
 
-        // 1. Verificar si existe precio en la lista de ofertas/promos (si no se pide omitirla)
         if (! $skipPromo) {
             $promoListId = (int) SettingsHelper::settings('promo_list_id');
-            if ($promoListId && $promoListId !== $listId) {
-                $promoListPrice = ListPrice::where('list_id', $promoListId)
-                    ->where('product_id', $productId)
-                    ->first();
+            $promoListPrice = $this->resolveListPrice($promoListId, $listId, $productId);
 
-                if ($promoListPrice) {
-                    if ($isUnit) {
-                        return (float) ($promoListPrice->unit_price ?: $promoListPrice->price);
-                    }
-
-                    return (float) $promoListPrice->price;
-                }
+            if ($promoListPrice) {
+                return (float) ($isUnit ? ($promoListPrice->unit_price ?: $promoListPrice->price) : $promoListPrice->price);
             }
         }
 
-        $listPrice = ListPrice::where('list_id', $baseListId)
+        $listPrice = ListPrice::query()
+            ->where('list_id', $baseListId)
             ->where('product_id', $productId)
             ->first();
 
@@ -97,14 +89,7 @@ class PriceListService
             return null;
         }
 
-        if ($isUnit) {
-            // Si la lista es de tipo "U", preferimos unit_price.
-            // Si es 0 o null, podemos considerar fallback a price si así se requiere,
-            // pero la lógica de normalización lo mueve a unit_price.
-            return (float) ($listPrice->unit_price ?: $listPrice->price);
-        }
-
-        return (float) $listPrice->price;
+        return (float) ($isUnit ? ($listPrice->unit_price ?: $listPrice->price) : $listPrice->price);
     }
 
     /**
@@ -114,21 +99,10 @@ class PriceListService
     {
         $baseListId = $this->resolveBaseListId($listId);
         $qttyPackage = max(1, $product->qtty_package);
-
         $promoListId = (int) SettingsHelper::settings('promo_list_id');
-        $listPrice = null;
 
-        if ($promoListId && $promoListId !== $listId) {
-            $listPrice = ListPrice::where('list_id', $promoListId)
-                ->where('product_id', $product->id)
-                ->first();
-        }
-
-        if (! $listPrice) {
-            $listPrice = ListPrice::where('list_id', $baseListId)
-                ->where('product_id', $product->id)
-                ->first();
-        }
+        $listPrice = $this->resolveListPrice($promoListId, $listId, $product->id)
+            ?? ListPrice::query()->where('list_id', $baseListId)->where('product_id', $product->id)->first();
 
         if ($listPrice) {
             $bulkPrice = (float) $listPrice->price;
@@ -142,5 +116,21 @@ class PriceListService
         $extraQuantity = $quantity % $qttyPackage;
 
         return ($packagesQuantity * $bulkPrice) + ($extraQuantity * $unitPrice);
+    }
+
+    /**
+     * Retorna el ListPrice de la lista promo si aplica, o null.
+     * La lista promo no aplica si no está configurada o si coincide con la lista del usuario.
+     */
+    private function resolveListPrice(int $promoListId, int $userListId, int $productId): ?ListPrice
+    {
+        if (! $promoListId || $promoListId === $userListId) {
+            return null;
+        }
+
+        return ListPrice::query()
+            ->where('list_id', $promoListId)
+            ->where('product_id', $productId)
+            ->first();
     }
 }
