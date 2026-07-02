@@ -78,6 +78,17 @@ class SettingsSeeder extends Seeder
             ]
         );
 
+        // Promo List ID
+        Setting::updateOrCreate(
+            ['key' => 'promo_list_id'],
+            [
+                'value' => 17,
+                'type' => 'number',
+                'text' => 'ID de Lista de Ofertas',
+                'description' => 'El ID de la lista de precios que se utilizará para definir los precios de oferta/promoción.',
+            ]
+        );
+
         // Marca Blanca: Empresa
         Setting::updateOrCreate(
             ['key' => 'company_name'],

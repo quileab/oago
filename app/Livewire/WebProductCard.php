@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Helpers\SettingsHelper;
+use App\Services\PriceListService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\On;
@@ -38,14 +39,34 @@ class WebProductCard extends Component
             if (isset($product->description_html)) {
                 $this->local_product['description_html'] = $product->description_html;
             }
+            if (isset($product->base_price)) {
+                $this->local_product['base_price'] = $product->base_price;
+            }
+            if (isset($product->promo_price)) {
+                $this->local_product['promo_price'] = $product->promo_price;
+            }
         } else {
             $this->local_product = (array) $product;
         }
 
-        $this->user_price = $this->local_product['user_price']
-            ?? ($productModel ? current_user()?->getProductPrice($productModel) : null)
+        $priceService = app(PriceListService::class);
+        $listId = current_user()?->list_id ?? 0;
+
+        $basePrice = $this->local_product['base_price']
+            ?? ($productModel ? $priceService->getEffectivePrice($listId, $productModel->id, true) : null)
             ?? ($this->local_product['price'] ?? 0);
-        $this->offer_price = $this->local_product['offer_price'] ?? 0;
+
+        $promoPrice = $this->local_product['promo_price']
+            ?? ($productModel ? $priceService->getEffectivePrice($listId, $productModel->id, false) : null)
+            ?? null;
+
+        if ($promoPrice !== null && $promoPrice < $basePrice) {
+            $this->user_price = $basePrice;
+            $this->offer_price = $promoPrice;
+        } else {
+            $this->user_price = $basePrice;
+            $this->offer_price = 0;
+        }
 
         $this->qtty = $this->local_product['qtty_package'] ?? 1;
     }

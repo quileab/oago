@@ -45,8 +45,8 @@ new class extends Component
             ]);
             $this->related_products = [];
         } else {
-            $this->user_price = $this->product->user_price ?? current_user()?->getProductPrice($this->product) ?? 0;
-            $this->offer_price = $this->product->offer_price ?? 0;
+            $this->user_price = $this->product->base_price ?? $this->product->user_price ?? current_user()?->getProductPrice($this->product) ?? 0;
+            $this->offer_price = $this->product->promo_price ?? 0;
             $this->qtty = $this->product->qtty_package;
             $this->media = $this->product->media ?? [];
             $this->tags = array_values(array_filter(explode('|', $this->product->tags)));

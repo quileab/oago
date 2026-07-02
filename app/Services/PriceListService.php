@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Helpers\SettingsHelper;
 use App\Models\ListName;
 use App\Models\ListPrice;
 use App\Models\Product;
@@ -60,7 +61,7 @@ class PriceListService
     /**
      * Obtiene el precio efectivo (bulk o unit) para un producto y una lista dada.
      */
-    public function getEffectivePrice(int $listId, int $productId): ?float
+    public function getEffectivePrice(int $listId, int $productId, bool $skipPromo = false): ?float
     {
         $list = ListName::find($listId);
         if (! $list) {
@@ -69,6 +70,24 @@ class PriceListService
 
         $isUnit = str_ends_with(trim($list->name), 'U');
         $baseListId = $this->resolveBaseListId($listId);
+
+        // 1. Verificar si existe precio en la lista de ofertas/promos (si no se pide omitirla)
+        if (! $skipPromo) {
+            $promoListId = (int) SettingsHelper::settings('promo_list_id');
+            if ($promoListId && $promoListId !== $listId) {
+                $promoListPrice = ListPrice::where('list_id', $promoListId)
+                    ->where('product_id', $productId)
+                    ->first();
+
+                if ($promoListPrice) {
+                    if ($isUnit) {
+                        return (float) ($promoListPrice->unit_price ?: $promoListPrice->price);
+                    }
+
+                    return (float) $promoListPrice->price;
+                }
+            }
+        }
 
         $listPrice = ListPrice::where('list_id', $baseListId)
             ->where('product_id', $productId)
@@ -96,9 +115,20 @@ class PriceListService
         $baseListId = $this->resolveBaseListId($listId);
         $qttyPackage = max(1, $product->qtty_package);
 
-        $listPrice = ListPrice::where('list_id', $baseListId)
-            ->where('product_id', $product->id)
-            ->first();
+        $promoListId = (int) SettingsHelper::settings('promo_list_id');
+        $listPrice = null;
+
+        if ($promoListId && $promoListId !== $listId) {
+            $listPrice = ListPrice::where('list_id', $promoListId)
+                ->where('product_id', $product->id)
+                ->first();
+        }
+
+        if (! $listPrice) {
+            $listPrice = ListPrice::where('list_id', $baseListId)
+                ->where('product_id', $product->id)
+                ->first();
+        }
 
         if ($listPrice) {
             $bulkPrice = (float) $listPrice->price;

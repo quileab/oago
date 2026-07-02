@@ -16,6 +16,20 @@ new class extends Component
 
     public bool $createUnitPair = true;
 
+    public ?int $promoListId = null;
+
+    public function mount()
+    {
+        $this->promoListId = (int) \App\Helpers\SettingsHelper::settings('promo_list_id');
+    }
+
+    public function setAsPromo(int $id)
+    {
+        \App\Helpers\SettingsHelper::update_setting('promo_list_id', $id);
+        $this->promoListId = $id;
+        $this->success('Lista configurada como promocional.');
+    }
+
     public function lists()
     {
         $all = ListName::all();
@@ -136,8 +150,13 @@ new class extends Component
                                 </div>
                             </div>
                         </div>
-                        <div class="flex gap-1">
+                        <div class="flex gap-1 items-center">
                             @if($pair['base'])
+                                @if($promoListId === $pair['base']->id)
+                                    <span class="badge badge-success badge-sm font-bold text-white mr-1">OFERTAS</span>
+                                @else
+                                    <x-button icon="o-star" class="btn-sm btn-ghost btn-circle text-amber-500" wire:click="setAsPromo({{ $pair['base']->id }})" tooltip="Usar para Ofertas" spinner />
+                                @endif
                                 <x-button icon="o-pencil" class="btn-sm btn-ghost btn-circle" wire:click="edit({{ $pair['base']->id }})" />
                                 <x-button icon="o-trash" class="btn-sm btn-ghost btn-circle text-error" 
                                           wire:click="delete({{ $pair['base']->id }})" 
@@ -159,8 +178,13 @@ new class extends Component
                                 </div>
                             </div>
                         </div>
-                        <div class="flex gap-1">
+                        <div class="flex gap-1 items-center">
                             @if($pair['unit'])
+                                @if($promoListId === $pair['unit']->id)
+                                    <span class="badge badge-success badge-sm font-bold text-white mr-1">OFERTAS</span>
+                                @else
+                                    <x-button icon="o-star" class="btn-sm btn-ghost btn-circle text-amber-500" wire:click="setAsPromo({{ $pair['unit']->id }})" tooltip="Usar para Ofertas" spinner />
+                                @endif
                                 <x-button icon="o-pencil" class="btn-sm btn-ghost btn-circle" wire:click="edit({{ $pair['unit']->id }})" />
                                 <x-button icon="o-trash" class="btn-sm btn-ghost btn-circle text-error" 
                                           wire:click="delete({{ $pair['unit']->id }})" 

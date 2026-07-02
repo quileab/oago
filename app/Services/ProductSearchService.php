@@ -4,6 +4,7 @@
 
 namespace App\Services;
 
+use App\Helpers\SettingsHelper;
 use App\Models\Product;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -130,6 +131,8 @@ class ProductSearchService
         if (! $user || ! $user->list_id) {
             foreach ($products as $product) {
                 $product->user_price = (float) $product->price;
+                $product->base_price = (float) $product->price;
+                $product->promo_price = null;
             }
 
             return;
@@ -145,19 +148,40 @@ class ProductSearchService
             ->get()
             ->keyBy('product_id');
 
+        // Cargar precios de promoción en una sola consulta
+        $promoListId = (int) SettingsHelper::settings('promo_list_id');
+        $promoListPrices = collect();
+        if ($promoListId && $promoListId !== $baseListId) {
+            $promoListPrices = DB::table('list_prices')
+                ->where('list_id', $promoListId)
+                ->whereIn('product_id', $products->pluck('id'))
+                ->get()
+                ->keyBy('product_id');
+        }
+
         $isUnitList = str_ends_with(trim($user->list->name ?? ''), 'U');
 
         foreach ($products as $product) {
             $lp = $listPrices->get($product->id);
+            $promoLp = $promoListPrices->get($product->id);
+
+            // Calcular precio base (el de la lista del usuario)
             if ($lp) {
-                if ($isUnitList) {
-                    $product->user_price = (float) ($lp->unit_price ?: $lp->price);
-                } else {
-                    $product->user_price = (float) $lp->price;
-                }
+                $basePrice = $isUnitList ? (float) ($lp->unit_price ?: $lp->price) : (float) $lp->price;
             } else {
-                $product->user_price = (float) $product->price;
+                $basePrice = (float) $product->price;
             }
+
+            // Calcular precio de promo (si existe)
+            if ($promoLp) {
+                $promoPrice = $isUnitList ? (float) ($promoLp->unit_price ?: $promoLp->price) : (float) $promoLp->price;
+            } else {
+                $promoPrice = null;
+            }
+
+            $product->base_price = $basePrice;
+            $product->promo_price = $promoPrice;
+            $product->user_price = ($promoPrice !== null) ? $promoPrice : $basePrice;
         }
     }
 
