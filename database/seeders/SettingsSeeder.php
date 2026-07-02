@@ -13,7 +13,7 @@ class SettingsSeeder extends Seeder
     public function run(): void
     {
         // Guest access TTL: 10 days
-        Setting::updateOrCreate(
+        Setting::firstOrCreate(
             ['key' => 'guest_access_ttl_days'],
             [
                 'value' => 10, // 10 days
@@ -24,7 +24,7 @@ class SettingsSeeder extends Seeder
         );
 
         // Show prices to guests
-        Setting::updateOrCreate(
+        Setting::firstOrCreate(
             ['key' => 'show_prices_to_guests'],
             [
                 'value' => '0',
@@ -35,7 +35,7 @@ class SettingsSeeder extends Seeder
         );
 
         // Number format separator
-        Setting::updateOrCreate(
+        Setting::firstOrCreate(
             ['key' => 'number_format_separator'],
             [
                 'value' => ',',
@@ -46,7 +46,7 @@ class SettingsSeeder extends Seeder
         );
 
         // CSV separator
-        Setting::updateOrCreate(
+        Setting::firstOrCreate(
             ['key' => 'csv_separator'],
             [
                 'value' => ',',
@@ -57,7 +57,7 @@ class SettingsSeeder extends Seeder
         );
 
         // Product tags
-        Setting::updateOrCreate(
+        Setting::firstOrCreate(
             ['key' => 'product_tags'],
             [
                 'value' => json_encode(['NUEVO', 'OFERTA', 'REMATE', 'IMPORTADOS', 'DESTACADO', 'LIQUIDACION', 'ULTIMAS_UNIDADES']), // Array, will be json_encoded by update_setting
@@ -68,7 +68,7 @@ class SettingsSeeder extends Seeder
         );
 
         // Copyright
-        Setting::updateOrCreate(
+        Setting::firstOrCreate(
             ['key' => 'copyright'],
             [
                 'value' => '© InnoDesign - 2025',
@@ -79,7 +79,7 @@ class SettingsSeeder extends Seeder
         );
 
         // Promo List ID
-        Setting::updateOrCreate(
+        Setting::firstOrCreate(
             ['key' => 'promo_list_id'],
             [
                 'value' => null,
@@ -90,7 +90,7 @@ class SettingsSeeder extends Seeder
         );
 
         // Marca Blanca: Empresa
-        Setting::updateOrCreate(
+        Setting::firstOrCreate(
             ['key' => 'company_name'],
             [
                 'value' => 'Distribuidora Agostini',
@@ -99,7 +99,7 @@ class SettingsSeeder extends Seeder
                 'description' => 'Nombre visible en pestañas y pie de página.',
             ]
         );
-        Setting::updateOrCreate(
+        Setting::firstOrCreate(
             ['key' => 'company_phone'],
             [
                 'value' => '+54 9 342 463-8925',
@@ -108,7 +108,7 @@ class SettingsSeeder extends Seeder
                 'description' => 'Teléfono de contacto de la empresa.',
             ]
         );
-        Setting::updateOrCreate(
+        Setting::firstOrCreate(
             ['key' => 'company_email'],
             [
                 'value' => 'contacto@oagostini.com.ar',
@@ -117,7 +117,7 @@ class SettingsSeeder extends Seeder
                 'description' => 'Email de contacto de la empresa.',
             ]
         );
-        Setting::updateOrCreate(
+        Setting::firstOrCreate(
             ['key' => 'company_address'],
             [
                 'value' => 'Av. José Gorriti, S3000, Santa Fe',
@@ -126,7 +126,7 @@ class SettingsSeeder extends Seeder
                 'description' => 'Dirección mostrada en el footer.',
             ]
         );
-        Setting::updateOrCreate(
+        Setting::firstOrCreate(
             ['key' => 'company_map_iframe'],
             [
                 'value' => '<iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d108759.57602058032!2d-60.77123984714352!3d-31.621213897914803!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x95b5a9adc40888e1%3A0xdcf7760e4d023270!2sSanta%20Fe!5e0!3m2!1sen!2sar!4v1700000000000!5m2!1sen!2sar" width="100%" height="300" style="border:0; border-radius: 0.5rem;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>',
@@ -137,7 +137,7 @@ class SettingsSeeder extends Seeder
         );
 
         // Redes Sociales (JSON)
-        Setting::updateOrCreate(
+        Setting::firstOrCreate(
             ['key' => 'social_networks'],
             [
                 'value' => json_encode([

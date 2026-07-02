@@ -145,6 +145,10 @@ class DataImport extends Command
 
         DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
+        $this->newLine();
+        $this->info('⚙️  Verificando e insertando configuraciones del sistema faltantes...');
+        $this->callSilent('db:seed', ['--class' => 'SettingsSeeder']);
+
         $this->newLine(2);
         $this->info('✨ Importación Finalizada.');
         $this->line("   🚚 Registros logística: <info>$logisticsMigrated</info>");
