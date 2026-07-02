@@ -9,13 +9,18 @@ use Illuminate\Support\Facades\Schema;
 
 class DataImport extends Command
 {
-    protected $signature = 'db:import {file=source.sql}';
+    protected $signature = 'db:import {file?}';
 
     protected $description = 'Universal data importer with dynamic table detection and intelligent multi-file sequence';
 
     public function handle()
     {
         $fileName = $this->argument('file');
+
+        if (! $fileName) {
+            $fileName = $this->ask('¿Cuál es el nombre del archivo SQL a importar?', 'source.sql');
+        }
+
         $filePath = base_path($fileName);
 
         if (! File::exists($filePath)) {
@@ -269,7 +274,19 @@ class DataImport extends Command
                 if (count($parts) >= 31) {
                     array_splice($parts, 14, 0, [0, 0]);
                     $parts = array_slice($parts, 0, 33);
-                    $newRows[] = $this->rebuildRow($parts);
+
+                    // Convertir explícitamente los NULL a strings vacíos para las columnas NOT NULL
+                    $notNullStringCols = [1, 2, 4, 5, 6, 8, 30]; // Índices: barcode, sku, brand, model, category, description_html, tags
+                    foreach ($notNullStringCols as $idx) {
+                        if (isset($parts[$idx])) {
+                            $val = strtoupper(trim($parts[$idx], " '\"\t\n\r"));
+                            if ($val === 'NULL' || $val === '') {
+                                $parts[$idx] = '';
+                            }
+                        }
+                    }
+
+                    $newRows[] = $this->rebuildRow($parts, true);
                 } else {
                     $newRows[] = "($row)";
                 }
@@ -331,11 +348,11 @@ class DataImport extends Command
         return $sql;
     }
 
-    private function rebuildRow(array $parts): string
+    private function rebuildRow(array $parts, bool $keepEmptyStrings = false): string
     {
-        $sanitizedParts = array_map(function ($val) {
+        $sanitizedParts = array_map(function ($val) use ($keepEmptyStrings) {
             $val = ($val !== null) ? trim($val) : null;
-            if ($val === 'NULL' || $val === null || $val === '') {
+            if ($val === 'NULL' || $val === null || (! $keepEmptyStrings && $val === '')) {
                 return 'NULL';
             }
 
