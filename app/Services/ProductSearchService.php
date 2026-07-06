@@ -160,22 +160,20 @@ class ProductSearchService
                 ->keyBy('product_id');
         }
 
-        $isUnitList = str_ends_with(trim($user->list->name ?? ''), 'U');
-
         foreach ($products as $product) {
             $lp = $listPrices->get($product->id);
             $promoLp = $promoListPrices->get($product->id);
 
             // Calcular precio base (el de la lista del usuario)
             if ($lp) {
-                $basePrice = $isUnitList ? (float) ($lp->unit_price ?: $lp->price) : (float) $lp->price;
+                $basePrice = (float) $lp->price;
             } else {
                 $basePrice = (float) $product->price;
             }
 
             // Calcular precio de promo (si existe)
             if ($promoLp) {
-                $promoPrice = $isUnitList ? (float) ($promoLp->unit_price ?: $promoLp->price) : (float) $promoLp->price;
+                $promoPrice = (float) $promoLp->price;
             } else {
                 $promoPrice = null;
             }

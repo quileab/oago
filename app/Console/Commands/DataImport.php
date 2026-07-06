@@ -189,19 +189,25 @@ class DataImport extends Command
                 $idxId = $columnMap['id'] ?? 0;
 
                 $orderId = $parts[$idxId] ?? null;
-                $addr = $parts[$idxAddr] ?? null;
-                $city = $parts[$idxCity] ?? null;
-                $cName = $parts[$idxName] ?? null;
-                $phone = $parts[$idxPhone] ?? null;
 
-                if ($addr && trim($addr) !== 'NULL') {
-                    $this->saveToShippingDetails($orderId, $addr, $city, $cName, $phone);
-                    $logisticsCount++;
-                }
+                // Si el dump ya está en el formato nuevo (11 columnas), no hacemos la migración logística
+                $isOldFormat = count($parts) >= 14;
 
-                $toRemove = [$idxAddr, $idxCity, $idxName, $idxPhone];
-                foreach ($toRemove as $idx) {
-                    unset($parts[$idx]);
+                if ($isOldFormat) {
+                    $addr = $parts[$idxAddr] ?? null;
+                    $city = $parts[$idxCity] ?? null;
+                    $cName = $parts[$idxName] ?? null;
+                    $phone = $parts[$idxPhone] ?? null;
+
+                    if ($addr && trim($addr) !== 'NULL') {
+                        $this->saveToShippingDetails($orderId, $addr, $city, $cName, $phone);
+                        $logisticsCount++;
+                    }
+
+                    $toRemove = [$idxAddr, $idxCity, $idxName, $idxPhone];
+                    foreach ($toRemove as $idx) {
+                        unset($parts[$idx]);
+                    }
                 }
                 $newOrderRows[] = $this->rebuildRow(array_values($parts));
             }
@@ -272,15 +278,28 @@ class DataImport extends Command
             $hasCols = ! empty($matches[1]);
             $valuesSection = $matches[2];
             preg_match_all('/\((.*?)\)(?:,|$)/s', $valuesSection, $rows);
+            $isOldFormat = false;
+            if ($hasCols) {
+                $cols = array_map(function ($c) {
+                    return trim($c, " `\n\r\t");
+                }, explode(',', $matches[1]));
+                $isOldFormat = ! in_array('bonus_threshold', $cols);
+            } elseif (isset($rows[1][0])) {
+                $firstParts = str_getcsv($rows[1][0], ',', "'");
+                $isOldFormat = count($firstParts) === 31;
+            }
+
             $newRows = [];
             foreach ($rows[1] as $row) {
                 $parts = str_getcsv($row, ',', "'");
-                if (count($parts) >= 31) {
-                    array_splice($parts, 14, 0, [0, 0]);
-                    $parts = array_slice($parts, 0, 33);
 
+                if ($isOldFormat && count($parts) === 31) {
+                    array_splice($parts, 14, 0, [0, 0]);
+                }
+
+                if (count($parts) === 33) {
                     // Convertir explícitamente los NULL a strings vacíos para las columnas NOT NULL
-                    $notNullStringCols = [1, 2, 4, 5, 6, 8, 30]; // Índices: barcode, sku, brand, model, category, description_html, tags
+                    $notNullStringCols = [1, 2, 4, 5, 6, 8, 29]; // Índices: barcode, sku, brand, model, category, description_html, tags
                     foreach ($notNullStringCols as $idx) {
                         if (isset($parts[$idx])) {
                             $val = strtoupper(trim($parts[$idx], " '\"\t\n\r"));
@@ -298,16 +317,10 @@ class DataImport extends Command
 
             $header = "$verb INTO `products` VALUES";
             if ($hasCols) {
-                $cols = array_map(function ($c) {
-                    return trim($c, " `\n\r\t");
-                }, explode(',', $matches[1]));
-                if (count($cols) >= 31) {
+                if ($isOldFormat) {
                     array_splice($cols, 14, 0, ['bonus_threshold', 'bonus_amount']);
-                    $cols = array_slice($cols, 0, 33);
-                    $header = "$verb INTO `products` (`".implode('`, `', $cols).'`) VALUES';
-                } else {
-                    $header = "$verb INTO `products` (".$matches[1].') VALUES';
                 }
+                $header = "$verb INTO `products` (`".implode('`, `', $cols).'`) VALUES';
             }
 
             return "$header ".implode(',', $newRows).';';

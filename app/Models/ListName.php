@@ -15,7 +15,7 @@ class ListName extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name'];
+    protected $fillable = ['id', 'name'];
 
     public function users()
     {

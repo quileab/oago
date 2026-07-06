@@ -10,30 +10,10 @@ use App\Models\Product;
 class PriceListService
 {
     /**
-     * Resuelve el ID de la lista base y los datos normalizados.
-     * Si la lista termina en "U", redirige a la lista base y mapea 'price' a 'unit_price'.
+     * Ya no hay listas U. Retornamos los datos tal cual.
      */
     public function normalize(int $listId, array $data): array
     {
-        $list = ListName::find($listId);
-
-        if ($list && str_ends_with(trim($list->name), 'U')) {
-            $baseName = preg_replace('/ U$/', '', trim($list->name));
-            // Buscamos la lista base. Usamos LIKE para mayor flexibilidad con espacios legacy.
-            $baseList = ListName::where('name', 'LIKE', $baseName.'%')
-                ->where('id', '!=', $listId)
-                ->first();
-
-            if ($baseList) {
-                $listId = $baseList->id;
-                // En listas "U", el campo 'price' de la entrada se trata como 'unit_price'
-                if (isset($data['price'])) {
-                    $data['unit_price'] = $data['price'];
-                    unset($data['price']);
-                }
-            }
-        }
-
         return [
             'list_id' => $listId,
             'data' => $data,
@@ -41,21 +21,19 @@ class PriceListService
     }
 
     /**
-     * Resuelve solo el ID de la lista base.
+     * Ya no hay listas U. Retornamos el mismo listId.
      */
     public function resolveBaseListId(int $listId): int
     {
-        return $this->normalize($listId, [])['list_id'];
+        return $listId;
     }
 
     /**
-     * Obtiene solo las listas principales (excluyendo las de tipo "U").
+     * Obtiene todas las listas principales (ya no filtramos por "U").
      */
     public function getPrincipalLists()
     {
-        return ListName::all()->filter(function ($list) {
-            return ! str_ends_with(trim($list->name), 'U');
-        });
+        return ListName::all();
     }
 
     /**
@@ -68,20 +46,17 @@ class PriceListService
             return null;
         }
 
-        $isUnit = str_ends_with(trim($list->name), 'U');
-        $baseListId = $this->resolveBaseListId($listId);
-
         if (! $skipPromo) {
             $promoListId = (int) SettingsHelper::settings('promo_list_id');
             $promoListPrice = $this->resolveListPrice($promoListId, $listId, $productId);
 
             if ($promoListPrice) {
-                return (float) ($isUnit ? ($promoListPrice->unit_price ?: $promoListPrice->price) : $promoListPrice->price);
+                return (float) $promoListPrice->price;
             }
         }
 
         $listPrice = ListPrice::query()
-            ->where('list_id', $baseListId)
+            ->where('list_id', $listId)
             ->where('product_id', $productId)
             ->first();
 
@@ -89,7 +64,7 @@ class PriceListService
             return null;
         }
 
-        return (float) ($isUnit ? ($listPrice->unit_price ?: $listPrice->price) : $listPrice->price);
+        return (float) $listPrice->price;
     }
 
     /**
@@ -97,12 +72,11 @@ class PriceListService
      */
     public function calculateItemPrice(int $listId, Product $product, int $quantity): float
     {
-        $baseListId = $this->resolveBaseListId($listId);
         $qttyPackage = max(1, $product->qtty_package);
         $promoListId = (int) SettingsHelper::settings('promo_list_id');
 
         $listPrice = $this->resolveListPrice($promoListId, $listId, $product->id)
-            ?? ListPrice::query()->where('list_id', $baseListId)->where('product_id', $product->id)->first();
+            ?? ListPrice::query()->where('list_id', $listId)->where('product_id', $product->id)->first();
 
         if ($listPrice) {
             $bulkPrice = (float) $listPrice->price;

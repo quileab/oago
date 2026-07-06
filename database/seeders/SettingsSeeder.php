@@ -85,7 +85,7 @@ class SettingsSeeder extends Seeder
                 'value' => null,
                 'type' => 'number',
                 'text' => 'ID de Lista de Ofertas',
-                'description' => 'El ID de la lista de precios que se utilizará para definir los precios de oferta/promoción. Dejar vacío para desactivar.',
+                'description' => 'ID de lista de precios de oferta. Dejar vacío para desactivar.',
             ]
         );
 

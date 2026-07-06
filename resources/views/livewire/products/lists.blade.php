@@ -1,6 +1,8 @@
 <?php
 
+use App\Helpers\SettingsHelper;
 use App\Models\ListName;
+use Illuminate\Support\Facades\DB;
 use Livewire\Volt\Component;
 use Mary\Traits\Toast;
 
@@ -12,62 +14,39 @@ new class extends Component
 
     public string $listName = '';
 
-    public ?int $editingListId = null;
+    public $listId = null;
 
-    public bool $createUnitPair = true;
+    public ?int $editingListId = null;
 
     public ?int $promoListId = null;
 
     public function mount()
     {
-        $this->promoListId = (int) \App\Helpers\SettingsHelper::settings('promo_list_id');
+        $this->promoListId = (int) SettingsHelper::settings('promo_list_id');
     }
 
     public function setAsPromo(int $id): void
     {
-        \App\Helpers\SettingsHelper::update_setting('promo_list_id', $id);
+        SettingsHelper::update_setting('promo_list_id', $id);
         $this->promoListId = $id;
         $this->success('Lista configurada como promocional.');
     }
 
     public function clearPromo(): void
     {
-        \App\Helpers\SettingsHelper::update_setting('promo_list_id', null);
+        SettingsHelper::update_setting('promo_list_id', null);
         $this->promoListId = null;
         $this->success('Lista de ofertas desactivada.');
     }
 
     public function lists()
     {
-        $all = ListName::all();
-        $grouped = [];
-
-        foreach ($all as $list) {
-            $name = trim($list->name);
-            $isUnit = str_ends_with($name, ' U');
-            $baseName = $isUnit ? preg_replace('/ U$/', '', $name) : $name;
-
-            if (!isset($grouped[$baseName])) {
-                $grouped[$baseName] = [
-                    'base' => null,
-                    'unit' => null,
-                    'baseName' => $baseName
-                ];
-            }
-
-            if ($isUnit) {
-                $grouped[$baseName]['unit'] = $list;
-            } else {
-                $grouped[$baseName]['base'] = $list;
-            }
-        }
-
-        return $grouped;
+        return ListName::orderBy('id')->get();
     }
 
     public function create()
     {
-        $this->reset(['listName', 'editingListId', 'createUnitPair']);
+        $this->reset(['listName', 'listId', 'editingListId']);
         $this->listModal = true;
     }
 
@@ -75,8 +54,8 @@ new class extends Component
     {
         $list = ListName::findOrFail($id);
         $this->editingListId = $id;
+        $this->listId = $list->id;
         $this->listName = $list->name;
-        $this->createUnitPair = false; // Ocultar para edición simple por ahora
         $this->listModal = true;
     }
 
@@ -84,26 +63,43 @@ new class extends Component
     {
         $this->validate([
             'listName' => 'required|string|max:48',
+            'listId' => 'required|integer|min:1',
         ]);
 
         $name = trim($this->listName);
+        $id = (int) $this->listId;
 
-        DB::transaction(function () use ($name) {
-            $baseList = ListName::updateOrCreate(
-                ['id' => $this->editingListId],
-                ['name' => $name]
-            );
+        if ($this->editingListId !== $id && ListName::where('id', $id)->exists()) {
+            $this->error('El ID de lista ya está en uso.');
 
-            if ($this->createUnitPair && !$this->editingListId) {
-                ListName::updateOrCreate(
-                    ['name' => $name . ' U'],
-                    ['name' => $name . ' U']
-                );
-            }
-        });
+            return;
+        }
 
-        $this->listModal = false;
-        $this->success('Lista(s) guardada(s) correctamente.');
+        try {
+            DB::transaction(function () use ($name, $id) {
+                if ($this->editingListId) {
+                    $list = ListName::findOrFail($this->editingListId);
+
+                    if ($this->editingListId !== $id) {
+                        // Cambiar el ID (asume que ON UPDATE CASCADE está configurado o no hay relaciones estrictas en cascada manual que fallen)
+                        $list->id = $id;
+                    }
+
+                    $list->name = $name;
+                    $list->save();
+                } else {
+                    $list = new ListName;
+                    $list->id = $id;
+                    $list->name = $name;
+                    $list->save();
+                }
+            });
+
+            $this->listModal = false;
+            $this->success('Lista guardada correctamente.');
+        } catch (Exception $e) {
+            $this->error('Error al guardar: '.$e->getMessage());
+        }
     }
 
     public function delete(int $id)
@@ -123,7 +119,7 @@ new class extends Component
     public function with(): array
     {
         return [
-            'groupedLists' => $this->lists(),
+            'listsData' => $this->lists(),
         ];
     }
 }; ?>
@@ -137,81 +133,31 @@ new class extends Component
     </x-header>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        @forelse($groupedLists as $baseName => $pair)
+        @forelse($listsData as $list)
             <x-card class="bg-base-100 shadow-md border border-base-300 overflow-hidden" no-shadow>
                 <div class="flex items-center justify-between bg-base-200/50 p-4 border-b border-base-300">
-                    <h3 class="font-black uppercase tracking-tight text-primary">{{ $baseName }}</h3>
+                    <h3 class="font-black uppercase tracking-tight text-primary">{{ $list->name }}</h3>
+                    <div class="text-xs opacity-50 font-mono">ID: {{ $list->id }}</div>
                 </div>
                 
                 <div class="p-4 space-y-3">
-                    {{-- Par por Bulto --}}
-                    <div class="flex items-center justify-between p-3 bg-base-200/30 rounded-xl border border-base-content/5">
-                        <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-600 font-bold text-xs">
-                                B
-                            </div>
-                            <div>
-                                <div class="text-xs opacity-50 font-mono">ID: {{ $pair['base']?->id ?? '---' }}</div>
-                                <div class="text-sm font-bold {{ !$pair['base'] ? 'italic opacity-30' : '' }}">
-                                    {{ $pair['base'] ? 'Por Bulto' : 'No configurada' }}
-                                </div>
-                            </div>
-                        </div>
-                        <div class="flex gap-1 items-center">
-                            @if($pair['base'])
-                                @if($promoListId === $pair['base']->id)
-                                    <span class="badge badge-success badge-sm font-bold text-white mr-1">OFERTAS</span>
-                                    <x-button icon="o-x-mark" class="btn-sm btn-ghost btn-circle text-error"
-                                              wire:click="clearPromo"
-                                              wire:confirm="¿Desactivar la lista de ofertas?"
-                                              tooltip="Quitar como Ofertas" spinner />
-                                @else
-                                    <x-button icon="o-star" class="btn-sm btn-ghost btn-circle text-amber-500"
-                                              wire:click="setAsPromo({{ $pair['base']->id }})"
-                                              wire:confirm="¿Usar esta lista como la lista de ofertas?"
-                                              tooltip="Usar para Ofertas" spinner />
-                                @endif
-                                <x-button icon="o-pencil" class="btn-sm btn-ghost btn-circle" wire:click="edit({{ $pair['base']->id }})" />
-                                <x-button icon="o-trash" class="btn-sm btn-ghost btn-circle text-error" 
-                                          wire:click="delete({{ $pair['base']->id }})" 
-                                          wire:confirm="¿Está seguro de eliminar esta lista?" />
-                            @endif
-                        </div>
-                    </div>
-
-                    {{-- Par por Unidad --}}
-                    <div class="flex items-center justify-between p-3 bg-base-200/30 rounded-xl border border-base-content/5">
-                        <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center text-green-600 font-bold text-xs">
-                                U
-                            </div>
-                            <div>
-                                <div class="text-xs opacity-50 font-mono">ID: {{ $pair['unit']?->id ?? '---' }}</div>
-                                <div class="text-sm font-bold {{ !$pair['unit'] ? 'italic opacity-30' : '' }}">
-                                    {{ $pair['unit'] ? 'Por Unidad (U)' : 'No configurada' }}
-                                </div>
-                            </div>
-                        </div>
-                        <div class="flex gap-1 items-center">
-                            @if($pair['unit'])
-                                @if($promoListId === $pair['unit']->id)
-                                    <span class="badge badge-success badge-sm font-bold text-white mr-1">OFERTAS</span>
-                                    <x-button icon="o-x-mark" class="btn-sm btn-ghost btn-circle text-error"
-                                              wire:click="clearPromo"
-                                              wire:confirm="¿Desactivar la lista de ofertas?"
-                                              tooltip="Quitar como Ofertas" spinner />
-                                @else
-                                    <x-button icon="o-star" class="btn-sm btn-ghost btn-circle text-amber-500"
-                                              wire:click="setAsPromo({{ $pair['unit']->id }})"
-                                              wire:confirm="¿Usar esta lista como la lista de ofertas?"
-                                              tooltip="Usar para Ofertas" spinner />
-                                @endif
-                                <x-button icon="o-pencil" class="btn-sm btn-ghost btn-circle" wire:click="edit({{ $pair['unit']->id }})" />
-                                <x-button icon="o-trash" class="btn-sm btn-ghost btn-circle text-error" 
-                                          wire:click="delete({{ $pair['unit']->id }})" 
-                                          wire:confirm="¿Está seguro de eliminar esta lista?" />
-                            @endif
-                        </div>
+                    <div class="flex gap-2 justify-end items-center">
+                        @if($promoListId === $list->id)
+                            <span class="badge badge-success badge-sm font-bold text-white mr-auto">OFERTAS</span>
+                            <x-button icon="o-x-mark" class="btn-sm btn-ghost btn-circle text-error"
+                                      wire:click="clearPromo"
+                                      wire:confirm="¿Desactivar la lista de ofertas?"
+                                      tooltip="Quitar como Ofertas" spinner />
+                        @else
+                            <x-button icon="o-star" class="btn-sm btn-ghost btn-circle text-amber-500"
+                                      wire:click="setAsPromo({{ $list->id }})"
+                                      wire:confirm="¿Usar esta lista como la lista de ofertas?"
+                                      tooltip="Usar para Ofertas" spinner />
+                        @endif
+                        <x-button icon="o-pencil" class="btn-sm btn-ghost btn-circle" wire:click="edit({{ $list->id }})" />
+                        <x-button icon="o-trash" class="btn-sm btn-ghost btn-circle text-error" 
+                                  wire:click="delete({{ $list->id }})" 
+                                  wire:confirm="¿Está seguro de eliminar esta lista?" />
                     </div>
                 </div>
             </x-card>
@@ -225,11 +171,8 @@ new class extends Component
 
     <x-modal wire:model="listModal" title="{{ $editingListId ? 'Editar Lista' : 'Nueva Lista' }}" separator>
         <div class="grid gap-4">
-            <x-input label="Nombre de la Lista" wire:model="listName" placeholder="Ej: Lista Minorista, Mayorista..." hint="El par 'U' se creará automáticamente si está marcado." />
-            
-            @if(!$editingListId)
-                <x-checkbox label="Crear automáticamente el par por Unidad (U)" wire:model="createUnitPair" class="checkbox-primary" />
-            @endif
+            <x-input label="ID Legacy" wire:model="listId" type="number" placeholder="Ej: 2" hint="El ID de la lista en el sistema legado." />
+            <x-input label="Nombre de la Lista" wire:model="listName" placeholder="Ej: Lista A" />
         </div>
         <x-slot:actions>
             <x-button label="Cancelar" @click="$wire.listModal = false" />
@@ -237,3 +180,4 @@ new class extends Component
         </x-slot:actions>
     </x-modal>
 </div>
+
