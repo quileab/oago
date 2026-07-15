@@ -49,9 +49,21 @@ class CustomerApiController extends Controller
         $products = $query->paginate($request->input('per_page', 30));
 
         // Enriquecer productos con el precio efectivo del usuario
-        $products->getCollection()->transform(function ($product) use ($user) {
-            $effectivePrice = $user->getProductPrice($product);
-            $product->price = $effectivePrice;
+        $priceService = app(\App\Services\PriceListService::class);
+        $products->getCollection()->transform(function ($product) use ($user, $priceService) {
+            $listId = $user->list_id ?? 0;
+            $basePrice = $priceService->getEffectivePrice($listId, $product->id, true) ?? (float) ($product->price ?? 0);
+            $promoPrice = $priceService->getEffectivePrice($listId, $product->id, false);
+
+            if ($promoPrice !== null && $promoPrice < $basePrice) {
+                $product->price = $promoPrice;
+                $product->base_price = $basePrice;
+                $product->promo_price = $promoPrice;
+            } else {
+                $product->price = $basePrice;
+                $product->base_price = null;
+                $product->promo_price = null;
+            }
 
             return $product;
         });
@@ -236,4 +248,45 @@ class CustomerApiController extends Controller
             return response()->json(['message' => $e->getMessage()], 400);
         }
     }
+
+    /**
+     * Obtener el listado de slides/banners activos.
+     */
+    public function slider(Request $request): JsonResponse
+    {
+        $jsonPath = public_path('storage/slider/slider.json');
+
+        if (!file_exists($jsonPath)) {
+            return response()->json([], 200);
+        }
+
+        $data = json_decode(file_get_contents($jsonPath), true) ?? [];
+        $items = $data['slides'] ?? $data;
+
+        if (!is_array($items)) {
+            return response()->json([], 200);
+        }
+
+        $slides = collect($items)->map(function ($item) {
+            $path = is_array($item) ? $item['id'] : $item;
+            $cleanPath = ltrim($path, '/');
+            
+            if (str_starts_with($cleanPath, 'slider/')) {
+                $imageUrl = asset('storage/' . $cleanPath);
+            } else {
+                $imageUrl = asset('storage/slider/' . $cleanPath);
+            }
+
+            return [
+                'image' => $imageUrl,
+                'title' => is_array($item) ? ($item['title'] ?? '') : '',
+                'description' => is_array($item) ? ($item['description'] ?? '') : '',
+                'url' => is_array($item) ? ($item['url'] ?? '') : '',
+                'urlText' => is_array($item) ? ($item['urlText'] ?? '') : '',
+            ];
+        })->toArray();
+
+        return response()->json($slides, 200);
+    }
 }
+

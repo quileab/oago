@@ -56,6 +56,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/customer/orders', [CustomerApiController::class, 'orders']);
     Route::get('/customer/orders/{order}', [CustomerApiController::class, 'showOrder']);
     Route::post('/customer/orders', [CustomerApiController::class, 'placeOrder']);
+    Route::get('/customer/slider', [CustomerApiController::class, 'slider']);
 
     // Rutas de Usuarios que tienen validación interna de propiedad (IDOR check)
     Route::get('users/{user}', [UserController::class, 'show']);
