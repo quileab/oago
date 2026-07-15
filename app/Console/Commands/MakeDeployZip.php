@@ -18,6 +18,11 @@ class MakeDeployZip extends Command
     public function handle()
     {
         $noBrand = $this->option('no_brand');
+        if (! $noBrand) {
+            $includeBrand = $this->confirm('¿Desea incluir las imágenes de marca por defecto (pueden sobrescribir las de producción)?', false);
+            $noBrand = ! $includeBrand;
+        }
+
         $includeAssets = $this->option('include-assets');
         $zipName = $this->option('name');
         $zipPath = base_path($zipName);
@@ -93,7 +98,7 @@ class MakeDeployZip extends Command
             'bootstrap/cache/*', 'public/storage',
             '*.zip', '*.sql', '*.sqlite',
             '.agents', '.claude', '.gemini', '.vscode', '.postman',
-            '.DS_Store', 'Thumbs.db',
+            'ignore.me', '.DS_Store', 'Thumbs.db',
         ];
 
         if ($noBrand) {
@@ -172,6 +177,7 @@ class MakeDeployZip extends Command
                 Str::startsWith($zipPathInternal, '.gemini') ||
                 Str::startsWith($zipPathInternal, '.vscode') ||
                 Str::startsWith($zipPathInternal, '.postman') ||
+                Str::startsWith($zipPathInternal, 'ignore.me/') ||
                 basename($zipPathInternal) === '.DS_Store' ||
                 basename($zipPathInternal) === 'Thumbs.db' ||
                 $zipPathInternal === '.env'
