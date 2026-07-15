@@ -1,0 +1,239 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Enums\OrderStatus;
+use App\Helpers\SettingsHelper;
+use App\Http\Controllers\Controller;
+use App\Mail\OrderMail;
+use App\Models\Order;
+use App\Models\OrderItem;
+use App\Models\Product;
+use App\Models\ShippingDetail;
+use App\Services\PriceListService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+
+class CustomerApiController extends Controller
+{
+    /**
+     * Listar productos visibles con precios adaptados al usuario.
+     */
+    public function products(Request $request): JsonResponse
+    {
+        $user = current_user() ?? $request->user();
+        if (! $user) {
+            return response()->json(['message' => 'No autorizado'], 401);
+        }
+
+        $query = Product::where('published', true)
+            ->where('visibility', 'visible')
+            ->where(DB::raw('ifnull(model, "")'), '!=', 'consumo interno');
+
+        if ($request->has('search') && ! empty($request->input('search'))) {
+            $terms = array_filter(explode(' ', $request->input('search')));
+            $query->where(function ($q) use ($terms) {
+                foreach ($terms as $term) {
+                    $q->where(DB::raw('concat(description, " ", ifnull(model, ""), " ", ifnull(brand, ""), " ", ifnull(product_type, ""), " ", ifnull(category, ""), " ", ifnull(tags, ""))'), 'like', "%$term%");
+                }
+            });
+        }
+
+        if ($request->has('category')) {
+            $query->where('category', $request->input('category'));
+        }
+
+        $products = $query->paginate($request->input('per_page', 30));
+
+        // Enriquecer productos con el precio efectivo del usuario
+        $products->getCollection()->transform(function ($product) use ($user) {
+            $effectivePrice = $user->getProductPrice($product);
+            $product->price = $effectivePrice;
+
+            return $product;
+        });
+
+        return response()->json($products, 200);
+    }
+
+    /**
+     * Listar pedidos del usuario autenticado.
+     */
+    public function orders(Request $request): JsonResponse
+    {
+        $user = current_user() ?? $request->user();
+        if (! $user) {
+            return response()->json(['message' => 'No autorizado'], 401);
+        }
+
+        $orders = Order::with(['items.product', 'shipping'])
+            ->where('user_id', $user->id)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json($orders, 200);
+    }
+
+    /**
+     * Mostrar detalles de un pedido específico.
+     */
+    public function showOrder(Request $request, $id): JsonResponse
+    {
+        $user = current_user() ?? $request->user();
+        if (! $user) {
+            return response()->json(['message' => 'No autorizado'], 401);
+        }
+
+        $order = Order::with(['items.product', 'shipping'])
+            ->where('user_id', $user->id)
+            ->find($id);
+
+        if (! $order) {
+            return response()->json(['message' => 'Pedido no encontrado'], 404);
+        }
+
+        return response()->json($order, 200);
+    }
+
+    /**
+     * Crear un pedido statelessly (Checkout para App Móvil).
+     */
+    public function placeOrder(Request $request): JsonResponse
+    {
+        $user = current_user() ?? $request->user();
+        if (! $user) {
+            return response()->json(['message' => 'No autorizado'], 401);
+        }
+
+        $request->validate([
+            'items' => 'required|array|min:1',
+            'items.*.product_id' => 'required|exists:products,id',
+            'items.*.quantity' => 'required|integer|min:1',
+            'shipping' => 'required|array',
+            'shipping.sending_method' => 'required|string',
+            'shipping.payment_method' => 'required|string',
+            'shipping.information' => 'nullable|string|max:240',
+            'shipping.payment_detail' => 'nullable|string|max:100',
+            'shipping.transport_detail' => 'nullable|string|max:100',
+            'shipping.contact_name' => 'nullable|string|max:100',
+            'shipping.contact_number' => 'nullable|string|max:50',
+            'shipping.sending_address' => 'nullable|string|max:100',
+            'shipping.sending_city' => 'nullable|string|max:50',
+        ]);
+
+        $items = $request->input('items');
+        $shipping = $request->input('shipping');
+
+        try {
+            $order = DB::transaction(function () use ($items, $shipping, $user) {
+                $total = 0;
+                $productIds = array_column($items, 'product_id');
+                $products = Product::whereIn('id', $productIds)->get()->keyBy('id');
+
+                // 1. Validar Stock y Precios
+                $itemsData = [];
+                foreach ($items as $item) {
+                    $product = $products->get($item['product_id']);
+                    if (! $product) {
+                        throw new \Exception("El producto ID {$item['product_id']} ya no está disponible.");
+                    }
+
+                    if ($product->stock < $item['quantity']) {
+                        throw new \Exception("Stock insuficiente para {$product->description}. Disponible: {$product->stock}.");
+                    }
+
+                    $currentPrice = $user->getProductPrice($product);
+                    $orderedQuantity = (int) $item['quantity'];
+                    $billableQuantity = $orderedQuantity;
+
+                    if ($product->hasBonus()) {
+                        $bonusThreshold = $product->bonus_threshold + $product->bonus_amount;
+                        $timesBonusApplies = floor($orderedQuantity / $bonusThreshold);
+                        $freeUnits = $timesBonusApplies * $product->bonus_amount;
+                        $billableQuantity = $orderedQuantity - $freeUnits;
+                    }
+
+                    $itemPrice = app(PriceListService::class)
+                        ->calculateItemPrice($user->list_id ?? 1, $product, $billableQuantity);
+
+                    // Add item data
+                    $itemsData[] = [
+                        'product_id' => $product->id,
+                        'quantity' => $orderedQuantity,
+                        'price' => $currentPrice,
+                    ];
+
+                    $total += $itemPrice;
+                }
+
+                if ($total == 0) {
+                    throw new \Exception('El total del pedido no puede ser 0.');
+                }
+
+                // 2. Crear la Orden
+                $order = Order::create([
+                    'user_id' => $user->id,
+                    'total_price' => $total,
+                    'sending_method' => $shipping['sending_method'] ?? null,
+                    'transport_detail' => $shipping['transport_detail'] ?? null,
+                    'payment_method' => $shipping['payment_method'] ?? null,
+                    'payment_detail' => $shipping['payment_detail'] ?? null,
+                    'information' => strip_tags($shipping['information'] ?? ''),
+                    'status' => OrderStatus::PENDING,
+                ]);
+
+                // 3. Crear los Detalles de Envío
+                $defaultMethod = 'Envío a cargo de la Empresa a Dirección Registrada';
+                if (($shipping['sending_method'] ?? '') !== $defaultMethod) {
+                    ShippingDetail::create([
+                        'order_id' => $order->id,
+                        'contact_name' => $shipping['contact_name'] ?? null,
+                        'address' => $shipping['sending_address'] ?? null,
+                        'city' => $shipping['sending_city'] ?? null,
+                        'postal_code' => $shipping['postal_code'] ?? $user->postal_code,
+                        'phone' => $shipping['contact_number'] ?? $user->phone,
+                        'shipping_status' => 'pending',
+                    ]);
+                }
+
+                // 4. Crear los Items
+                foreach ($itemsData as $itemData) {
+                    OrderItem::create([
+                        'order_id' => $order->id,
+                        'product_id' => $itemData['product_id'],
+                        'quantity' => $itemData['quantity'],
+                        'price' => $itemData['price'],
+                    ]);
+                }
+
+                return $order;
+            });
+
+            // 5. Enviar Notificaciones
+            try {
+                $adminEmail = SettingsHelper::settings('order_placed_mail');
+                $userEmail = $user->email;
+                if ($userEmail) {
+                    $mail = Mail::to($userEmail);
+                    if ($adminEmail) {
+                        $mail->cc($adminEmail);
+                    }
+                    $mail->send(new OrderMail($order->id, false));
+                }
+            } catch (\Exception $e) {
+                Log::error('Error enviando correo de orden API móvil: '.$e->getMessage());
+            }
+
+            return response()->json([
+                'message' => 'Pedido confirmado exitosamente.',
+                'order' => $order->load(['items.product', 'shipping']),
+            ], 201);
+
+        } catch (\Exception $e) {
+            return response()->json(['message' => $e->getMessage()], 400);
+        }
+    }
+}

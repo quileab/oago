@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\CustomerApiController;
 use App\Http\Controllers\Api\ListPriceController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ProductController;
@@ -49,6 +50,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('users', [UserController::class, 'index']);
         Route::post('users', [UserController::class, 'store']);
     });
+
+    // Rutas de Clientes (realizar compras y ver pedidos)
+    Route::get('/customer/products', [CustomerApiController::class, 'products']);
+    Route::get('/customer/orders', [CustomerApiController::class, 'orders']);
+    Route::get('/customer/orders/{order}', [CustomerApiController::class, 'showOrder']);
+    Route::post('/customer/orders', [CustomerApiController::class, 'placeOrder']);
 
     // Rutas de Usuarios que tienen validación interna de propiedad (IDOR check)
     Route::get('users/{user}', [UserController::class, 'show']);
