@@ -133,6 +133,8 @@ class Cart extends Component
 
     public function render()
     {
+        $this->calculateTotal();
+
         $cart = Session::get('cart', []);
 
         $productIds = array_keys($cart);
@@ -175,6 +177,7 @@ class Cart extends Component
 
         return view('livewire.cart', [
             'cart' => $enrichedCart,
+            'total' => $this->total,
         ]);
     }
 

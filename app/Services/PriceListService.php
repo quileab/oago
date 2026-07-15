@@ -80,7 +80,10 @@ class PriceListService
 
         if ($listPrice) {
             $bulkPrice = (float) $listPrice->price;
-            $unitPrice = (float) ($listPrice->unit_price ?: $listPrice->price);
+            $unitPrice = (float) $listPrice->unit_price;
+            if ($unitPrice <= 0) {
+                $unitPrice = $bulkPrice;
+            }
         } else {
             $bulkPrice = (float) ($product->price ?? 0);
             $unitPrice = (float) ($product->price ?? 0);

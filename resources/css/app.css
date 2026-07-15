@@ -34,6 +34,11 @@
     @apply bg-primary text-base-100;
 }
 
+/* Fix MaryUI drawer scrolling background bug */
+.drawer {
+    position: fixed !important;
+}
+
 /* Table pagination: for dark mode*/
 .mary-table-pagination span[aria-disabled="true"] span {
     @apply bg-inherit;
