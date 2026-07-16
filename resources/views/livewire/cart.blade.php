@@ -179,9 +179,8 @@
                                 <x-menu-item title="Cancelar" icon="o-x-mark" />
                             </x-dropdown>
                         </div>
-                        <div class="text-right">
-                            <h3 class="text-xl sm:text-2xl font-black text-white leading-none mt-1">
-                                <small class="text-primary text-[10px] sm:text-xs uppercase tracking-widest font-bold block text-right mb-1">Total Pedido</small>
+                        <div class="text-right flex items-center justify-end h-full">
+                            <h3 class="text-2xl sm:text-3xl font-black text-white leading-none">
                                 ${{ number_format($total, 2, ',', '.') }}
                             </h3>
                         </div>
