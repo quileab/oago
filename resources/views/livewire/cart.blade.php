@@ -32,7 +32,7 @@
                                 <th class="w-32">Cantidad</th>
                                 <th>Total</th>
                                 <th class="w-12">
-                                    <x-button icon="o-x-mark" class="btn-ghost btn-sm btn-circle" wire:click="$toggle('showCart')" />
+                                    <x-button icon="o-x-mark" class="btn-ghost btn-sm btn-circle border border-warning text-warning hover:bg-warning hover:text-warning-content" wire:click="$toggle('showCart')" />
                                 </th>
                             </tr>
                         </thead>
@@ -40,7 +40,7 @@
                     {{-- Vista Mobile: título --}}
                     <div class="md:hidden flex items-center justify-between px-2 py-1">
                         <span class="text-sm font-bold text-slate-300">Productos en el carrito</span>
-                        <x-button icon="o-x-mark" class="btn-ghost btn-sm btn-circle" wire:click="$toggle('showCart')" />
+                        <x-button icon="o-x-mark" class="btn-ghost btn-sm btn-circle border border-warning text-warning hover:bg-warning hover:text-warning-content" wire:click="$toggle('showCart')" />
                     </div>
                 </div>
 
