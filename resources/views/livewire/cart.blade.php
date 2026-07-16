@@ -167,9 +167,6 @@
 
                 {{-- PIE FIJO --}}
                 <div class="shrink-0 bg-slate-900 border-t border-slate-700 px-4 py-3 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.3)]">
-                    <div class="text-slate-400 text-xs flex items-center gap-1 mb-2">
-                        <x-icon name="o-squares-2x2" class="w-4 h-4 text-warning" /> = Bultos
-                    </div>
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-3 items-center">
                         <x-button link="{{ route('checkout') }}" label="Confirmar Pedido" icon="o-check" class="btn-success w-full text-xs sm:text-sm" />
                         <x-button wire:click="saveCart()" label="Guardar" icon="o-shopping-cart" class="btn-warning w-full text-xs sm:text-sm" />
