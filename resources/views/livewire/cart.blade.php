@@ -166,26 +166,28 @@
                 </div>
 
                 {{-- PIE FIJO --}}
-                <div class="shrink-0 bg-slate-900 border-t border-slate-700 px-4 py-4 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.3)]">
-                    <div class="flex items-center justify-between mb-3">
-                        <div class="text-slate-400 text-sm flex items-center gap-1">
-                            <x-icon name="o-squares-2x2" class="w-4 h-4 text-warning" /> = Bultos
-                        </div>
-                        <h3 class="text-2xl font-black text-white">
-                            <small class="text-primary text-sm uppercase tracking-widest font-bold block text-right">Total Pedido</small>
-                            ${{ number_format($total, 2, ',', '.') }}
-                        </h3>
+                <div class="shrink-0 bg-slate-900 border-t border-slate-700 px-4 py-3 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.3)]">
+                    <div class="text-slate-400 text-xs flex items-center gap-1 mb-2">
+                        <x-icon name="o-squares-2x2" class="w-4 h-4 text-warning" /> = Bultos
                     </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <x-button link="{{ route('checkout') }}" label="Confirmar Pedido" icon="o-check" class="btn-success w-full sm:col-span-1" />
-                        <x-button wire:click="saveCart()" label="Guardar" icon="o-shopping-cart" class="btn-warning w-full" />
-                        <x-dropdown>
-                            <x-slot:trigger>
-                                <x-button icon="o-trash" label="Vaciar" class="btn-error w-full" />
-                            </x-slot:trigger>
-                            <x-menu-item title="Confirmar Vaciar" icon="o-check" wire:click="emptyCart" class="text-red-500" />
-                            <x-menu-item title="Cancelar" icon="o-x-mark" />
-                        </x-dropdown>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 items-center">
+                        <x-button link="{{ route('checkout') }}" label="Confirmar Pedido" icon="o-check" class="btn-success w-full text-xs sm:text-sm" />
+                        <x-button wire:click="saveCart()" label="Guardar" icon="o-shopping-cart" class="btn-warning w-full text-xs sm:text-sm" />
+                        <div class="w-full">
+                            <x-dropdown>
+                                <x-slot:trigger>
+                                    <x-button icon="o-trash" label="Vaciar" class="btn-error w-full text-xs sm:text-sm" />
+                                </x-slot:trigger>
+                                <x-menu-item title="Confirmar Vaciar" icon="o-check" wire:click="emptyCart" class="text-red-500" />
+                                <x-menu-item title="Cancelar" icon="o-x-mark" />
+                            </x-dropdown>
+                        </div>
+                        <div class="text-right">
+                            <h3 class="text-xl sm:text-2xl font-black text-white leading-none mt-1">
+                                <small class="text-primary text-[10px] sm:text-xs uppercase tracking-widest font-bold block text-right mb-1">Total Pedido</small>
+                                ${{ number_format($total, 2, ',', '.') }}
+                            </h3>
+                        </div>
                     </div>
                 </div>
 
