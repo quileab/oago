@@ -31,13 +31,16 @@
                                 <th>Precio</th>
                                 <th class="w-32">Cantidad</th>
                                 <th>Total</th>
-                                <th class="w-12"><x-icon name="o-cog-8-tooth" /></th>
+                                <th class="w-12">
+                                    <x-button icon="o-x-mark" class="btn-ghost btn-sm btn-circle" wire:click="$toggle('showCart')" />
+                                </th>
                             </tr>
                         </thead>
                     </table>
                     {{-- Vista Mobile: título --}}
-                    <div class="md:hidden text-sm font-bold text-slate-300 px-2">
-                        Productos en el carrito
+                    <div class="md:hidden flex items-center justify-between px-2 py-1">
+                        <span class="text-sm font-bold text-slate-300">Productos en el carrito</span>
+                        <x-button icon="o-x-mark" class="btn-ghost btn-sm btn-circle" wire:click="$toggle('showCart')" />
                     </div>
                 </div>
 
