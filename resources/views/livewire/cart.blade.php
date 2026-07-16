@@ -13,7 +13,7 @@
         </div>
     </div>
 
-    <x-drawer wire:model="showCart" class="w-11/12 lg:w-2/3 bg-slate-900 text-gray-50 !p-0" right
+    <x-drawer wire:model="showCart" class="w-11/12 lg:w-2/3 bg-slate-900 text-gray-50 !p-0" style="padding: 0px !important;" right
         with-close-button close-on-escape>
 
         @if (count($cart) > 0)
