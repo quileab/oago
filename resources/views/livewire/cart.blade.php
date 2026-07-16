@@ -21,8 +21,8 @@
             <div class="flex flex-col" style="height: 100dvh;">
 
                 {{-- ENCABEZADO FIJO --}}
-                <div class="shrink-0 bg-slate-800 border-b border-slate-700 px-2 py-2 hidden md:block">
-                    {{-- Vista Desktop: cabecera de tabla --}}
+                <div class="shrink-0 bg-slate-800 border-b border-slate-700 px-2 py-2">
+                    {{-- Vista Desktop/Mobile: cabecera de tabla --}}
                     <table class="w-full table-compact table">
                         <thead class="font-bold text-slate-300 text-center text-sm">
                             <tr>
@@ -42,127 +42,62 @@
                 {{-- ZONA SCROLLEABLE --}}
                 <div class="flex-1 overflow-y-auto">
 
-                    {{-- Vista Desktop: filas de tabla --}}
-                    <div class="hidden md:block">
-                        <table class="w-full table-compact table">
-                            <tbody>
-                                @foreach ($cart as $item)
-                                    <tr class="even:bg-slate-100/5 odd:bg-slate-100/10">
-                                        <td class="text-center w-20">
-                                            <x-image-proxy url="{{ config('services.regente.base_url') . $item['product_id'] . '.jpg' }}"
-                                                alt="{{ $item['product_id'] }}" class="w-16 h-16 object-cover" />
-                                        </td>
-                                        <td>
-                                            {{ $item['name'] }}
-                                            @if (isset($item['product_model']) && $item['product_model']->hasBonus())
-                                                <div class="text-xs font-bold text-red-500 mt-1">
-                                                    {{ $item['product_model']->bonus_label }}
-                                                </div>
-                                            @endif
-                                        </td>
-                                        <td class="text-right {{ ($item['is_price_changed'] ?? false) ? 'text-red-500 font-bold' : '' }}">
-                                            ${{ number_format($item['price'], 2) }}
-                                            @if($item['is_price_changed'] ?? false)
-                                                <div class="text-[10px] text-red-400">Actual: ${{ number_format($item['current_price'], 2) }}</div>
-                                            @endif
-                                        </td>
-                                        <td class="px-2 w-32">
-                                            <input type="number" min="{{ $item['bulkQuantity'] }}" step="{{ $item['bulkQuantity'] }}"
-                                                wire:change="updateQuantity({{ $item['product_id'] }}, $event.target.value)"
-                                                wire:key="cart-{{ $item['product_id'] }}-{{ $item['quantity'] }}" id="cart-{{ $item['product_id'] }}-{{ $item['quantity'] }}"
-                                                value="{{ $item['quantity'] }}" class="input input-bordered w-full text-center {{ ($item['is_stock_insufficient'] ?? false) ? 'border-red-500 bg-red-500/10' : '' }}" />
-
-                                            @if($item['is_stock_insufficient'] ?? false)
-                                                <div class="text-[10px] text-red-500 font-bold text-center mt-1">Disp: {{ $item['available_stock'] }}</div>
-                                            @endif
-
-                                            @if($item['quantity'] % $item['bulkQuantity'] === 0)
-                                                <x-icon name="o-squares-2x2"
-                                                    label="{{ $item['quantity'] / $item['bulkQuantity']}} x {{ $item['bulkQuantity'] }}" />
-                                            @else
-                                                <x-icon name="o-squares-plus"
-                                                    label="{{ floor($item['quantity'] / $item['bulkQuantity']) }} x {{ $item['bulkQuantity'] }} + {{ $item['quantity'] - (floor($item['quantity'] / $item['bulkQuantity']) * $item['bulkQuantity']) }}" />
-                                            @endif
-                                        </td>
-                                        <td class="text-right">${{ number_format($item['total_price'], 2) }}</td>
-                                        <td class="text-center w-12">
-                                            <x-dropdown>
-                                                <x-slot:trigger>
-                                                    <x-button icon="o-trash" class="text-red-500 w-full btn-ghost btn-sm" />
-                                                </x-slot:trigger>
-                                                <x-menu-item title="Confirmar" icon="o-check"
-                                                    wire:click="removeFromCart({{ $item['product_id'] }})" />
-                                                <x-menu-item title="Cancelar" icon="o-x-mark" />
-                                            </x-dropdown>
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-
-                    {{-- Vista Mobile: Cards --}}
-                    <div class="md:hidden space-y-3 p-4">
-                        @foreach ($cart as $item)
-                            <div class="bg-slate-800 rounded-2xl p-4 shadow-md border border-slate-700 flex flex-col relative">
-                                <div class="absolute top-2 right-2">
-                                    <x-dropdown>
-                                        <x-slot:trigger>
-                                            <x-button icon="o-trash" class="text-red-500 btn-circle btn-ghost btn-sm" />
-                                        </x-slot:trigger>
-                                        <x-menu-item title="Confirmar" icon="o-check" wire:click="removeFromCart({{ $item['product_id'] }})" />
-                                        <x-menu-item title="Cancelar" icon="o-x-mark" />
-                                    </x-dropdown>
-                                </div>
-
-                                <div class="flex items-start gap-4 mb-3">
-                                    <div class="w-20 h-20 rounded-lg overflow-hidden shrink-0 bg-white">
-                                        <x-image-proxy url="{{ config('services.regente.base_url') . $item['product_id'] . '.jpg' }}" alt="{{ $item['product_id'] }}" class="w-full h-full object-cover" />
-                                    </div>
-                                    <div class="flex-1 pr-6">
-                                        <h4 class="font-bold text-sm leading-tight text-white line-clamp-2">{{ $item['name'] }}</h4>
-                                        <div class="text-xs text-slate-400 mt-1 font-mono">ID: {{ $item['product_id'] }}</div>
+                    {{-- Vista Desktop/Mobile: filas de tabla --}}
+                    <table class="w-full table-compact table">
+                        <tbody>
+                            @foreach ($cart as $item)
+                                <tr class="even:bg-slate-100/5 odd:bg-slate-100/10">
+                                    <td class="text-center w-20">
+                                        <x-image-proxy url="{{ config('services.regente.base_url') . $item['product_id'] . '.jpg' }}"
+                                            alt="{{ $item['product_id'] }}" class="w-16 h-16 object-cover" />
+                                    </td>
+                                    <td>
+                                        {{ $item['name'] }}
                                         @if (isset($item['product_model']) && $item['product_model']->hasBonus())
-                                            <div class="text-xs font-bold text-red-400 mt-1 bg-red-900/20 px-2 py-0.5 rounded inline-block">
+                                            <div class="text-xs font-bold text-red-500 mt-1">
                                                 {{ $item['product_model']->bonus_label }}
                                             </div>
                                         @endif
-                                    </div>
-                                </div>
-
-                                <div class="grid grid-cols-2 gap-4 items-center bg-slate-900/50 p-3 rounded-xl">
-                                    <div>
-                                        <div class="text-xs text-slate-400 mb-1">Precio Un.</div>
-                                        <div class="font-bold {{ ($item['is_price_changed'] ?? false) ? 'text-red-500' : '' }}">
-                                            ${{ number_format($item['price'], 2) }}
-                                            @if($item['is_price_changed'] ?? false)
-                                                <span class="block text-[10px] text-red-400">Actual: ${{ number_format($item['current_price'], 2) }}</span>
-                                            @endif
-                                        </div>
-                                    </div>
-                                    <div class="text-right">
-                                        <div class="text-xs text-slate-400 mb-1">Subtotal</div>
-                                        <div class="font-black text-green-400 text-lg">${{ number_format($item['total_price'], 2) }}</div>
-                                    </div>
-                                </div>
-
-                                <div class="mt-3 flex items-center justify-between gap-3">
-                                    <div class="text-xs text-slate-400 w-1/3">
-                                        Cantidad:
-                                        @if($item['is_stock_insufficient'] ?? false)
-                                            <div class="text-[10px] text-red-500 font-bold">Disp: {{ $item['available_stock'] }}</div>
+                                    </td>
+                                    <td class="text-right {{ ($item['is_price_changed'] ?? false) ? 'text-red-500 font-bold' : '' }}">
+                                        ${{ number_format($item['price'], 2) }}
+                                        @if($item['is_price_changed'] ?? false)
+                                            <div class="text-[10px] text-red-400">Actual: ${{ number_format($item['current_price'], 2) }}</div>
                                         @endif
-                                    </div>
-                                    <div class="flex-1">
+                                    </td>
+                                    <td class="px-2 w-32">
                                         <input type="number" min="{{ $item['bulkQuantity'] }}" step="{{ $item['bulkQuantity'] }}"
                                             wire:change="updateQuantity({{ $item['product_id'] }}, $event.target.value)"
-                                            wire:key="cart-mob-{{ $item['product_id'] }}-{{ $item['quantity'] }}" id="cart-mob-{{ $item['product_id'] }}-{{ $item['quantity'] }}"
-                                            value="{{ $item['quantity'] }}" class="input input-bordered input-sm w-full text-center bg-slate-700 text-white {{ ($item['is_stock_insufficient'] ?? false) ? 'border-red-500' : '' }}" />
-                                    </div>
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
+                                            wire:key="cart-{{ $item['product_id'] }}-{{ $item['quantity'] }}" id="cart-{{ $item['product_id'] }}-{{ $item['quantity'] }}"
+                                            value="{{ $item['quantity'] }}" class="input input-bordered w-full text-center {{ ($item['is_stock_insufficient'] ?? false) ? 'border-red-500 bg-red-500/10' : '' }}" />
+
+                                        @if($item['is_stock_insufficient'] ?? false)
+                                            <div class="text-[10px] text-red-500 font-bold text-center mt-1">Disp: {{ $item['available_stock'] }}</div>
+                                        @endif
+
+                                        @if($item['quantity'] % $item['bulkQuantity'] === 0)
+                                            <x-icon name="o-squares-2x2"
+                                                label="{{ $item['quantity'] / $item['bulkQuantity']}} x {{ $item['bulkQuantity'] }}" />
+                                        @else
+                                            <x-icon name="o-squares-plus"
+                                                label="{{ floor($item['quantity'] / $item['bulkQuantity']) }} x {{ $item['bulkQuantity'] }} + {{ $item['quantity'] - (floor($item['quantity'] / $item['bulkQuantity']) * $item['bulkQuantity']) }}" />
+                                        @endif
+                                    </td>
+                                    <td class="text-right">${{ number_format($item['total_price'], 2) }}</td>
+                                    <td class="text-center w-12">
+                                        <x-dropdown>
+                                            <x-slot:trigger>
+                                                <x-button icon="o-trash" class="text-red-500 w-full btn-ghost btn-sm" />
+                                            </x-slot:trigger>
+                                            <x-menu-item title="Confirmar" icon="o-check"
+                                                wire:click="removeFromCart({{ $item['product_id'] }})" />
+                                            <x-menu-item title="Cancelar" icon="o-x-mark" />
+                                        </x-dropdown>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
                 </div>
 
                 {{-- PIE FIJO --}}
