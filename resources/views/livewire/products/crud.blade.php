@@ -64,6 +64,7 @@ new class extends Component
                 'in_stock' => true,
                 'allow_reservation' => false,
                 'by_bulk' => false,
+                'price' => 0,
             ];
             $this->selectedTags = [];
             foreach ($this->listNames() as $list) {
@@ -172,7 +173,7 @@ new class extends Component
             'formData.lenght' => 'nullable|numeric',
             'formData.width' => 'nullable|numeric',
             'formData.height' => 'nullable|numeric',
-            'formData.price' => 'nullable|numeric',
+            'formData.price' => 'required|numeric|min:0',
             'formData.offer_price' => 'nullable|numeric',
             'formData.offer_start' => 'nullable|date',
             'formData.offer_end' => 'nullable|date',
@@ -189,6 +190,9 @@ new class extends Component
 
         // Sync tags back to string
         $this->formData['tags'] = implode('|', $this->selectedTags);
+        
+        // Ensure price is set
+        $this->formData['price'] = $this->formData['price'] ?? 0;
 
         $product = Product::updateOrCreate(
             ['id' => $this->product->id ?? null],

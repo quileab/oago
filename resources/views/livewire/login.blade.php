@@ -42,7 +42,7 @@ new #[Layout('components.layouts.empty')]
 
             request()->session()->regenerate();
 
-            if (file_exists($cartFile = storage_path("app/private/" . Auth::id() . "_cart.json"))) {
+            if (file_exists($cartFile = storage_path("app/private/" . current_user_cart_id() . "_cart.json"))) {
                 $cart = json_decode(file_get_contents($cartFile), true);
                 foreach ($cart as $item) {
                     $prod = \App\Models\ListPrice::where('product_id', $item['product_id'])
@@ -78,7 +78,7 @@ new #[Layout('components.layouts.empty')]
 
                 request()->session()->regenerate();
 
-                if (file_exists($cartFile = storage_path("app/private/" . Auth::id() . "_cart.json"))) {
+                if (file_exists($cartFile = storage_path("app/private/" . current_user_cart_id() . "_cart.json"))) {
                     $cart = json_decode(file_get_contents($cartFile), true);
                     foreach ($cart as $item) {
                         $prod = \App\Models\ListPrice::where('product_id', $item['product_id'])
@@ -101,7 +101,7 @@ new #[Layout('components.layouts.empty')]
 
             request()->session()->put('is_alt_login', true);
 
-            if (file_exists($cartFile = storage_path("app/private/" . Auth::guard('alt')->id() . "_cart.json"))) {
+            if (file_exists($cartFile = storage_path("app/private/" . current_user_cart_id() . "_cart.json"))) {
                 $cart = json_decode(file_get_contents($cartFile), true);
                 foreach ($cart as $item) {
                     $prod = \App\Models\ListPrice::where('product_id', $item['product_id'])

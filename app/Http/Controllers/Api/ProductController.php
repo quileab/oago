@@ -46,9 +46,13 @@ class ProductController extends Controller
     public function store(Request $request): JsonResponse
     {
         if ($request->has('qtty_package') && (int) $request->qtty_package < 1) {
-            $old_qtty = $request->qtty_package;
             $request->merge(['qtty_package' => 1]);
-            Log::warning("API Warning: qtty_package corregido de {$old_qtty} a 1 para el producto SKU: ".($request->sku ?? 'N/A'));
+            Log::channel('api')->info('qtty_package corregido a 1 (SKU: '.($request->sku ?? 'N/A').')');
+        }
+
+        $originalPrice = $request->input('price');
+        if ($request->has('price') && is_null($request->price)) {
+            $request->merge(['price' => 0]);
         }
 
         $validator = Validator::make(
@@ -96,6 +100,15 @@ class ProductController extends Controller
             return $this->update($request, $product_exists);
         }
 
+        // Evitar alta de productos con model "consumo interno"
+        if (strcasecmp($request->input('model', ''), 'consumo interno') === 0) {
+            return response()->json([
+                'errors' => [
+                    'model' => ['No está permitido dar de alta productos con el modelo "consumo interno".'],
+                ],
+            ], 422);
+        }
+
         // create new product
         $product = Product::create($request->all());
 
@@ -103,7 +116,12 @@ class ProductController extends Controller
             $this->deleteImageCache($request->image_url);
         }
 
-        return response()->json($product, 201);
+        $responseData = $product->toArray();
+        if (is_null($originalPrice) || (float) $originalPrice == 0) {
+            $responseData['warning'] = 'El producto fue registrado con precio 0 o nulo. Recuerde asociar un precio en las listas correspondientes.';
+        }
+
+        return response()->json($responseData, 201);
     }
 
     /**
@@ -123,9 +141,13 @@ class ProductController extends Controller
     public function update(Request $request, Product $product): JsonResponse
     {
         if ($request->has('qtty_package') && (int) $request->qtty_package < 1) {
-            $old_qtty = $request->qtty_package;
             $request->merge(['qtty_package' => 1]);
-            Log::warning("API Warning: qtty_package corregido de {$old_qtty} a 1 para el producto SKU: ".($product->sku ?? $request->sku ?? 'N/A'));
+            Log::channel('api')->info('qtty_package corregido a 1 (SKU: '.($product->sku ?? $request->sku ?? 'N/A').')');
+        }
+
+        $originalPrice = $request->input('price');
+        if ($request->has('price') && is_null($request->price)) {
+            $request->merge(['price' => 0]);
         }
 
         $validator = Validator::make(
@@ -176,9 +198,12 @@ class ProductController extends Controller
 
         $product->update($request->all());
 
-        // return response()->json($product, 200);
-        // just return ok when no errors
-        return response()->json(['message' => 'OK'], 200);
+        $responseData = ['message' => 'OK'];
+        if (is_null($originalPrice) || (float) $originalPrice == 0) {
+            $responseData['warning'] = 'El producto fue actualizado con precio 0 o nulo. Recuerde asociar un precio en las listas correspondientes.';
+        }
+
+        return response()->json($responseData, 200);
     }
 
     // Eliminar un producto

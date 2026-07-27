@@ -86,7 +86,8 @@ new class extends Component
 
     public function canBuy(): bool
     {
-        return $this->product->stock > 0 && ! Auth::guest() && ! in_array(Auth::user()->role->value, ['none', 'guest']);
+        $basePrice = $this->offer_price > 0 ? $this->offer_price : $this->user_price;
+        return $this->product->stock > 0 && ! Auth::guest() && ! in_array(Auth::user()->role->value, ['none', 'guest']) && $basePrice > 0;
     }
 
     public function unitPrice(): float
@@ -224,21 +225,27 @@ new class extends Component
 
                     @if($this->showPrices())
                         <div class="bg-slate-50 p-6 rounded-2xl mb-8 border border-slate-100">
-                            <div class="flex flex-col">
-                                @if($offer_price > 0)
-                                    <span class="text-sm text-red-500 line-through font-bold mb-1">Precio regular: $ {{ number_format($user_price, 2, ',', '.') }}</span>
-                                    <div class="flex items-baseline gap-2">
-                                        <span class="text-5xl font-black text-green-700 tracking-tighter">$ {{ number_format($offer_price, 2, ',', '.') }}</span>
-                                        <span class="text-xs font-bold text-white bg-green-600 px-2 py-0.5 rounded uppercase">Oferta</span>
-                                    </div>
-                                @else
-                                    <span class="text-5xl font-black text-green-700 tracking-tighter">$ {{ number_format($user_price, 2, ',', '.') }}</span>
-                                @endif
+                            @if(($offer_price > 0 ? $offer_price : $user_price) <= 0)
+                                <div class="flex items-baseline gap-2">
+                                    <span class="text-3xl font-black text-slate-500 uppercase tracking-wider">Muy pronto</span>
+                                </div>
+                            @else
+                                <div class="flex flex-col">
+                                    @if($offer_price > 0)
+                                        <span class="text-sm text-red-500 line-through font-bold mb-1">Precio regular: $ {{ number_format($user_price, 2, ',', '.') }}</span>
+                                        <div class="flex items-baseline gap-2">
+                                            <span class="text-5xl font-black text-green-700 tracking-tighter">$ {{ number_format($offer_price, 2, ',', '.') }}</span>
+                                            <span class="text-xs font-bold text-white bg-green-600 px-2 py-0.5 rounded uppercase">Oferta</span>
+                                        </div>
+                                    @else
+                                        <span class="text-5xl font-black text-green-700 tracking-tighter">$ {{ number_format($user_price, 2, ',', '.') }}</span>
+                                    @endif
 
-                                @if($product->qtty_unit > 1)
-                                    <span class="text-sm font-bold text-slate-500 mt-2 flex items-center gap-1"><x-icon name="o-tag" class="w-4 h-4" /> Precio por unidad: $ {{ number_format($this->unitPrice(), 2, ',', '.') }}</span>
-                                @endif
-                            </div>
+                                    @if($product->qtty_unit > 1)
+                                        <span class="text-sm font-bold text-slate-500 mt-2 flex items-center gap-1"><x-icon name="o-tag" class="w-4 h-4" /> Precio por unidad: $ {{ number_format($this->unitPrice(), 2, ',', '.') }}</span>
+                                    @endif
+                                </div>
+                            @endif
                         </div>
                     @endif
 

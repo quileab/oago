@@ -92,28 +92,30 @@ class WebProductCard extends Component
 
     public function decrementQtty()
     {
-        $step = $this->local_product['qtty_package'] ?? 1;
-        if ($this->qtty > $step) {
-            $this->qtty -= $step;
+        $step = (int) ($this->local_product['qtty_package'] ?? 1);
+        $currentQtty = (int) $this->qtty;
+        if ($currentQtty > $step) {
+            $this->qtty = $currentQtty - $step;
         }
     }
 
     public function incrementQtty()
     {
-        $step = $this->local_product['qtty_package'] ?? 1;
-        $this->qtty += $step;
+        $step = (int) ($this->local_product['qtty_package'] ?? 1);
+        $this->qtty = (int) $this->qtty + $step;
     }
 
     public function decrementUnit()
     {
-        if ($this->qtty > 1) {
-            $this->qtty--;
+        $currentQtty = (int) $this->qtty;
+        if ($currentQtty > 1) {
+            $this->qtty = $currentQtty - 1;
         }
     }
 
     public function incrementUnit()
     {
-        $this->qtty++;
+        $this->qtty = (int) $this->qtty + 1;
     }
 
     public function buy()

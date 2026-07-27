@@ -48,28 +48,36 @@
 
                 {{-- Precio Alineado a la Derecha --}}
                 @if($showPrices)
-                    <div class="flex flex-col items-end mb-2 pr-1">
-                        @if($display_offer > 0)
-                            <div class="flex flex-col items-end">
-                                <span class="text-[11px] text-red-500 line-through font-bold">
+                    @if(($display_offer > 0 ? $display_offer : $display_price) <= 0)
+                        <div class="flex flex-col items-end mb-2 pr-1">
+                            <span class="text-[10px] font-bold px-2 py-0.5 text-slate-500 bg-slate-100 rounded border border-slate-200 uppercase tracking-wider">
+                                Muy pronto
+                            </span>
+                        </div>
+                    @else
+                        <div class="flex flex-col items-end mb-2 pr-1">
+                            @if($display_offer > 0)
+                                <div class="flex flex-col items-end">
+                                    <span class="text-[11px] text-red-500 line-through font-bold">
+                                        $ {{ number_format($display_price, 2, ',', '.') }}
+                                    </span>
+                                    <span class="text-2xl font-black text-green-700 leading-none">
+                                        $ {{ number_format($display_offer, 2, ',', '.') }}
+                                    </span>
+                                </div>
+                            @else
+                                <span class="text-xl font-black text-green-700 leading-none">
                                     $ {{ number_format($display_price, 2, ',', '.') }}
                                 </span>
-                                <span class="text-2xl font-black text-green-700 leading-none">
-                                    $ {{ number_format($display_offer, 2, ',', '.') }}
+                            @endif
+                            
+                            @if($product->qtty_unit > 1)
+                                <span class="text-[11px] font-bold text-slate-500 mt-0.5 text-right">
+                                    $ {{ number_format(($display_offer > 0 ? $display_offer : $display_price) / $product->qtty_unit, 2, ',', '.') }} x un.
                                 </span>
-                            </div>
-                        @else
-                            <span class="text-xl font-black text-green-700 leading-none">
-                                $ {{ number_format($display_price, 2, ',', '.') }}
-                            </span>
-                        @endif
-                        
-                        @if($product->qtty_unit > 1)
-                            <span class="text-[11px] font-bold text-slate-500 mt-0.5 text-right">
-                                $ {{ number_format(($display_offer > 0 ? $display_offer : $display_price) / $product->qtty_unit, 2, ',', '.') }} x un.
-                            </span>
-                        @endif
-                    </div>
+                            @endif
+                        </div>
+                    @endif
                 @else
                     <div class="mb-2 text-right text-[10px] text-slate-400 italic">Precios solo usuarios</div>
                 @endif
@@ -113,7 +121,7 @@
                 </div>
             </div>
 
-            @if($product->stock > 0 && !in_array(Auth::user()->role->value, ['none', 'guest']))
+            @if($product->stock > 0 && !in_array(Auth::user()->role->value, ['none', 'guest']) && ($display_offer > 0 ? $display_offer : $display_price) > 0)
                 <div x-data="{ 
                     step: {{ $product->qtty_package }}
                 }" class="space-y-2">

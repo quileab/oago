@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers\Reports;
 
+use App\Helpers\SettingsHelper;
 use App\Http\Controllers\Controller;
-use App\Models\ListPrice;
+use App\Models\ListName;
 use App\Models\Product;
 use App\Models\User;
+use App\Services\PriceListService;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ExportController extends Controller
@@ -19,8 +21,8 @@ class ExportController extends Controller
         $handle = fopen($filename, 'w+');
 
         // Obtener todas las listas de nombres para las columnas
-        $listNames = \App\Models\ListName::all();
-        $priceService = app(\App\Services\PriceListService::class);
+        $listNames = ListName::all();
+        $priceService = app(PriceListService::class);
 
         // get all products
         $products = Product::with('listPrices')->get();
@@ -36,6 +38,8 @@ class ExportController extends Controller
         }
         fputcsv($handle, $csv_headers);
 
+        $promoListId = (int) SettingsHelper::settings('promo_list_id');
+
         foreach ($products as $product) {
             $row = [];
             $row[] = $product->id;
@@ -45,8 +49,23 @@ class ExportController extends Controller
             $row[] = strip_tags($product->description_html);
             $row[] = $product->tags;
             $row[] = $product->price;
+
+            $pricesByListId = $product->listPrices->keyBy('list_id');
             foreach ($listNames as $list) {
-                $row[] = $priceService->getEffectivePrice($list->id, $product->id) ?? '0';
+                $effectivePrice = null;
+                if ($promoListId && $promoListId !== $list->id) {
+                    $promoPriceObj = $pricesByListId->get($promoListId);
+                    if ($promoPriceObj) {
+                        $effectivePrice = (float) $promoPriceObj->price;
+                    }
+                }
+                if ($effectivePrice === null) {
+                    $listPriceObj = $pricesByListId->get($list->id);
+                    if ($listPriceObj) {
+                        $effectivePrice = (float) $listPriceObj->price;
+                    }
+                }
+                $row[] = $effectivePrice ?? '0';
             }
             fputcsv($handle, $row);
         }
@@ -64,8 +83,8 @@ class ExportController extends Controller
         $handle = fopen($filename, 'w+');
 
         // Obtener todas las listas de nombres para las columnas
-        $listNames = \App\Models\ListName::all();
-        $priceService = app(\App\Services\PriceListService::class);
+        $listNames = ListName::all();
+        $priceService = app(PriceListService::class);
 
         // get all products
         $products = Product::with('listPrices')
@@ -85,6 +104,8 @@ class ExportController extends Controller
         }
         fputcsv($handle, $csv_headers);
 
+        $promoListId = (int) SettingsHelper::settings('promo_list_id');
+
         foreach ($products as $product) {
             $row = [];
             $row[] = $product->id;
@@ -94,8 +115,23 @@ class ExportController extends Controller
             $row[] = strip_tags($product->description_html);
             $row[] = $product->tags;
             $row[] = $product->price;
+
+            $pricesByListId = $product->listPrices->keyBy('list_id');
             foreach ($listNames as $list) {
-                $row[] = $priceService->getEffectivePrice($list->id, $product->id) ?? '0';
+                $effectivePrice = null;
+                if ($promoListId && $promoListId !== $list->id) {
+                    $promoPriceObj = $pricesByListId->get($promoListId);
+                    if ($promoPriceObj) {
+                        $effectivePrice = (float) $promoPriceObj->price;
+                    }
+                }
+                if ($effectivePrice === null) {
+                    $listPriceObj = $pricesByListId->get($list->id);
+                    if ($listPriceObj) {
+                        $effectivePrice = (float) $listPriceObj->price;
+                    }
+                }
+                $row[] = $effectivePrice ?? '0';
             }
             fputcsv($handle, $row);
         }
@@ -104,7 +140,6 @@ class ExportController extends Controller
 
         return response()->download($filename, $filename_download, $headers)->deleteFileAfterSend(true);
     }
-
 
     public function exportUsersOrderStats(): BinaryFileResponse
     {
