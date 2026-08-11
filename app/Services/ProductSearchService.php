@@ -47,7 +47,7 @@ class ProductSearchService
             empty($params['tag'])
         ) {
             $query->orderBy('featured', 'desc')
-                ->orderBy('created_at', 'desc');
+                ->orderBy('updated_at', 'desc');
         }
 
         // 🔍 Filtros básicos
