@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Helpers\SettingsHelper;
+use App\Traits\HasTags;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Storage;
 class Product extends Model
 {
     use HasFactory;
+    use HasTags;
 
     protected $guarded = [];
 
@@ -123,9 +124,14 @@ class Product extends Model
         return $this->hasMany(ListPrice::class); // Un producto puede tener múltiples precios en diferentes listas
     }
 
-    public static function getTags()
+    /**
+     * Get the list of configured product tags from the Tag model.
+     *
+     * @return array<string>
+     */
+    public static function getTags(): array
     {
-        return SettingsHelper::getProductTags();
+        return Tag::allCached()->pluck('name')->all();
     }
 
     public function hasBonus(): bool

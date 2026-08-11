@@ -15,6 +15,7 @@ class ProductSearchService
     public function searchProducts(array $params, int $itemsPerPage = 15, bool $featured = false): Product|LengthAwarePaginator|null
     {
         $query = Product::query()
+            ->with('tags')
             ->where('published', 1)
             ->where('visibility', '!=', 'hidden')
             ->where(DB::raw('ifnull(model, "")'), '!=', 'consumo interno');
@@ -55,7 +56,7 @@ class ProductSearchService
         }
 
         if (! empty($params['tag'])) {
-            $query->where('tags', 'like', '%'.$params['tag'].'%');
+            $query->whereHas('tags', fn ($q) => $q->where('slug', $params['tag']));
         }
 
         foreach (['category', 'brand', 'similar'] as $filter) {
@@ -86,8 +87,8 @@ class ProductSearchService
         }
 
         $results = $itemsPerPage === 1
-          ? $query->first()
-          : $query->paginate($itemsPerPage);
+            ? $query->first()
+            : $query->paginate($itemsPerPage);
 
         // 💰 Hidratar precios de forma masiva
         if ($results instanceof LengthAwarePaginator) {
@@ -102,6 +103,7 @@ class ProductSearchService
     public function searchRelatedProducts(Product $product, int $limit = 9)
     {
         $products = Product::query()
+            ->with('tags')
             ->where('published', 1)
             ->where('product_type', $product->product_type)
             ->where('visibility', '!=', 'hidden')

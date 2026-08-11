@@ -4,6 +4,7 @@ namespace App\Http\Requests\Api;
 
 use App\Enums\Role;
 use App\Models\User;
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -20,7 +21,7 @@ class StoreUserRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
@@ -38,7 +39,7 @@ class StoreUserRequest extends FormRequest
             'password' => 'nullable|string|min:3',
         ];
 
-        if (!$existingUser) {
+        if (! $existingUser) {
             $rules['id'][] = 'unique:users,id';
         }
 

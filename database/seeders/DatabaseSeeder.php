@@ -32,6 +32,7 @@ class DatabaseSeeder extends Seeder
 
         $this->call([
             SettingsSeeder::class,
+            TagSeeder::class,
             AchievementSeeder::class,
         ]);
     }

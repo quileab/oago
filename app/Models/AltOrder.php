@@ -3,15 +3,8 @@
 namespace App\Models;
 
 use App\Enums\OrderStatus;
-use App\Helpers\SettingsHelper;
-use App\Mail\OrderMail;
+use App\Services\OrderService;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Session;
-use Illuminate\Validation\ValidationException;
 
 class AltOrder extends Model
 {
@@ -75,6 +68,6 @@ class AltOrder extends Model
 
     public static function placeOrder(array $shipping = [])
     {
-        return app(\App\Services\OrderService::class)->placeOrder($shipping);
+        return app(OrderService::class)->placeOrder($shipping);
     }
 }

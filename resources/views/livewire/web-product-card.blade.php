@@ -28,9 +28,9 @@
             <!-- Columna Contenido (Ajustada al 55%) -->
             <div class="w-[55%] p-3 bg-white flex flex-col justify-start">
                 <div class="flex flex-wrap gap-1 mb-1.5">
-                    @foreach (array_filter(explode('|', $product->tags)) as $tag)
+                    @foreach ($product->tags_array as $tagName)
                         <span class="px-1.5 py-0.5 text-[9px] font-black bg-amber-600 text-white rounded shadow-sm uppercase tracking-wider">
-                            {{ $tag }}
+                            {{ $tagName }}
                         </span>
                     @endforeach
                 </div>
@@ -122,37 +122,64 @@
             </div>
 
             @if($product->stock > 0 && !in_array(Auth::user()->role->value, ['none', 'guest']) && ($display_offer > 0 ? $display_offer : $display_price) > 0)
-                <div x-data="{ 
-                    step: {{ $product->qtty_package }}
-                }" class="space-y-2">
-                    
-                    <div class="flex items-stretch h-10 shadow-sm rounded-lg overflow-hidden border border-slate-300">
-                        @if($product->qtty_package > 1)
-                            <button wire:click="decrementQtty" class="w-1/5 bg-slate-50 hover:bg-slate-200 text-[10px] font-black text-slate-400 transition-colors border-r border-slate-200" title="Restar bulto">
-                                -{{ $product->qtty_package }}
-                            </button>
-                            
-                            <button wire:click="decrementUnit" class="w-1/5 bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-600 transition-colors border-r border-slate-200">-1</button>
-                            
-                            <input type="number" wire:model="qtty" class="w-1/5 min-w-0 text-center text-xl font-black bg-white focus:outline-none" min="1">
-                            
-                            <button wire:click="incrementUnit" class="w-1/5 bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-600 transition-colors border-l border-slate-200">+1</button>
+                <div class="space-y-2">
 
-                            <button wire:click="incrementQtty" class="w-1/5 bg-slate-50 hover:bg-slate-200 text-[10px] font-black text-slate-400 transition-colors border-l border-slate-200" title="Sumar bulto">
-                                +{{ $product->qtty_package }}
+                    {{-- Toggle Bulto / Unidad (solo si hay paquete) --}}
+                    @if($product->qtty_package > 1)
+                        <div class="flex items-center bg-slate-100 rounded-full p-0.5 gap-0.5">
+                            <button
+                                wire:click="setBuyMode('bulk')"
+                                class="flex-1 flex items-center justify-center gap-1 rounded-full py-1 text-[10px] font-black transition-all duration-200 {{ $buyMode === 'bulk' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700' }}"
+                            >
+                                <x-icon name="o-cube" class="w-3 h-3 inline shrink-0" />
+                                BULTO (x{{ $product->qtty_package }})
                             </button>
-                        @else
-                            <button wire:click="decrementUnit" class="w-1/3 bg-slate-100 hover:bg-slate-200 text-xl font-bold text-slate-600 transition-colors border-r border-slate-200">-</button>
-                            <input type="number" wire:model="qtty" class="w-1/3 min-w-0 text-center text-xl font-black bg-white focus:outline-none" min="1">
-                            <button wire:click="incrementUnit" class="w-1/3 bg-slate-100 hover:bg-slate-200 text-xl font-bold text-slate-600 transition-colors border-l border-slate-200">+</button>
-                        @endif
+                            <button
+                                wire:click="setBuyMode('unit')"
+                                class="flex-1 flex items-center justify-center gap-1 rounded-full py-1 text-[10px] font-black transition-all duration-200 {{ $buyMode === 'unit' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700' }}"
+                            >
+                                <x-icon name="o-tag" class="w-3 h-3 inline shrink-0" />
+                                UNIDAD
+                            </button>
+                        </div>
+                    @endif
+
+                    {{-- Selector de cantidad --}}
+                    <div class="flex items-stretch h-11 shadow-sm rounded-lg overflow-hidden border {{ $buyMode === 'bulk' ? 'border-blue-300' : 'border-slate-300' }}">
+                        <button wire:click="decrement"
+                            class="w-10 shrink-0 flex items-center justify-center text-xl font-black transition-colors border-r
+                                {{ $buyMode === 'bulk'
+                                    ? 'bg-blue-100 hover:bg-blue-200 text-blue-700 border-blue-200'
+                                    : 'bg-slate-200 hover:bg-slate-300 text-slate-700 border-slate-300' }}"
+                        >−</button>
+
+                        <div class="flex-1 flex flex-col items-center justify-center bg-white">
+                            <input type="number" wire:model="qtty"
+                                class="w-full text-center text-xl font-black bg-transparent focus:outline-none leading-none"
+                                min="1"
+                            >
+                            <span class="text-[9px] leading-none font-semibold {{ $buyMode === 'bulk' ? 'text-blue-500' : 'text-slate-400' }}">
+                                @if($buyMode === 'bulk')
+                                    {{ $qtty / $product->qtty_package }} bulto{{ ($qtty / $product->qtty_package) != 1 ? 's' : '' }} · {{ $qtty }} un.
+                                @else
+                                    {{ $qtty }} unidad{{ $qtty != 1 ? 'es' : '' }}
+                                @endif
+                            </span>
+                        </div>
+
+                        <button wire:click="increment"
+                            class="w-10 shrink-0 flex items-center justify-center text-xl font-black transition-colors border-l
+                                {{ $buyMode === 'bulk'
+                                    ? 'bg-blue-100 hover:bg-blue-200 text-blue-700 border-blue-200'
+                                    : 'bg-slate-200 hover:bg-slate-300 text-slate-700 border-slate-300' }}"
+                        >+</button>
                     </div>
 
                     <div class="grid grid-cols-2 gap-2">
                         <x-button label="Similares" icon="o-magnifying-glass"
                             class="btn-sm bg-orange-500/80 text-white border-none hover:bg-orange-600/90 font-bold"
                             wire:click="searchSimilar" />
-                        
+
                         <x-button label="AGREGAR" icon="o-shopping-cart"
                             class="btn-sm btn-primary shadow-md shadow-primary/20 font-bold"
                             wire:click="buy"

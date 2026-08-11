@@ -3,14 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\ProductRequest;
 use App\Models\Product;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Validator;
-
-use function Pest\Laravel\json;
 
 class ProductController extends Controller
 {
@@ -43,59 +40,11 @@ class ProductController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request): JsonResponse
+    public function store(ProductRequest $request): JsonResponse
     {
-        if ($request->has('qtty_package') && (int) $request->qtty_package < 1) {
-            $request->merge(['qtty_package' => 1]);
-            Log::channel('api')->info('qtty_package corregido a 1 (SKU: '.($request->sku ?? 'N/A').')');
-        }
-
         $originalPrice = $request->input('price');
-        if ($request->has('price') && is_null($request->price)) {
-            $request->merge(['price' => 0]);
-        }
 
-        $validator = Validator::make(
-            $request->all(),
-            [
-                'id' => 'nullable',
-                'barcode' => 'nullable|string|max:50',
-                'sku' => 'nullable|string|max:50',
-                'product_type' => 'nullable|string|max:30',
-                'brand' => 'nullable|string|max:30',
-                'model' => 'nullable|string|max:130',
-                'category' => 'nullable|string|max:50',
-                'description' => 'required|string|max:100',
-                'description_html' => 'nullable|string|max:250',
-                'published' => 'required|boolean',
-                'featured' => 'required|boolean',
-                'visibility' => 'required|string|max:10',
-                'offer_start' => 'nullable|date',
-                'offer_end' => 'nullable|date',
-                'tax_status' => 'required|string|max:10',
-                'in_stock' => 'required|boolean',
-                'stock' => 'required|integer|min:0',
-                'allow_reservation' => 'required|boolean',
-                'qtty_package' => 'required|integer|min:1',
-                'qtty_unit' => 'required|integer|min:1',
-                'by_bulk' => 'boolean',
-                'weight' => 'nullable|numeric|min:0',
-                'lenght' => 'nullable|numeric|min:0',
-                'width' => 'nullable|numeric|min:0',
-                'height' => 'nullable|numeric|min:0',
-                'price' => 'nullable|numeric|min:0',
-                'offer_price' => 'nullable|numeric|min:0',
-                'tags' => 'nullable|string|max:50',
-                'image_url' => 'nullable|string|max:250',
-            ]
-        );
-
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
-
-        // check if product exists
-        $product_exists = Product::find($request->id);
+        $product_exists = Product::find($request->input('id'));
         if ($product_exists instanceof Product) {
             return $this->update($request, $product_exists);
         }
@@ -109,8 +58,7 @@ class ProductController extends Controller
             ], 422);
         }
 
-        // create new product
-        $product = Product::create($request->all());
+        $product = Product::create($request->validated());
 
         if ($request->has('image_url') && $request->image_url) {
             $this->deleteImageCache($request->image_url);
@@ -137,57 +85,9 @@ class ProductController extends Controller
         return response()->json($product, 200);
     }
 
-    // Actualizar un producto
-    public function update(Request $request, Product $product): JsonResponse
+    public function update(ProductRequest $request, Product $product): JsonResponse
     {
-        if ($request->has('qtty_package') && (int) $request->qtty_package < 1) {
-            $request->merge(['qtty_package' => 1]);
-            Log::channel('api')->info('qtty_package corregido a 1 (SKU: '.($product->sku ?? $request->sku ?? 'N/A').')');
-        }
-
         $originalPrice = $request->input('price');
-        if ($request->has('price') && is_null($request->price)) {
-            $request->merge(['price' => 0]);
-        }
-
-        $validator = Validator::make(
-            $request->all(),
-            [
-                'id' => 'nullable',
-                'barcode' => 'nullable|string|max:50',
-                'sku' => 'nullable|string|max:50',
-                'product_type' => 'nullable|string|max:30',
-                'brand' => 'nullable|string|max:30',
-                'model' => 'nullable|string|max:130',
-                'category' => 'nullable|string|max:50',
-                'description' => 'required|string|max:100',
-                'description_html' => 'nullable|string|max:250',
-                'published' => 'required|boolean',
-                'featured' => 'required|boolean',
-                'visibility' => 'required|string|max:10',
-                'offer_start' => 'nullable|date',
-                'offer_end' => 'nullable|date',
-                'tax_status' => 'required|string|max:10',
-                'in_stock' => 'required|boolean',
-                'stock' => 'required|integer|min:0',
-                'allow_reservation' => 'required|boolean',
-                'qtty_package' => 'required|integer|min:1',
-                'qtty_unit' => 'required|integer|min:1',
-                'by_bulk' => 'boolean',
-                'weight' => 'nullable|numeric|min:0',
-                'lenght' => 'nullable|numeric|min:0',
-                'width' => 'nullable|numeric|min:0',
-                'height' => 'nullable|numeric|min:0',
-                'price' => 'nullable|numeric|min:0',
-                'offer_price' => 'nullable|numeric|min:0',
-                'tags' => 'nullable|string|max:50',
-                'image_url' => 'nullable|string|max:250',
-            ]
-        );
-
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
 
         if ($request->has('image_url') && $request->image_url) {
             $this->deleteImageCache($request->image_url);
@@ -196,7 +96,7 @@ class ProductController extends Controller
             $this->deleteImageCache($product->image_url);
         }
 
-        $product->update($request->all());
+        $product->update($request->validated());
 
         $responseData = ['message' => 'OK'];
         if (is_null($originalPrice) || (float) $originalPrice == 0) {

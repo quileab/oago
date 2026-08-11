@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Helpers\SettingsHelper;
 use App\Services\SecurityService;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -175,6 +176,14 @@ class ImageProxyController extends Controller
             $msg = $e->getMessage();
             if (str_contains($msg, 'ImageProxy:')) {
                 Log::warning($msg);
+            } elseif (
+                $e instanceof ConnectionException ||
+                str_contains(strtolower($msg), 'curl error') ||
+                str_contains(strtolower($msg), 'timed out') ||
+                str_contains(strtolower($msg), 'timeout') ||
+                str_contains(strtolower($msg), 'resolve host')
+            ) {
+                Log::warning('ImageProxy download timeout or connection issue: '.$msg);
             } else {
                 Log::error('ImageProxy download error: '.$msg);
             }

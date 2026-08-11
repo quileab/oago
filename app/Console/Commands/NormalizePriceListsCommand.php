@@ -28,10 +28,11 @@ class NormalizePriceListsCommand extends Command
     public function handle()
     {
         // Buscamos listas que terminan en "U"
-        $unitLists = \App\Models\ListName::where('name', 'LIKE', '%U')->get();
+        $unitLists = ListName::where('name', 'LIKE', '%U')->get();
 
         if ($unitLists->isEmpty()) {
             $this->info('No se encontraron listas de precios que terminen en "U".');
+
             return;
         }
 
@@ -40,12 +41,13 @@ class NormalizePriceListsCommand extends Command
             $baseName = preg_replace('/ U$/', '', $name);
 
             // Buscamos la lista base con coincidencia parcial para manejar espacios extras si los hay
-            $baseList = \App\Models\ListName::where('name', 'LIKE', $baseName . '%')
+            $baseList = ListName::where('name', 'LIKE', $baseName.'%')
                 ->where('id', '!=', $unitList->id)
                 ->first();
 
-            if (!$baseList) {
+            if (! $baseList) {
                 $this->warn("No se encontró una lista base para: {$unitList->name} (buscando algo similar a '{$baseName}')");
+
                 continue;
             }
 
@@ -60,7 +62,7 @@ class NormalizePriceListsCommand extends Command
                     'list_id' => $baseList->id,
                 ]);
 
-                if (!$record->exists) {
+                if (! $record->exists) {
                     $record->price = 0;
                 }
 

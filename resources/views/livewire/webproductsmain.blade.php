@@ -38,6 +38,10 @@ new class extends Component {
 
     public function products()
     {
+        if (! empty($this->search)) {
+            $this->similar = null;
+        }
+
         $params = [
             'search' => $this->search,
             'category' => $this->category,
@@ -64,12 +68,12 @@ new class extends Component {
     public function with($filters = [], $resetPage = false)
     {
         // Update local properties from filters passed in event
-        if (isset($filters['search'])) $this->search = $filters['search'];
-        if (isset($filters['category'])) $this->category = $filters['category'];
-        if (isset($filters['brand'])) $this->brand = $filters['brand'];
-        if (isset($filters['tag'])) $this->tag = $filters['tag'];
-        if (isset($filters['similar'])) $this->similar = $filters['similar'];
-        if (isset($filters['resetPage'])) $resetPage = $filters['resetPage'];
+        if (array_key_exists('search', $filters)) $this->search = $filters['search'];
+        if (array_key_exists('category', $filters)) $this->category = $filters['category'];
+        if (array_key_exists('brand', $filters)) $this->brand = $filters['brand'];
+        if (array_key_exists('tag', $filters)) $this->tag = $filters['tag'];
+        if (array_key_exists('similar', $filters)) $this->similar = $filters['similar'];
+        if (array_key_exists('resetPage', $filters)) $resetPage = $filters['resetPage'];
 
         if ($resetPage) {
             $this->resetPage();

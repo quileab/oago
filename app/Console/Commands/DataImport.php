@@ -2,6 +2,8 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Product;
+use App\Models\Tag;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -12,6 +14,8 @@ class DataImport extends Command
     protected $signature = 'db:import {file?}';
 
     protected $description = 'Universal data importer with dynamic table detection and intelligent multi-file sequence';
+
+    protected array $pendingTags = [];
 
     public function handle()
     {
@@ -149,6 +153,30 @@ class DataImport extends Command
         $this->info('⚙️  Verificando e insertando configuraciones del sistema faltantes...');
         $this->callSilent('db:seed', ['--class' => 'SettingsSeeder']);
 
+        $this->newLine();
+        $this->info('🔄 Sincronizando tags de productos a tabla relacional...');
+
+        foreach (array_chunk($this->pendingTags, 200, true) as $chunk) {
+            foreach ($chunk as $productId => $tagsString) {
+                $tagNames = array_filter(explode('|', $tagsString));
+                if (empty($tagNames)) {
+                    continue;
+                }
+
+                $normalizedNames = array_map('strtoupper', $tagNames);
+                $normalizedNames = array_values(array_unique($normalizedNames));
+                sort($normalizedNames);
+
+                $tagIds = array_map(fn ($name) => Tag::fromName($name)->id, $normalizedNames);
+
+                $product = Product::find($productId);
+                if ($product) {
+                    $product->tags()->sync($tagIds);
+                }
+            }
+        }
+        Tag::clearCache();
+
         $this->newLine(2);
         $this->info('✨ Importación Finalizada.');
         $this->line("   🚚 Registros logística: <info>$logisticsMigrated</info>");
@@ -279,27 +307,49 @@ class DataImport extends Command
             $valuesSection = $matches[2];
             preg_match_all('/\((.*?)\)(?:,|$)/s', $valuesSection, $rows);
             $isOldFormat = false;
+            $tagsIdx = 29; // default legacy index
+
             if ($hasCols) {
                 $cols = array_map(function ($c) {
                     return trim($c, " `\n\r\t");
                 }, explode(',', $matches[1]));
                 $isOldFormat = ! in_array('bonus_threshold', $cols);
+
+                $tIdx = array_search('tags', $cols);
+                if ($tIdx !== false) {
+                    $tagsIdx = $tIdx;
+                }
             } elseif (isset($rows[1][0])) {
                 $firstParts = str_getcsv($rows[1][0], ',', "'");
                 $isOldFormat = count($firstParts) === 31;
+                if ($isOldFormat) {
+                    $tagsIdx = 27;
+                }
             }
 
             $newRows = [];
             foreach ($rows[1] as $row) {
                 $parts = str_getcsv($row, ',', "'");
 
-                if ($isOldFormat && count($parts) === 31) {
+                $productId = trim($parts[0] ?? '', " '\"\t\n\r");
+                $tagsString = $parts[$tagsIdx] ?? '';
+
+                if ($productId && $tagsString && strtoupper($tagsString) !== 'NULL' && $tagsString !== "''") {
+                    $this->pendingTags[$productId] = trim($tagsString, " '\"\t\n\r");
+                }
+
+                if (isset($parts[$tagsIdx])) {
+                    unset($parts[$tagsIdx]);
+                    $parts = array_values($parts);
+                }
+
+                if ($isOldFormat && count($parts) === 30) {
                     array_splice($parts, 14, 0, [0, 0]);
                 }
 
-                if (count($parts) === 33) {
+                if (count($parts) === 32) {
                     // Convertir explícitamente los NULL a strings vacíos para las columnas NOT NULL
-                    $notNullStringCols = [1, 2, 4, 5, 6, 8, 29]; // Índices: barcode, sku, brand, model, category, description_html, tags
+                    $notNullStringCols = [1, 2, 4, 5, 6, 8]; // Índices: barcode, sku, brand, model, category, description_html (tags is removed)
                     foreach ($notNullStringCols as $idx) {
                         if (isset($parts[$idx])) {
                             $val = strtoupper(trim($parts[$idx], " '\"\t\n\r"));
@@ -311,7 +361,7 @@ class DataImport extends Command
 
                     $newRows[] = $this->rebuildRow($parts, true);
                 } else {
-                    $newRows[] = "($row)";
+                    $newRows[] = $this->rebuildRow($parts, true);
                 }
             }
 
@@ -319,6 +369,11 @@ class DataImport extends Command
             if ($hasCols) {
                 if ($isOldFormat) {
                     array_splice($cols, 14, 0, ['bonus_threshold', 'bonus_amount']);
+                }
+                $tIdx = array_search('tags', $cols);
+                if ($tIdx !== false) {
+                    unset($cols[$tIdx]);
+                    $cols = array_values($cols);
                 }
                 $header = "$verb INTO `products` (`".implode('`, `', $cols).'`) VALUES';
             }

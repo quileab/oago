@@ -18,6 +18,9 @@ class WebProductCard extends Component
 
     public $qtty = 1;
 
+    /** 'bulk' | 'unit' */
+    public string $buyMode = 'bulk';
+
     public $user_price = 0;
 
     public $offer_price = 0;
@@ -36,6 +39,8 @@ class WebProductCard extends Component
 
         if ($productModel) {
             $this->local_product = $productModel->toArray();
+            $this->local_product['tags_array'] = $productModel->tags_array;
+
             if (isset($product->description_html)) {
                 $this->local_product['description_html'] = $product->description_html;
             }
@@ -47,6 +52,11 @@ class WebProductCard extends Component
             }
         } else {
             $this->local_product = (array) $product;
+            if (! isset($this->local_product['tags_array'])) {
+                $this->local_product['tags_array'] = isset($this->local_product['tags']) && ! empty($this->local_product['tags'])
+                    ? array_values(array_filter(explode('|', $this->local_product['tags'])))
+                    : [];
+            }
         }
 
         $priceService = app(PriceListService::class);
@@ -68,7 +78,9 @@ class WebProductCard extends Component
             $this->offer_price = 0;
         }
 
-        $this->qtty = $this->local_product['qtty_package'] ?? 1;
+        $package = (int) ($this->local_product['qtty_package'] ?? 1);
+        $this->buyMode = $package > 1 ? 'bulk' : 'unit';
+        $this->qtty = $package > 1 ? $package : 1;
     }
 
     public function render()
@@ -90,45 +102,44 @@ class WebProductCard extends Component
         ]);
     }
 
-    public function decrementQtty()
+    public function setBuyMode(string $mode): void
     {
-        $step = (int) ($this->local_product['qtty_package'] ?? 1);
+        $package = (int) ($this->local_product['qtty_package'] ?? 1);
+        $this->buyMode = $mode;
+        $this->qtty = $mode === 'bulk' ? $package : 1;
+    }
+
+    public function decrement(): void
+    {
+        $package = (int) ($this->local_product['qtty_package'] ?? 1);
+        $step = $this->buyMode === 'bulk' ? $package : 1;
+        $min = $this->buyMode === 'bulk' ? $package : 1;
         $currentQtty = (int) $this->qtty;
-        if ($currentQtty > $step) {
+
+        if ($currentQtty > $min) {
             $this->qtty = $currentQtty - $step;
         }
     }
 
-    public function incrementQtty()
+    public function increment(): void
     {
-        $step = (int) ($this->local_product['qtty_package'] ?? 1);
+        $package = (int) ($this->local_product['qtty_package'] ?? 1);
+        $step = $this->buyMode === 'bulk' ? $package : 1;
         $this->qtty = (int) $this->qtty + $step;
     }
 
-    public function decrementUnit()
+    public function buy(): void
     {
-        $currentQtty = (int) $this->qtty;
-        if ($currentQtty > 1) {
-            $this->qtty = $currentQtty - 1;
-        }
-    }
+        $package = (int) ($this->local_product['qtty_package'] ?? 1);
 
-    public function incrementUnit()
-    {
-        $this->qtty = (int) $this->qtty + 1;
-    }
-
-    public function buy()
-    {
         $this->dispatch('addToCart', product: [
             'id' => $this->local_product['id'],
             'description' => $this->local_product['description'],
             'user_price' => $this->user_price,
-            'qtty_package' => $this->local_product['qtty_package'] ?? 1,
+            'qtty_package' => $package,
         ], quantity: (int) $this->qtty);
 
-        // RESET: Volvemos a la cantidad base después de agregar
-        $this->qtty = $this->local_product['qtty_package'] ?? 1;
+        $this->qtty = $this->buyMode === 'bulk' ? $package : 1;
     }
 
     public function searchSimilar()
@@ -136,6 +147,13 @@ class WebProductCard extends Component
         session()->forget(['category', 'brand', 'search']);
         session()->put('similar', $this->local_product['model']);
 
-        $this->dispatch('updateProducts', ['resetPage' => true]);
+        $this->dispatch('updateProducts', filters: [
+            'category' => null,
+            'brand' => null,
+            'search' => null,
+            'tag' => null,
+            'similar' => $this->local_product['model'],
+            'resetPage' => true,
+        ]);
     }
 }

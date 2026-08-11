@@ -19,16 +19,16 @@
             :options="$brands" option-label="brand" option-value="brand" class="bg-white text-black shadow-sm">
         </x-select>
         <div class="join flex-wrap gap-y-1 justify-center">
-            @foreach (\App\Models\Product::getTags() as $tag)
-                <x-button label="{{ $tag }}" icon="o-tag" wire:click="addTag('{{ $tag }}')" wire:key="tag-{{ $tag }}"
+            @foreach (\App\Models\Tag::allCached() as $tagItem)
+                <x-button label="{{ $tagItem->name }}" icon="o-tag" wire:click="addTag('{{ $tagItem->slug }}')" wire:key="tag-{{ $tagItem->slug }}"
                     @class([
                         'join-item',
-                        'btn-outline text-primary' => $tag != session('tag'),
-                        'btn-success' => $tag == session('tag'),
-                        'hover:bg-primary hover:text-white' => $tag != session('tag'),
+                        'btn-outline text-primary' => $tag !== $tagItem->slug,
+                        'btn-success' => $tag === $tagItem->slug,
+                        'hover:bg-primary hover:text-white' => $tag !== $tagItem->slug,
                     ]) />
             @endforeach
-            @if($brand || $category || session()->has('tag'))
+            @if($brand || $category || $tag || $similar)
                 <x-button icon="o-trash" class="btn-primary join-item" wire:click="clearFilters()" tooltip="Limpiar Filtros" />
             @endif
         </div>

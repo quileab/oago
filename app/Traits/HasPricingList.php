@@ -4,6 +4,7 @@ namespace App\Traits;
 
 use App\Models\ListName;
 use App\Models\Product;
+use App\Services\PriceListService;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 trait HasPricingList
@@ -25,7 +26,7 @@ trait HasPricingList
             return (float) $product->price;
         }
 
-        $priceService = app(\App\Services\PriceListService::class);
+        $priceService = app(PriceListService::class);
         $price = $priceService->getEffectivePrice($this->list_id, $product->id);
 
         return $price ?? (float) ($product->price ?? 0);

@@ -27,6 +27,9 @@ class WebSearchFilter extends Component
     #[Url(history: true)]
     public $tag = null;
 
+    #[Url(history: true)]
+    public $similar = null;
+
     public function mount()
     {
         // Get unique categories and brands as an array of objects with id and name
@@ -74,17 +77,26 @@ class WebSearchFilter extends Component
     public function clearSearch()
     {
         $this->search = null;
-        $this->dispatch('updateProducts', filters: ['search' => null, 'resetPage' => true]);
+        $this->similar = null;
+        session()->forget('similar');
+        $this->dispatch('updateProducts', filters: [
+            'search' => null,
+            'similar' => null,
+            'resetPage' => true,
+        ]);
         $this->handleRedirect();
     }
 
     public function goSearch()
     {
+        $this->similar = null;
+        session()->forget('similar');
         $this->dispatch('updateProducts', filters: [
             'category' => $this->category,
             'brand' => $this->brand,
             'search' => $this->search,
             'tag' => $this->tag,
+            'similar' => null,
             'resetPage' => true,
         ]);
 
@@ -97,6 +109,7 @@ class WebSearchFilter extends Component
         $this->search = null;
         $this->brand = null;
         $this->tag = null;
+        $this->similar = null;
         $this->goSearch();
     }
 
@@ -105,6 +118,7 @@ class WebSearchFilter extends Component
         $this->search = null;
         $this->category = null;
         $this->tag = null;
+        $this->similar = null;
         $this->goSearch();
     }
 
@@ -113,6 +127,8 @@ class WebSearchFilter extends Component
         $this->category = null;
         $this->brand = null;
         $this->tag = null;
+        $this->similar = null;
+        session()->forget('similar');
         $this->goSearch();
     }
 
@@ -129,11 +145,14 @@ class WebSearchFilter extends Component
             $this->brand = null;
         }
 
+        $this->similar = null;
+        session()->forget('similar');
         $this->dispatch('updateProducts', filters: [
             'search' => $this->search,
             'category' => $this->category,
             'brand' => $this->brand,
             'tag' => $this->tag,
+            'similar' => null,
             'resetPage' => true,
         ]);
 

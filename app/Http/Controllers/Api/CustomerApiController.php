@@ -49,7 +49,7 @@ class CustomerApiController extends Controller
         $products = $query->paginate($request->input('per_page', 30));
 
         // Enriquecer productos con el precio efectivo del usuario
-        $priceService = app(\App\Services\PriceListService::class);
+        $priceService = app(PriceListService::class);
         $products->getCollection()->transform(function ($product) use ($user, $priceService) {
             $listId = $user->list_id ?? 0;
             $basePrice = $priceService->getEffectivePrice($listId, $product->id, true) ?? (float) ($product->price ?? 0);
@@ -256,25 +256,25 @@ class CustomerApiController extends Controller
     {
         $jsonPath = public_path('storage/slider/slider.json');
 
-        if (!file_exists($jsonPath)) {
+        if (! file_exists($jsonPath)) {
             return response()->json([], 200);
         }
 
         $data = json_decode(file_get_contents($jsonPath), true) ?? [];
         $items = $data['slides'] ?? $data;
 
-        if (!is_array($items)) {
+        if (! is_array($items)) {
             return response()->json([], 200);
         }
 
         $slides = collect($items)->map(function ($item) {
             $path = is_array($item) ? $item['id'] : $item;
             $cleanPath = ltrim($path, '/');
-            
+
             if (str_starts_with($cleanPath, 'slider/')) {
-                $imageUrl = asset('storage/' . $cleanPath);
+                $imageUrl = asset('storage/'.$cleanPath);
             } else {
-                $imageUrl = asset('storage/slider/' . $cleanPath);
+                $imageUrl = asset('storage/slider/'.$cleanPath);
             }
 
             return [
@@ -289,4 +289,3 @@ class CustomerApiController extends Controller
         return response()->json($slides, 200);
     }
 }
-

@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
@@ -116,12 +117,12 @@ class UserController extends Controller
             'city' => 'nullable|string|max:30',
             'postal_code' => 'nullable|string|max:10',
             'phone' => 'nullable|string|max:50',
-            'email' => ['email', \Illuminate\Validation\Rule::unique('users', 'email')->ignore($user->id)],
+            'email' => ['email', Rule::unique('users', 'email')->ignore($user->id)],
             'password' => 'nullable|string|min:3',
         ];
 
         if (auth()->user()->role === Role::ADMIN) {
-            $rules['role'] = ['string', \Illuminate\Validation\Rule::in(array_map(fn ($role) => $role->value, Role::cases()))];
+            $rules['role'] = ['string', Rule::in(array_map(fn ($role) => $role->value, Role::cases()))];
             $rules['list_id'] = 'nullable|exists:list_names,id';
         }
 
@@ -143,7 +144,7 @@ class UserController extends Controller
         }
 
         $dataToUpdate = array_intersect_key($validatedData, array_flip([
-            'name', 'lastname', 'address', 'city', 'postal_code', 'phone', 'email', 'list_id', 'role'
+            'name', 'lastname', 'address', 'city', 'postal_code', 'phone', 'email', 'list_id', 'role',
         ]));
 
         if (isset($validatedData['password'])) {

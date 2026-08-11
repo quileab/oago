@@ -25,7 +25,7 @@ class ExportController extends Controller
         $priceService = app(PriceListService::class);
 
         // get all products
-        $products = Product::with('listPrices')->get();
+        $products = Product::with(['listPrices', 'tags'])->get();
 
         $headers = [
             'Content-type' => 'text/csv',
@@ -47,7 +47,7 @@ class ExportController extends Controller
             $row[] = $product->model;
             $row[] = $product->description;
             $row[] = strip_tags($product->description_html);
-            $row[] = $product->tags;
+            $row[] = implode('|', $product->tags_array);
             $row[] = $product->price;
 
             $pricesByListId = $product->listPrices->keyBy('list_id');
@@ -87,7 +87,7 @@ class ExportController extends Controller
         $priceService = app(PriceListService::class);
 
         // get all products
-        $products = Product::with('listPrices')
+        $products = Product::with(['listPrices', 'tags'])
             ->where('published', 1)
             ->where('description', 'not like', 'CONS INT%')
             ->where('model', '!=', 'consumo interno')
@@ -113,7 +113,7 @@ class ExportController extends Controller
             $row[] = $product->model;
             $row[] = $product->description;
             $row[] = strip_tags($product->description_html);
-            $row[] = $product->tags;
+            $row[] = implode('|', $product->tags_array);
             $row[] = $product->price;
 
             $pricesByListId = $product->listPrices->keyBy('list_id');

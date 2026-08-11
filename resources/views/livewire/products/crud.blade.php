@@ -1,11 +1,12 @@
 <?php
 
-use App\Helpers\SettingsHelper;
 use App\Models\ListName;
 use App\Models\ListPrice;
 use App\Models\Product;
+use App\Models\Tag;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Livewire\Volt\Component;
 use Livewire\WithFileUploads;
@@ -40,7 +41,7 @@ new class extends Component
         if ($id && $id->exists) {
             $this->product = $id;
             $this->formData = $id->toArray();
-            $this->selectedTags = array_filter(explode('|', $this->formData['tags'] ?? ''));
+            $this->selectedTags = $id->tags()->allRelatedIds()->all();
             foreach ($this->listNames() as $list) {
                 $listPrice = ListPrice::where('product_id', $id->id)
                     ->where('list_id', $list->id)
@@ -124,9 +125,10 @@ new class extends Component
 
     public function availableTags()
     {
-        $tags = SettingsHelper::getProductTags();
-
-        return array_map(fn ($tag) => ['id' => $tag, 'name' => $tag], $tags);
+        return Tag::allCached()
+            ->map(fn ($tag) => ['id' => $tag->id, 'name' => $tag->name])
+            ->values()
+            ->all();
     }
 
     public function updatedPhoto()
@@ -181,6 +183,7 @@ new class extends Component
             'formData.bonus_amount' => 'nullable|integer',
             'formData.tax_status' => 'nullable|string|max:10',
             'formData.visibility' => 'required|string|max:10',
+            'selectedTags.*' => ['integer', Rule::exists('tags', 'id')],
             'photo' => 'nullable|image|max:10240',
             'extraPhotos.*' => 'image|max:10240',
             'extraVideos.*' => 'nullable|url',
@@ -188,9 +191,10 @@ new class extends Component
 
         $this->validate($rules);
 
-        // Sync tags back to string
-        $this->formData['tags'] = implode('|', $this->selectedTags);
-        
+        // Build legacy pipe-delimited string from selected tag IDs (write-through compatibility)
+        $tagNames = Tag::whereIn('id', $this->selectedTags)->pluck('name')->all();
+        $this->formData['tags'] = implode('|', $tagNames);
+
         // Ensure price is set
         $this->formData['price'] = $this->formData['price'] ?? 0;
 
@@ -198,6 +202,10 @@ new class extends Component
             ['id' => $this->product->id ?? null],
             $this->formData
         );
+
+        // Explicitly sync pivot (the model's saved event also does this via write-through)
+        $product->tags()->sync($this->selectedTags);
+        Tag::clearCache();
 
         $this->product = $product;
 
