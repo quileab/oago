@@ -123,4 +123,17 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Theme & Seasonal Variant Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Defines the client theme and optional seasonal event variant (e.g., xmas).
+    |
+    */
+
+    'theme' => env('APP_THEME', 'default'),
+
+    'theme_variant' => env('APP_THEME_VARIANT', null),
+
 ];

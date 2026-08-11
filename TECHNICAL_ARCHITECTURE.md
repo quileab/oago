@@ -58,3 +58,9 @@ El sistema soporta multi-idioma mediante archivos de traducción en `lang/es` y 
 
 ## 10. Pruebas (`tests/`)
 Se utiliza **Pest** como framework de testing, con pruebas de feature para flujos críticos como la asignación de agentes de venta y la gestión de pedidos.
+
+## 11. Sistema de Temas y Variantes Estacionales (`resources/views/themes`)
+El sistema permite personalizar el frontend para diferentes clientes sin modificar el código base común:
+- **`APP_THEME`**: Define el tema principal del cliente (p. ej. `cliente_a`). Las vistas ubicadas en `resources/views/themes/{APP_THEME}/` sobreescriben automáticamente a las de `resources/views/`.
+- **`APP_THEME_VARIANT`**: Define una variante estacional o evento especial (p. ej. `navidad`, `cybermonday`). Las vistas en `resources/views/themes/{APP_THEME}/{APP_THEME_VARIANT}/` tienen máxima prioridad.
+- **Rendimiento Cero-Peaje**: Funciona nativamente con el motor de vistas de Laravel (`View::prependLocation`), manteniendo el rendimiento de Blade y la compilación en caché (`php artisan view:cache`).
