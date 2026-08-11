@@ -11,12 +11,24 @@ use ZipArchive;
 
 class MakeDeployZip extends Command
 {
-    protected $signature = 'make:deploy-zip {--name=deploy.zip} {--no_brand} {--include-assets}';
+    protected $signature = 'make:deploy-zip 
+                            {--name=deploy.zip : Nombre del archivo ZIP resultante}
+                            {--engine-only : Excluir temas personalizados de clientes (resources/views/themes/*)}
+                            {--full : Incluir todo (deshabilita la exclusión del motor)}
+                            {--no_brand : Excluir imágenes de marca y sliders}
+                            {--include-assets : Publicar assets de Livewire}';
 
     protected $description = 'Genera un paquete ZIP para despliegue detectando el mejor método (7-Zip o Nativo)';
 
     public function handle()
     {
+        $engineOnly = $this->option('engine-only');
+        $full = $this->option('full');
+
+        if (! $engineOnly && ! $full && ! $this->hasOptionProvided('engine-only')) {
+            $engineOnly = $this->confirm('¿Deseas exportar SOLO EL MOTOR (excluir recursos/views/themes/*)?', true);
+        }
+
         $noBrand = $this->option('no_brand');
         if (! $noBrand) {
             $includeBrand = $this->confirm('¿Desea incluir las imágenes de marca por defecto (pueden sobrescribir las de producción)?', false);
@@ -28,6 +40,10 @@ class MakeDeployZip extends Command
         $zipPath = base_path($zipName);
 
         $this->info('🚀 Iniciando proceso de empaquetado unificado...');
+
+        if ($engineOnly) {
+            $this->info('⚙️ Modo SOLO MOTOR activo: se excluirá resources/views/themes/*');
+        }
 
         if ($noBrand) {
             $this->info('🚫 Opción --no_brand activa: se excluirán imágenes de marca y sliders.');
@@ -60,10 +76,15 @@ class MakeDeployZip extends Command
         $sevenZipPath = $this->getSevenZipPath();
 
         if ($sevenZipPath) {
-            return $this->useSevenZip($sevenZipPath, $zipPath, $noBrand);
+            return $this->useSevenZip($sevenZipPath, $zipPath, $noBrand, $engineOnly);
         }
 
-        return $this->useNativeZip($zipPath, $noBrand);
+        return $this->useNativeZip($zipPath, $noBrand, $engineOnly);
+    }
+
+    protected function hasOptionProvided(string $name): bool
+    {
+        return $this->input->hasParameterOption('--'.$name);
     }
 
     private function getSevenZipPath(): ?string
@@ -86,7 +107,7 @@ class MakeDeployZip extends Command
         return null;
     }
 
-    private function useSevenZip(string $binary, string $zipPath, bool $noBrand): int
+    private function useSevenZip(string $binary, string $zipPath, bool $noBrand, bool $engineOnly = false): int
     {
         $this->info("💎 Usando 7-Zip para máxima compatibilidad (Motor: $binary)");
 
@@ -100,6 +121,10 @@ class MakeDeployZip extends Command
             '.agents', '.claude', '.gemini', '.vscode', '.postman',
             'ignore.me', '.DS_Store', 'Thumbs.db',
         ];
+
+        if ($engineOnly) {
+            $exclusions[] = 'resources/views/themes/*';
+        }
 
         if ($noBrand) {
             $exclusions[] = 'public/imgs/*';
@@ -126,7 +151,7 @@ class MakeDeployZip extends Command
         return 0;
     }
 
-    private function useNativeZip(string $zipPath, bool $noBrand): int
+    private function useNativeZip(string $zipPath, bool $noBrand, bool $engineOnly = false): int
     {
         $this->warn('⚠️ 7-Zip no detectado. Usando librería nativa PHP ZipArchive.');
 
@@ -186,6 +211,10 @@ class MakeDeployZip extends Command
                 if (! Str::startsWith($zipPathInternal, 'public/vendor/')) {
                     continue;
                 }
+            }
+
+            if ($engineOnly && Str::startsWith($zipPathInternal, 'resources/views/themes/')) {
+                continue;
             }
 
             if ($noBrand && Str::startsWith($zipPathInternal, 'public/imgs/')) {
