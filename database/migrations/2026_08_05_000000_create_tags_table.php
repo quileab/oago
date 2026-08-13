@@ -8,21 +8,25 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('tags', function (Blueprint $table) {
-            $table->id();
-            $table->string('name')->unique();
-            $table->string('slug')->unique();
-            $table->string('description')->nullable();
-            $table->unsignedSmallInteger('sort_order')->default(0);
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('tags')) {
+            Schema::create('tags', function (Blueprint $table) {
+                $table->id();
+                $table->string('name')->unique();
+                $table->string('slug')->unique();
+                $table->string('description')->nullable();
+                $table->unsignedSmallInteger('sort_order')->default(0);
+                $table->timestamps();
+            });
+        }
 
-        Schema::create('taggables', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('tag_id');
-            $table->morphs('taggable'); // taggable_id + taggable_type
-            $table->index(['taggable_id', 'taggable_type']);
-        });
+        if (!Schema::hasTable('taggables')) {
+            Schema::create('taggables', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedBigInteger('tag_id');
+                $table->morphs('taggable'); // taggable_id + taggable_type
+                $table->index(['taggable_id', 'taggable_type']);
+            });
+        }
     }
 
     public function down(): void

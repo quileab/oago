@@ -33,11 +33,14 @@ class DataImport extends Command
             return 1;
         }
 
+        $dbName = DB::connection()->getDatabaseName();
+
         $this->newLine();
         $this->info("🚀 Iniciando migración universal desde: $fileName");
+        $this->warn("🗄️  Base de datos destino: $dbName");
         $this->newLine();
 
-        if (! $this->confirm('⚠️  Esto puede sobrescribir datos en las tablas detectadas. ¿Continuar?', true)) {
+        if (! $this->confirm('⚠️  Esto puede sobrescribir datos en la base de datos "'.$dbName.'". ¿Continuar?', true)) {
             $this->info('Operación cancelada.');
 
             return 0;
@@ -338,18 +341,13 @@ class DataImport extends Command
                     $this->pendingTags[$productId] = trim($tagsString, " '\"\t\n\r");
                 }
 
-                if (isset($parts[$tagsIdx])) {
-                    unset($parts[$tagsIdx]);
-                    $parts = array_values($parts);
-                }
-
-                if ($isOldFormat && count($parts) === 30) {
+                if ($isOldFormat && count($parts) === 31) {
                     array_splice($parts, 14, 0, [0, 0]);
                 }
 
-                if (count($parts) === 32) {
+                if (count($parts) === 33) {
                     // Convertir explícitamente los NULL a strings vacíos para las columnas NOT NULL
-                    $notNullStringCols = [1, 2, 4, 5, 6, 8]; // Índices: barcode, sku, brand, model, category, description_html (tags is removed)
+                    $notNullStringCols = [1, 2, 4, 5, 6, 8, 29]; // Índices: barcode, sku, brand, model, category, description_html, tags
                     foreach ($notNullStringCols as $idx) {
                         if (isset($parts[$idx])) {
                             $val = strtoupper(trim($parts[$idx], " '\"\t\n\r"));
@@ -369,11 +367,6 @@ class DataImport extends Command
             if ($hasCols) {
                 if ($isOldFormat) {
                     array_splice($cols, 14, 0, ['bonus_threshold', 'bonus_amount']);
-                }
-                $tIdx = array_search('tags', $cols);
-                if ($tIdx !== false) {
-                    unset($cols[$tIdx]);
-                    $cols = array_values($cols);
                 }
                 $header = "$verb INTO `products` (`".implode('`, `', $cols).'`) VALUES';
             }
