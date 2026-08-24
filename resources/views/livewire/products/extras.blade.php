@@ -196,6 +196,7 @@ new class extends Component {
                     $product->bonus_amount = $bonusAmount;
                 }
 
+                $product->updated_at = now();
                 $product->save();
             }
         });

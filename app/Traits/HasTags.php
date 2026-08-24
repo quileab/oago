@@ -62,6 +62,10 @@ trait HasTags
         $this->tags()->sync($tagIds);
         Tag::clearCache();
 
+        if ($this->exists) {
+            $this->touch();
+        }
+
         return $this;
     }
 

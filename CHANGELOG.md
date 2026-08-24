@@ -4,6 +4,11 @@ Este documento resume los cambios significativos entre la rama `v1` y la rama `m
 
 ## Cambios Recientes (Actualizaciones de Seguridad y Funcionalidad)
 
+### 🛠️ Mejoras Técnicas y Búsqueda de Productos
+
+*   **Ordenamiento de Productos por Defecto:** Se actualizó la lógica de búsqueda (`ProductSearchService`) para que, al no haber filtros activos, se prioricen los productos destacados (`featured`) y los actualizados recientemente (`updated_at`).
+*   **Actualización de Timestamps:** Se aseguró que la fecha de actualización (`updated_at`) de los productos se modifique (touch) al actualizar sus etiquetas, precios de lista o promociones (extras), para reflejarse correctamente en el ordenamiento.
+*   **Comando DataImport:** Se mejoró el comando `php artisan data:import` para listar los archivos `.sql` disponibles en la raíz del proyecto cuando no se proporciona un nombre de archivo por argumento.
 ### ⚙️ Sistema y Configuración
 
 *   **Colas de Trabajo (Queues):** Se corrigió la configuración de Supervisor en producción (`user=oagostini`) y se estableció la rotación de logs para evitar el consumo excesivo de disco.

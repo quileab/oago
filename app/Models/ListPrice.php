@@ -18,6 +18,8 @@ class ListPrice extends Model
 {
     use HasFactory;
 
+    protected $touches = ['product'];
+
     protected $fillable = ['product_id', 'list_id', 'price', 'unit_price'];
 
     public function product(): BelongsTo

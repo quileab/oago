@@ -37,19 +37,6 @@ class ProductSearchService
             return $product;
         }
 
-        // ⭐ Mostrar destacados y ultimos productos si no hay filtros
-        if (
-            ! isset($params['featured']) &&
-            empty($params['search']) &&
-            empty($params['category']) &&
-            empty($params['brand']) &&
-            empty($params['similar']) &&
-            empty($params['tag'])
-        ) {
-            $query->orderBy('featured', 'desc')
-                ->orderBy('updated_at', 'desc');
-        }
-
         // 🔍 Filtros básicos
         if (! empty($params['featured'])) {
             $query->where('featured', 1);
@@ -75,15 +62,17 @@ class ProductSearchService
         }
 
         // 🧭 Ordenamiento
-        $allowedColumns = ['description', 'created_at', 'featured', 'price', 'brand', 'category', 'model'];
-        $orderBy = $params['order_by'] ?? 'description';
+        $allowedColumns = ['description', 'created_at', 'updated_at', 'featured', 'price', 'brand', 'category', 'model'];
+        $orderBy = $params['order_by'] ?? null;
         $rawDirection = $params['order_direction'] ?? '';
-        $orderDirection = in_array($rawDirection, ['asc', 'desc']) ? $rawDirection : 'asc';
 
-        if (in_array($orderBy, $allowedColumns)) {
+        if ($orderBy && in_array($orderBy, $allowedColumns)) {
+            $orderDirection = in_array($rawDirection, ['asc', 'desc']) ? $rawDirection : 'asc';
             $query->orderBy("products.$orderBy", $orderDirection);
         } else {
-            $query->orderBy('products.description', $orderDirection);
+            // ⭐ Prioridad predeterminada: Destacados primero y luego últimos creados/actualizados
+            $query->orderBy('products.featured', 'desc')
+                ->orderBy('products.updated_at', 'desc');
         }
 
         $results = $itemsPerPage === 1

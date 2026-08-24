@@ -19,6 +19,16 @@ class DataImport extends Command
 
     public function handle()
     {
+        $sqlFiles = array_map('basename', File::glob(base_path('*.sql')) ?: []);
+
+        if (! empty($sqlFiles)) {
+            $this->info('Archivos .sql disponibles en la raíz:');
+            foreach ($sqlFiles as $file) {
+                $this->line(" - $file");
+            }
+            $this->newLine();
+        }
+
         $fileName = $this->argument('file');
 
         if (! $fileName) {
