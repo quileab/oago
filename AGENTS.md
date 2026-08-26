@@ -480,8 +480,8 @@ API admin:        /api/orders/*, /api/products/*, /api/list-prices/*, /api/users
 If you need to modify `resources/views/livewire/web-product-detail.blade.php` for a theme named `foo`:
 1. DO NOT touch the base file.
 2. Check if `resources/views/themes/foo/livewire/web-product-detail.blade.php` exists.
-3. If it doesn't exist, **copy** the base file into that theme path, and modify the copy.
-4. If it already exists, modify the file inside the theme directory.
+3. If it doesn't exist AND you need to make changes to it for this theme, **copy** the base file into that theme path, and modify the copy. If no modifications are needed, do nothing (the system automatically falls back to the base file).
+4. If it already exists in the theme directory, apply your modifications there.
 
 ---
 

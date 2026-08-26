@@ -20,7 +20,7 @@ Themes are located in `resources/views/themes/{theme_name}/`.
 To customize a view (e.g., `resources/views/livewire/web-product-detail.blade.php`) for a theme named `my-theme`:
 1. Find the base file in the core engine.
 2. Replicate the path inside the theme directory: `resources/views/themes/my-theme/livewire/web-product-detail.blade.php`.
-3. If the file does not exist in the theme, COPY the content from the core file into the theme file.
+3. If the file does not exist in the theme AND you need to change it for this theme, COPY the content from the core file into the theme file. If no changes are needed, DO NOT copy it (the system automatically falls back to the core file).
 4. Apply your customizations ONLY to the theme file.
 
 ## Static Assets
