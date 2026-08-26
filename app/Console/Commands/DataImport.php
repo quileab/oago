@@ -340,6 +340,12 @@ class DataImport extends Command
                 }
             }
 
+            // Determine dynamic indices based on cols, if available
+            $idxMap = [];
+            if ($hasCols) {
+                $idxMap = array_flip($cols);
+            }
+
             $newRows = [];
             foreach ($rows[1] as $row) {
                 $parts = str_getcsv($row, ',', "'");
@@ -355,22 +361,39 @@ class DataImport extends Command
                     array_splice($parts, 14, 0, [0, 0]);
                 }
 
-                if (count($parts) === 33) {
-                    // Convertir explícitamente los NULL a strings vacíos para las columnas NOT NULL
-                    $notNullStringCols = [1, 2, 4, 5, 6, 8, 29]; // Índices: barcode, sku, brand, model, category, description_html, tags
-                    foreach ($notNullStringCols as $idx) {
-                        if (isset($parts[$idx])) {
-                            $val = strtoupper(trim($parts[$idx], " '\"\t\n\r"));
-                            if ($val === 'NULL' || $val === '') {
-                                $parts[$idx] = '';
-                            }
+                // Identify indices for columns that need empty string instead of NULL
+                // Defaults for 33-column Format B: barcode=1, sku=2, brand=4, model=5, category=6, description_html=8, tags=29
+                $notNullStringCols = [];
+                $targetCols = ['barcode', 'sku', 'brand', 'model', 'category', 'description_html', 'tags'];
+
+                if ($hasCols) {
+                    // Si tenemos nombres de columnas, usamos sus índices (considerando el splice si era formato viejo)
+                    $currentCols = $cols;
+                    if ($isOldFormat) {
+                        array_splice($currentCols, 14, 0, ['bonus_threshold', 'bonus_amount']);
+                    }
+                    $currentMap = array_flip($currentCols);
+                    foreach ($targetCols as $colName) {
+                        if (isset($currentMap[$colName])) {
+                            $notNullStringCols[] = $currentMap[$colName];
                         }
                     }
-
-                    $newRows[] = $this->rebuildRow($parts, true);
                 } else {
-                    $newRows[] = $this->rebuildRow($parts, true);
+                    // Fallback to defaults
+                    $notNullStringCols = [1, 2, 4, 5, 6, 8, 29];
+                    // Si era formato viejo y sin columnas (31), tags original estaba en 27 pero ahora spliced a 29
                 }
+
+                foreach ($notNullStringCols as $idx) {
+                    if (isset($parts[$idx])) {
+                        $val = strtoupper(trim($parts[$idx], " '\"\t\n\r"));
+                        if ($val === 'NULL' || $val === '') {
+                            $parts[$idx] = '';
+                        }
+                    }
+                }
+
+                $newRows[] = $this->rebuildRow($parts, true);
             }
 
             $header = "$verb INTO `products` VALUES";
