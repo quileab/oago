@@ -469,6 +469,22 @@ API admin:        /api/orders/*, /api/products/*, /api/list-prices/*, /api/users
 
 ---
 
+### Theme System (CRITICAL FOR AI)
+
+**Core vs. Themes Architecture:**
+- `resources/views/` is the **core engine**. **NEVER MODIFY files here** if the user asks to "change a theme", "customize for a client", or "modify a template".
+- Themes are stored in `resources/views/themes/{theme_name}/`.
+- The application uses `View::prependLocation()`, meaning any file placed in a theme directory **overrides** the base file.
+
+**How to create/modify a theme:**
+If you need to modify `resources/views/livewire/web-product-detail.blade.php` for a theme named `foo`:
+1. DO NOT touch the base file.
+2. Check if `resources/views/themes/foo/livewire/web-product-detail.blade.php` exists.
+3. If it doesn't exist, **copy** the base file into that theme path, and modify the copy.
+4. If it already exists, modify the file inside the theme directory.
+
+---
+
 ### Components Map
 
 **Standard Livewire (`app/Livewire/`):**
