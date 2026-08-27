@@ -28,6 +28,33 @@ class CreateAdminUser extends Command
      */
     public function handle(): void
     {
+        try {
+            $admin = User::where('role', Role::ADMIN)->first();
+        } catch (\Exception $e) {
+            $admin = null;
+        }
+
+        if ($admin) {
+            $this->warn("Ya existe un usuario administrador: {$admin->email}");
+
+            if ($this->confirm('¿Deseas restablecer su contraseña a la de por defecto?')) {
+                $password = 'Webstore18743';
+                $admin->password = Hash::make($password);
+                $admin->save();
+                $this->info("Contraseña restablecida exitosamente a: {$password}");
+            } else {
+                $this->info('Operación cancelada. No se han hecho cambios.');
+            }
+
+            return;
+        }
+
+        if (! $this->confirm('Esto inicializará la base de datos (WIPE). ¿Deseas continuar?')) {
+            $this->info('Operación cancelada.');
+
+            return;
+        }
+
         $this->info('Limpiando base de datos y ejecutando migraciones...');
 
         // Wipe and re-migrate
