@@ -41,6 +41,10 @@ new class extends Component {
 
         $directories = File::directories($themesPath);
         $this->themes = array_map(fn($dir) => basename($dir), $directories);
+        
+        if (!in_array('default', $this->themes)) {
+            array_unshift($this->themes, 'default');
+        }
     }
 
     public function loadVariants()
@@ -160,6 +164,11 @@ new class extends Component {
     {
         if (empty($this->selectedTheme)) {
             $this->error('Selecciona un tema primero.');
+            return;
+        }
+
+        if ($this->selectedTheme === 'default') {
+            $this->error('No se pueden sobrescribir archivos en el tema default. Usa otro tema o modifica los archivos base (Core).');
             return;
         }
 
@@ -298,55 +307,64 @@ new class extends Component {
     </div>
 
     @if($selectedTheme)
-        <x-card title="Vistas del motor" class="shadow-sm">
-            <div class="flex items-center justify-between mb-4">
-                <div class="text-sm opacity-70">
-                    Mostrando overrides para: <strong>{{ $this->selectedVariant ? "{$selectedTheme} / {$selectedVariant}" : $selectedTheme }}</strong>
-                </div>
-                <div class="w-1/2 md:w-1/3">
-                    <x-input wire:model.live.debounce.300ms="search" placeholder="Buscar componente o vista..." icon="o-magnifying-glass" clearable class="input-sm" />
-                </div>
+        @if($selectedTheme === 'default')
+            <div class="text-center text-gray-500 py-10">
+                <x-icon name="o-shield-check" class="w-12 h-12 mx-auto mb-4 text-success opacity-80" />
+                <h3 class="text-xl font-bold mb-2">Tema Base (Core)</h3>
+                <p>El tema <strong>default</strong> carga directamente las vistas originales del sistema.</p>
+                <p class="text-sm mt-2 opacity-75">No es posible crear overrides aquí. Si deseas hacer modificaciones personalizadas, crea un nuevo tema.</p>
             </div>
+        @else
+            <x-card title="Vistas del motor" class="shadow-sm">
+                <div class="flex flex-col md:flex-row items-center justify-between mb-4 gap-4">
+                    <div class="text-sm opacity-70 w-full md:w-auto text-center md:text-left">
+                        Mostrando overrides para: <strong>{{ $this->selectedVariant ? "{$selectedTheme} / {$selectedVariant}" : $selectedTheme }}</strong>
+                    </div>
+                    <div class="w-full md:w-1/3">
+                        <x-input wire:model.live.debounce.300ms="search" placeholder="Buscar componente o vista..." icon="o-magnifying-glass" clearable class="input-sm" />
+                    </div>
+                </div>
 
-            <div class="overflow-x-auto max-h-[600px] border border-base-300 rounded-lg">
-                <table class="table table-zebra table-pin-rows table-sm w-full">
-                    <thead>
-                        <tr>
-                            <th>Archivo / Componente</th>
-                            <th class="text-center">Estado</th>
-                            <th class="text-right">Acción</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($this->views as $view)
+                <div class="overflow-x-auto max-h-[600px] border border-base-300 rounded-lg">
+                    <table class="table table-zebra table-pin-rows table-sm w-full">
+                        <thead>
                             <tr>
-                                <td class="font-mono text-sm">{{ $view['file'] }}</td>
-                                <td class="text-center">
-                                    @if($view['overridden'])
-                                        <x-badge value="Sobrescrito" class="badge-success badge-sm" />
-                                    @else
-                                        <x-badge value="Fallback (Motor)" class="badge-ghost badge-sm" />
-                                    @endif
-                                </td>
-                                <td class="text-right">
-                                    @if($view['overridden'])
-                                        <x-button wire:click="revertView('{{ $view['file'] }}')" wire:confirm="¿Estás seguro de eliminar el archivo y volver al fallback?" icon="o-arrow-uturn-left" class="btn-error btn-xs" tooltip="Revertir a base" />
-                                    @else
-                                        <x-button wire:click="overrideView('{{ $view['file'] }}')" icon="o-document-duplicate" class="btn-primary btn-outline btn-xs" tooltip="Crear override" />
-                                    @endif
-                                </td>
+                                <th>Archivo / Componente</th>
+                                <th class="text-center">Estado</th>
+                                <th class="text-right">Acción</th>
                             </tr>
-                        @empty
-                            <tr>
-                                <td colspan="3" class="text-center py-4 text-gray-500">
-                                    No se encontraron vistas con esa búsqueda.
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-        </x-card>
+                        </thead>
+                        <tbody>
+                            @forelse($this->views as $view)
+                                <tr>
+                                    <td class="font-mono text-sm">{{ $view['file'] }}</td>
+                                    <td class="text-center">
+                                        @if($view['overridden'])
+                                            <x-badge value="Sobrescrito" class="badge-success badge-sm" />
+                                        @else
+                                            <x-badge value="Fallback (Motor)" class="badge-ghost badge-sm" />
+                                        @endif
+                                    </td>
+                                    <td class="text-right">
+                                        @if($view['overridden'])
+                                            <x-button wire:click="revertView('{{ $view['file'] }}')" wire:confirm="¿Estás seguro de eliminar el archivo y volver al fallback?" icon="o-arrow-uturn-left" class="btn-error btn-xs" tooltip="Revertir a base" />
+                                        @else
+                                            <x-button wire:click="overrideView('{{ $view['file'] }}')" icon="o-document-duplicate" class="btn-primary btn-outline btn-xs" tooltip="Crear override" />
+                                        @endif
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="3" class="text-center py-4 text-gray-500">
+                                        No se encontraron vistas con esa búsqueda.
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </x-card>
+        @endif
     @else
         <div class="text-center text-gray-500 py-10">
             <x-icon name="o-swatch" class="w-12 h-12 mx-auto mb-4 opacity-50" />
