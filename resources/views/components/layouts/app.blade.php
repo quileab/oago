@@ -71,6 +71,7 @@
                         <x-menu-item title="Tags" icon="o-tag" link="/tags" />
                     </x-menu-sub>
                     <x-menu-sub title="Web" icon="o-paint-brush">
+                        <x-menu-item title="Temas" icon="o-swatch" link="/themes" class="text-secondary" />
                         <x-menu-item title="Slider" icon="o-photo" link="/slider" />
                     </x-menu-sub>
                     <x-menu-sub title="Contenido" icon="o-document-text">
