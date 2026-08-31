@@ -272,6 +272,8 @@ new class extends Component
             );
         }
 
+        $product->touch();
+
         $this->loadExistingMedia();
         $this->success('Producto guardado correctamente.');
     }

@@ -150,6 +150,7 @@ new class extends Component {
                 }
                 
                 $product->save();
+                $product->touch();
             }
         }
 

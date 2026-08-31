@@ -22,6 +22,13 @@ class ListPrice extends Model
 
     protected $fillable = ['product_id', 'list_id', 'price', 'unit_price'];
 
+    protected static function booted(): void
+    {
+        static::deleted(function (ListPrice $listPrice) {
+            $listPrice->product?->touch();
+        });
+    }
+
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class); // Este precio pertenece a un producto específico

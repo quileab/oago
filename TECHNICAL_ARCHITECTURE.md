@@ -43,12 +43,12 @@ El frontend es altamente dinámico gracias a Livewire:
 - **Retrocompatibilidad:** La API soporta internamente payloads legacy para mantener compatibilidad total con integraciones anteriores (ej. traducción automática de estructuras de pedidos).
 - **ProductSearchService:** Servicio dedicado para la búsqueda avanzada de productos.
 - **Controllers:** Gestión de endpoints para integración con sistemas externos o aplicaciones móviles.
-- **ImageProxyController:** Controlador para gestionar la carga y redimensionamiento de imágenes de productos de forma eficiente.
+- **ImageProxyController:** Controlador para gestionar la carga y redimensionamiento de imágenes de productos de forma eficiente. Cuenta con protección SSRF y una caché que almacena fallos de descarga por 1 hora para evitar cuellos de botella y reintentos innecesarios en peticiones fallidas o lentas.
 
 ## 7. Comandos de Consola (`app/Console/Commands`)
-- **ImportV1Data:** Script de migración de datos desde la versión anterior del sistema.
+- **db:import (DataImport):** Importador universal de datos con detección dinámica de tablas y secuencia inteligente de múltiples archivos. Muestra interactivamente los archivos `.sql` disponibles en la raíz.
 - **ResetCustomerPasswords:** Utilidad para resetear credenciales de clientes de forma masiva.
-- **app:create-deploy-package:** (Personalizado) Genera un paquete ZIP de despliegue optimizado.
+- **make:deploy-zip (MakeDeployZip):** Genera un paquete ZIP de despliegue optimizado detectando el mejor método disponible (7-Zip o Nativo), ofreciendo opciones para omitir recursos de marca o de temas de clientes.
 
 ## 8. Sistema de Precios y Listas
 Cada usuario (`User`) tiene asignada una `list_id` que vincula con `ListPrice`. El precio de un producto para un usuario específico se resuelve mediante la relación `list->listPrices()` en el modelo `User`.

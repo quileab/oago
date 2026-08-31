@@ -8,16 +8,21 @@ Este documento resume los cambios significativos entre la rama `v1` y la rama `m
 
 *   **Ordenamiento de Productos por Defecto:** Se actualizó la lógica de búsqueda (`ProductSearchService`) para que, al no haber filtros activos, se prioricen los productos destacados (`featured`) y los actualizados recientemente (`updated_at`).
 *   **Actualización de Timestamps:** Se aseguró que la fecha de actualización (`updated_at`) de los productos se modifique (touch) al actualizar sus etiquetas, precios de lista o promociones (extras), para reflejarse correctamente en el ordenamiento.
-*   **Comando DataImport:** Se mejoró el comando `php artisan data:import` para listar los archivos `.sql` disponibles en la raíz del proyecto cuando no se proporciona un nombre de archivo por argumento.
+*   **Comando db:import (DataImport):** Se mejoró el comando `php artisan db:import` para listar los archivos `.sql` disponibles en la raíz del proyecto cuando no se proporciona un nombre de archivo por argumento.
+*   **Optimización del ImageProxy frente a Timeouts/Conexiones Lentas:**
+    *   Se implementó una caché de fallos de descarga por 1 hora (`image_proxy_failed_{md5}`) para evitar cuellos de botella e hilos de PHP bloqueados debido a reintentos repetitivos sobre servidores externos caídos o extremadamente lentos (como `cURL error 28: Operation timed out`).
+    *   Se cambió el nivel de log para errores de timeout y conexión externa de `warning` a `info` para evitar alertas redundantes que contaminen los registros de producción.
 ### ⚙️ Sistema y Configuración
 
 *   **Colas de Trabajo (Queues):** Se corrigió la configuración de Supervisor en producción (`user=oagostini`) y se estableció la rotación de logs para evitar el consumo excesivo de disco.
+*   **Comando make:deploy-zip (MakeDeployZip):** Se documentó formalmente el comando `php artisan make:deploy-zip` (anteriormente referido con la firma obsoleta `app:create-deploy-package`), el cual genera un paquete ZIP de despliegue optimizado, ofreciendo filtros interactivos para discriminar assets de marca o exclusión de temas.
 
 ### 🔌 API REST (Compatibilidad y Optimizaciones)
 
 *   **Retrocompatibilidad y Estándares:** 
     *   Se mejoró la API en la rama `dev` logrando una total retrocompatibilidad con las implementaciones cliente de la rama `main`, traduciendo internamente modelos de datos legacy (ej. `products` hacia `items` en `OrderController`).
     *   Se normalizaron los endpoints para mantener respuestas esperadas usando nuevos servicios como `PriceListService` por detrás.
+    *   **Visibilidad de Productos Inexistentes:** Se optimizó el endpoint de visibilidad (`changeVisibility`) para realizar búsquedas estrictamente por el ID de producto y eliminar búsquedas redundantes o riesgosas por SKU. Si el producto ya no existe y se intenta establecer su visibilidad a `hidden`, el endpoint responde con `200 OK` (no-op) en lugar de un error `404`, evitando falsas alarmas de fallo de API en producción.
     *   Se restauraron estrictos tipados de retorno en controladores (Ej. `: JsonResponse`) para cumplir los lineamientos del proyecto en PHP 8.4 y evitar quiebres arquitectónicos.
 
 ### 🛍️ Productos y Ofertas

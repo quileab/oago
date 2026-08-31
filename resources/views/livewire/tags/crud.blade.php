@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Product;
 use App\Models\Tag;
 use Livewire\Volt\Component;
 use Mary\Traits\Toast;
@@ -39,10 +40,15 @@ new class extends Component {
             $data['slug'] = Str::slug($data['name']);
         }
 
-        Tag::updateOrCreate(
+        $tag = Tag::updateOrCreate(
             ['id' => $this->formData['id'] ?? null],
             $data
         );
+
+        if ($tag->exists) {
+            Product::whereHas('tags', fn ($q) => $q->where('tags.id', $tag->id))
+                ->update(['updated_at' => now()]);
+        }
 
         Tag::clearCache();
 
@@ -52,7 +58,12 @@ new class extends Component {
 
     public function delete()
     {
-        Tag::findOrFail($this->formData['id'])->delete();
+        $tag = Tag::findOrFail($this->formData['id']);
+
+        Product::whereHas('tags', fn ($q) => $q->where('tags.id', $tag->id))
+            ->update(['updated_at' => now()]);
+
+        $tag->delete();
         Tag::clearCache();
         $this->success('Tag eliminado.', position: 'toast-bottom');
         return redirect('/tags');

@@ -6,6 +6,7 @@ use App\Helpers\SettingsHelper;
 use App\Services\SecurityService;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -76,6 +77,12 @@ class ImageProxyController extends Controller
 
         // 5. Lógica de Caché
         $cacheKey = md5($remoteUrl);
+
+        $failureCacheKey = 'image_proxy_failed_'.$cacheKey;
+        if (Cache::has($failureCacheKey)) {
+            return $serveLocal($fallback);
+        }
+
         $part1 = substr($cacheKey, 0, 2);
         $part2 = substr($cacheKey, 2, 2);
         $cacheDir = "image_cache/{$part1}/{$part2}";
@@ -171,9 +178,12 @@ class ImageProxyController extends Controller
                     'Cache-Control' => 'public, max-age=86400',
                     'Content-Length' => strlen($imageContent),
                 ]);
+            } else {
+                Cache::put($failureCacheKey, true, 3600);
             }
         } catch (\Exception $e) {
             $msg = $e->getMessage();
+            Cache::put($failureCacheKey, true, 3600);
             if (str_contains($msg, 'ImageProxy:')) {
                 Log::warning($msg);
             } elseif (
@@ -183,7 +193,7 @@ class ImageProxyController extends Controller
                 str_contains(strtolower($msg), 'timeout') ||
                 str_contains(strtolower($msg), 'resolve host')
             ) {
-                Log::warning('ImageProxy download timeout or connection issue: '.$msg);
+                Log::info('ImageProxy download timeout or connection issue: '.$msg);
             } else {
                 Log::error('ImageProxy download error: '.$msg);
             }

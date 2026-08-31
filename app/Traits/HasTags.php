@@ -80,6 +80,10 @@ trait HasTags
     public function syncTagsFromStringColumnPublic(): void
     {
         $this->syncTagsFromStringColumn();
+
+        if ($this->exists) {
+            $this->touch();
+        }
     }
 
     protected function syncTagsFromStringColumn(): void

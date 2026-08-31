@@ -97,6 +97,7 @@ class ProductController extends Controller
         }
 
         $product->update($request->validated());
+        $product->touch();
 
         $responseData = ['message' => 'OK'];
         if (is_null($originalPrice) || (float) $originalPrice == 0) {
@@ -134,6 +135,7 @@ class ProductController extends Controller
             // Almacenar la nueva imagen
             $path = $request->file('image')->store('images/products');
             $product->update(['image_url' => $path]);
+            $product->touch();
 
             return response()->json(['message' => 'Imagen subida correctamente', 'path' => $path], 200);
         }
@@ -144,23 +146,25 @@ class ProductController extends Controller
     public function changeVisibility(Request $request, $product): JsonResponse
     {
         $product = Product::find($product);
-        // return response()->json(['message' => json_encode($request)], 200);
 
         $request->validate([
             'sku' => 'nullable|string|max:50',
             'visibility' => 'required|string|in:visible,catalog,hidden',
         ]);
 
-        // check if product not exists try to find sku
         if (! $product) {
-            $product = Product::where('sku', $request->sku)->first();
-            if (! $product) {
-                return response()->json(['message' => 'Producto no encontrado'], 404);
+            if ($request->visibility === 'hidden') {
+                return response()->json([
+                    'message' => 'El producto no existe, por lo tanto ya se encuentra oculto.',
+                ], 200);
             }
+
+            return response()->json(['message' => 'Producto no encontrado'], 404);
         }
 
         $product->visibility = $request->visibility;
         $product->save();
+        $product->touch();
 
         return response()->json(['message' => 'Visibilidad actualizada correctamente', 'product' => $product], 200);
     }

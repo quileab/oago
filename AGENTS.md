@@ -594,5 +594,5 @@ Existing tests (do **not** delete without approval):
 ### External Integrations
 
 - **YouTube**: thumbnails only — `https://img.youtube.com/vi/{videoId}/mqdefault.jpg`
-- **Image Proxy** (`ImageProxyController`): fetches/resizes remote product images; SSRF-protected (no private IPs, host whitelist from `image_proxy_allowed_hosts` setting).
+- **Image Proxy** (`ImageProxyController`): fetches/resizes remote product images; SSRF-protected (no private IPs, host whitelist from `image_proxy_allowed_hosts` setting). Caches download failures/timeouts for 1 hour to prevent HTTP thread starvation on slow/dead remote servers; logs connection/timeout errors as INFO instead of WARNING.
 

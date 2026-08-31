@@ -57,6 +57,8 @@ class ListPriceController extends Controller
             $data
         );
 
+        $listPrice->product?->touch();
+
         return response()->json($listPrice, $listPrice->wasRecentlyCreated ? 201 : 200);
     }
 
@@ -104,6 +106,7 @@ class ListPriceController extends Controller
             ->firstOrFail();
 
         $listPrice->update($data);
+        $listPrice->product?->touch();
 
         return response()->json(['message' => 'OK'], 200);
     }
@@ -117,7 +120,9 @@ class ListPriceController extends Controller
             ->where('list_id', $list_id)
             ->firstOrFail();
 
+        $product = $listPrice->product;
         $listPrice->delete();
+        $product?->touch();
 
         return response()->json(['message' => 'Precio de lista eliminado correctamente'], 200);
     }
