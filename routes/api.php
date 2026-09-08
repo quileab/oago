@@ -4,14 +4,16 @@ use App\Http\Controllers\Api\CustomerApiController;
 use App\Http\Controllers\Api\ListPriceController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\SliderController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\AuthController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-// Rutas públicas de autenticación
+// Rutas públicas
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+Route::get('/slider', [SliderController::class, 'index']);
 
 // Rutas protegidas por Sanctum
 Route::middleware('auth:sanctum')->group(function () {
@@ -53,6 +55,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Rutas de Clientes (realizar compras y ver pedidos)
     Route::get('/customer/products', [CustomerApiController::class, 'products']);
+    Route::get('/customer/filters', [CustomerApiController::class, 'filters']);
+    Route::get('/customer/products/{id}', [CustomerApiController::class, 'showProduct'])->whereNumber('id');
     Route::get('/customer/orders', [CustomerApiController::class, 'orders']);
     Route::get('/customer/orders/{order}', [CustomerApiController::class, 'showOrder']);
     Route::post('/customer/orders', [CustomerApiController::class, 'placeOrder']);

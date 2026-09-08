@@ -6,7 +6,6 @@ use App\Enums\Role;
 use App\Helpers\SettingsHelper;
 use App\Models\AltUser;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Mary\Traits\Toast;
 
@@ -27,7 +26,7 @@ class WebNavbar extends Component
     public function mount()
     {
         $this->salesCustomers = collect();
-        $loggedInUser = current_user();
+        $loggedInUser = real_user();
 
         if ($loggedInUser && $loggedInUser->role === Role::SALES) {
             if (! session('sales_acting_as_customer_id')) {
@@ -57,7 +56,7 @@ class WebNavbar extends Component
 
     public function loadCustomers()
     {
-        $loggedInUser = Auth::user() ?? Auth::guard('alt')->user();
+        $loggedInUser = real_user();
         if ($loggedInUser && $loggedInUser->role === Role::SALES) {
             $customerQuery = $loggedInUser->getManagedCustomersQuery();
 
@@ -89,7 +88,7 @@ class WebNavbar extends Component
 
     public function setActingCustomer($id)
     {
-        $loggedInUser = Auth::user() ?? Auth::guard('alt')->user();
+        $loggedInUser = real_user();
 
         if ($id) {
             // Verify ownership using the new method

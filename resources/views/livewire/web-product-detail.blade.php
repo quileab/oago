@@ -87,7 +87,8 @@ new class extends Component
     public function canBuy(): bool
     {
         $basePrice = $this->offer_price > 0 ? $this->offer_price : $this->user_price;
-        return $this->product->stock > 0 && ! Auth::guest() && ! in_array(Auth::user()->role->value, ['none', 'guest']) && $basePrice > 0;
+        $currUser = current_user();
+        return $this->product->stock > 0 && $currUser && ! in_array($currUser->role->value, ['none', 'guest']) && $basePrice > 0;
     }
 
     public function unitPrice(): float

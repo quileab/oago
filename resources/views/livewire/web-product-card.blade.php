@@ -115,13 +115,13 @@
                         </span>
                     @endif
                 </div>
-
-                <div class="text-right text-slate-500 font-bold bg-slate-100 px-2 py-0.5 rounded-full">
-                    <x-icon name="o-cube" class="w-3 h-3 inline mr-0.5" /> Bulto: {{ $product->qtty_package }}
-                </div>
             </div>
 
-            @if($product->stock > 0 && !in_array(Auth::user()->role->value, ['none', 'guest']) && ($display_offer > 0 ? $display_offer : $display_price) > 0)
+            @php
+                $currUser = current_user();
+                $canBuy = $product->stock > 0 && $currUser && !in_array($currUser->role->value, ['none', 'guest']) && ($display_offer > 0 ? $display_offer : $display_price) > 0;
+            @endphp
+            @if($canBuy)
                 <div class="space-y-2">
 
                     {{-- Toggle Bulto / Unidad (solo si hay paquete) --}}

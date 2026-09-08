@@ -107,13 +107,11 @@
                 </div>
 
                 {{-- In Cart --}}
-                @if(!empty($cart) && isset($cart[$product->id]))
-                    <div class="mb-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold px-2 py-1 flex items-center justify-center gap-1">
-                        <x-icon name="o-shopping-cart" class="w-3 h-3" /> EN CARRITO: {{ $cart[$product->id]['quantity'] }} un.
-                    </div>
-                @endif
-
-                @if($product->stock > 0 && !in_array(Auth::user()->role->value, ['none', 'guest']) && ($display_offer > 0 ? $display_offer : $display_price) > 0)
+                @php
+                    $currUser = current_user();
+                    $canBuy = $product->stock > 0 && $currUser && !in_array($currUser->role->value, ['none', 'guest']) && ($display_offer > 0 ? $display_offer : $display_price) > 0;
+                @endphp
+                @if($canBuy)
                     <div class="flex items-stretch h-10 overflow-hidden border border-neutral-700 bg-neutral-950/60 focus-within:border-primary transition-colors">
                         @if($product->qtty_package > 1)
                             <button wire:click="decrementQtty" class="w-10 bg-neutral-800 hover:bg-rose-500/20 hover:text-rose-400 text-[10px] font-black text-neutral-400 transition-colors border-r border-neutral-700 shrink-0" title="-{{ $product->qtty_package }}">

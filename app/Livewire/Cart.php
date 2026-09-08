@@ -3,10 +3,10 @@
 namespace App\Livewire;
 
 use App\Models\AltOrder;
+use App\Models\AltUser;
 use App\Models\Order;
 use App\Models\Product;
 use App\Services\PriceListService;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -28,7 +28,8 @@ class Cart extends Component
     #[On('addToCart')]
     public function onAddToCart($product, int $quantity = 1): void
     {
-        if (Auth::guest() || Auth::user()->role->value === 'guest') {
+        $user = current_user();
+        if (! $user || $user->role->value === 'guest') {
             $this->warning('Debe iniciar sesión para comprar');
 
             return;
@@ -209,7 +210,8 @@ class Cart extends Component
 
     public function saveCart()
     {
-        if (Auth::guard('alt')->check()) {
+        $user = current_user();
+        if ($user instanceof AltUser) {
             AltOrder::placeOrder(['status' => 'on-hold']);
         } else {
             Order::placeOrder(['status' => 'on-hold']);

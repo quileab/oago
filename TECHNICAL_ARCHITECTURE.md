@@ -17,12 +17,23 @@ Este documento proporciona una descripción técnica detallada de la arquitectur
 - **CustomerSalesAgent:** Tabla de relación que vincula clientes con sus respectivos agentes de venta (Vendedores).
 - **Setting:** Almacenamiento de configuraciones globales del sistema (Key-Value).
 
-## 3. Lógica de Autenticación y Roles (`app/Enums/Role.php`)
-El sistema utiliza un sistema de roles basado en Enums:
+## 3. Lógica de Autenticación, Guards y Roles (`app/Enums/Role.php`)
+El sistema utiliza un sistema dual de modelos y guards:
+- `User` (`web`, `sanctum`): Clientes registrados, vendedores y administradores.
+- `AltUser` (`alt`): Clientes invitados con tiempo de prueba limitado o cuentas alternas.
+
+Roles basados en Enums:
 - `ADMIN`: Acceso total al panel de administración.
 - `SALES`: Agentes de venta que pueden "actuar como" clientes.
 - `CUSTOMER`: Clientes finales que realizan pedidos.
 - `GUEST`: Usuarios con acceso limitado y temporal.
+
+### Reglas Críticas de Autenticación y Aislamiento de Sesión
+1. **Helper Universal `current_user()`:** Se debe utilizar siempre `current_user()` en lugar de `Auth::user()`. Resuelve la precedencia de guards (`web` -> `sanctum` -> `alt`) y la suplantación de vendedores (`sales_acting_as_customer_id`).
+2. **Aislamiento Estricto en Login:**
+   - No se deben intercambiar ni suplantar identidades automáticamente por coincidencia de email entre tablas `users` y `alt_users` sin validación explícita de credenciales.
+   - Todo inicio de sesión debe regenerar el ID de sesión (`session()->regenerate()`) y limpiar variables de impersonación residuales (`sales_acting_as_customer_id`).
+   - El guard alternativo se activa exclusivamente mediante la bandera `is_alt_login` (manejada por `AuthServiceProvider`). Al loguear un usuario `web`, esta bandera debe ser eliminada.
 
 ### Impersonación de Vendedores
 El sistema permite a los usuarios con rol `SALES` seleccionar un cliente de su lista asignada. Esta lógica se maneja mediante:
@@ -42,8 +53,9 @@ El frontend es altamente dinámico gracias a Livewire:
 ## 6. API y Servicios (`app/Http/Controllers/Api`)
 - **Retrocompatibilidad:** La API soporta internamente payloads legacy para mantener compatibilidad total con integraciones anteriores (ej. traducción automática de estructuras de pedidos).
 - **ProductSearchService:** Servicio dedicado para la búsqueda avanzada de productos.
-- **Controllers:** Gestión de endpoints para integración con sistemas externos o aplicaciones móviles.
+- **Controllers:** Gestión de endpoints para integración con sistemas externos o aplicaciones móviles. Públicos: `POST /api/login|register`, `GET /api/slider` (carrusel sin auth). Protegidos (Sanctum): `GET /api/customer/products[?search,category,brand,tag,featured,per_page]`, `GET /api/customer/products/{id}`, `GET /api/customer/filters`, `GET|POST /api/customer/orders` (+ `SliderService` compartido entre web y API).
 - **ImageProxyController:** Controlador para gestionar la carga y redimensionamiento de imágenes de productos de forma eficiente. Cuenta con protección SSRF y una caché que almacena fallos de descarga por 1 hora para evitar cuellos de botella y reintentos innecesarios en peticiones fallidas o lentas.
+- **Documentación:** Auto-generada vía Scramble en `/docs/api` y `/docs/api.json`.
 
 ## 7. Comandos de Consola (`app/Console/Commands`)
 - **db:import (DataImport):** Importador universal de datos con detección dinámica de tablas y secuencia inteligente de múltiples archivos. Muestra interactivamente los archivos `.sql` disponibles en la raíz.

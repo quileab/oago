@@ -2,6 +2,9 @@
 
 namespace App\Traits;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Support\Str;
+
 trait HasProfileData
 {
     /**
@@ -14,6 +17,26 @@ trait HasProfileData
         }
 
         return '✨SYS: '.$this->name;
+    }
+
+    /**
+     * Normalize the user's name to Title Case.
+     */
+    protected function name(): Attribute
+    {
+        return Attribute::make(
+            set: fn (?string $value) => $value ? Str::title(trim($value)) : null,
+        );
+    }
+
+    /**
+     * Normalize the user's lastname to Title Case.
+     */
+    protected function lastname(): Attribute
+    {
+        return Attribute::make(
+            set: fn (?string $value) => $value ? Str::title(trim($value)) : null,
+        );
     }
 
     /**

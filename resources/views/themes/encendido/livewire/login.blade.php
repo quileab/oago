@@ -40,13 +40,14 @@ new #[Layout('components.layouts.empty')]
                 return;
             }
 
-            request()->session()->regenerate();
+            session()->regenerate();
+            session()->forget(['is_alt_login', 'sales_acting_as_customer_id']);
 
             if (file_exists($cartFile = storage_path("app/private/" . current_user_cart_id() . "_cart.json"))) {
                 $cart = json_decode(file_get_contents($cartFile), true);
                 foreach ($cart as $item) {
                     $prod = \App\Models\ListPrice::where('product_id', $item['product_id'])
-                        ->where('list_id', auth()->user()->list_id)
+                        ->where('list_id', $user->list_id)
                         ->first();
                     $cart[$item['product_id']]['price'] = $prod->price ?? $item['price'];
                 }
@@ -60,46 +61,15 @@ new #[Layout('components.layouts.empty')]
         if (Auth::guard('alt')->attempt($credentials, true)) {
             $guest = Auth::guard('alt')->user();
 
-            // Check if this email also exists as a normal user
-            $normalUser = \App\Models\User::where('email', $credentials['email'])->first();
-
-            if ($normalUser) {
-                // The user exists in both tables. We prioritize the normal user.
-                // We log them out of the 'alt' guard and log them in as the normal user.
-                Auth::guard('alt')->logout();
-                Auth::login($normalUser, true);
-
-                // Now execute the same logic as a successful normal login
-                if ($normalUser->role->value == 'none') {
-                    Auth::logout();
-                    $this->addError('email', 'La cuenta está en revisión');
-                    return;
-                }
-
-                request()->session()->regenerate();
-
-                if (file_exists($cartFile = storage_path("app/private/" . current_user_cart_id() . "_cart.json"))) {
-                    $cart = json_decode(file_get_contents($cartFile), true);
-                    foreach ($cart as $item) {
-                        $prod = \App\Models\ListPrice::where('product_id', $item['product_id'])
-                            ->where('list_id', auth()->user()->list_id)
-                            ->first();
-                        $cart[$item['product_id']]['price'] = $prod->price ?? $item['price'];
-                    }
-                    session()->put('cart', $cart);
-                }
-
-                return redirect()->intended('/');
-            }
-
-            // Normal alternative user login flow
             if ($guest->role->value == 'none') {
                 Auth::guard('alt')->logout();
                 $this->addError('email', 'La cuenta está en revisión o desactivada.');
                 return;
             }
 
-            request()->session()->put('is_alt_login', true);
+            session()->regenerate();
+            session()->forget('sales_acting_as_customer_id');
+            session()->put('is_alt_login', true);
 
             if (file_exists($cartFile = storage_path("app/private/" . current_user_cart_id() . "_cart.json"))) {
                 $cart = json_decode(file_get_contents($cartFile), true);

@@ -10,7 +10,9 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\ShippingDetail;
+use App\Models\Tag;
 use App\Services\PriceListService;
+use App\Services\SliderService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -42,8 +44,17 @@ class CustomerApiController extends Controller
             });
         }
 
-        if ($request->has('category')) {
+        if ($request->has('category') && $request->input('category') !== '') {
             $query->where('category', $request->input('category'));
+        }
+        if ($request->has('brand') && $request->input('brand') !== '') {
+            $query->where('brand', $request->input('brand'));
+        }
+        if ($request->has('featured') && $request->input('featured') !== '') {
+            $query->where('featured', filter_var($request->input('featured'), FILTER_VALIDATE_BOOLEAN) ? 1 : 0);
+        }
+        if ($request->has('tag') && $request->input('tag') !== '') {
+            $query->whereHas('tags', fn ($q) => $q->where('slug', $request->input('tag')));
         }
 
         $products = $query->paginate($request->input('per_page', 30));
@@ -249,43 +260,45 @@ class CustomerApiController extends Controller
         }
     }
 
+    public function showProduct(Request $request, int $id): JsonResponse
+    {
+        $user = current_user() ?? $request->user();
+        $product = Product::where('published', true)->where('visibility', 'visible')->find($id);
+        if (! $product) {
+            return response()->json(['message' => 'Producto no encontrado'], 404);
+        }
+        $priceService = app(PriceListService::class);
+        $listId = $user->list_id ?? 0;
+        $basePrice = $priceService->getEffectivePrice($listId, $product->id, true) ?? (float) ($product->price ?? 0);
+        $promoPrice = $priceService->getEffectivePrice($listId, $product->id, false);
+        if ($promoPrice !== null && $promoPrice < $basePrice) {
+            $product->price = $promoPrice;
+            $product->base_price = $basePrice;
+            $product->promo_price = $promoPrice;
+        } else {
+            $product->price = $basePrice;
+            $product->base_price = null;
+            $product->promo_price = null;
+        }
+        $product->load('tags');
+
+        return response()->json($product, 200);
+    }
+
+    public function filters(Request $request): JsonResponse
+    {
+        $categories = Product::where('published', true)->where('visibility', 'visible')->distinct()->pluck('category')->filter()->values();
+        $brands = Product::where('published', true)->where('visibility', 'visible')->distinct()->pluck('brand')->filter()->values();
+        $tags = Tag::allCached()->map(fn ($t) => ['slug' => $t->slug, 'name' => $t->name])->values();
+
+        return response()->json(['categories' => $categories, 'brands' => $brands, 'tags' => $tags], 200);
+    }
+
     /**
      * Obtener el listado de slides/banners activos.
      */
     public function slider(Request $request): JsonResponse
     {
-        $jsonPath = public_path('storage/slider/slider.json');
-
-        if (! file_exists($jsonPath)) {
-            return response()->json([], 200);
-        }
-
-        $data = json_decode(file_get_contents($jsonPath), true) ?? [];
-        $items = $data['slides'] ?? $data;
-
-        if (! is_array($items)) {
-            return response()->json([], 200);
-        }
-
-        $slides = collect($items)->map(function ($item) {
-            $path = is_array($item) ? $item['id'] : $item;
-            $cleanPath = ltrim($path, '/');
-
-            if (str_starts_with($cleanPath, 'slider/')) {
-                $imageUrl = asset('storage/'.$cleanPath);
-            } else {
-                $imageUrl = asset('storage/slider/'.$cleanPath);
-            }
-
-            return [
-                'image' => $imageUrl,
-                'title' => is_array($item) ? ($item['title'] ?? '') : '',
-                'description' => is_array($item) ? ($item['description'] ?? '') : '',
-                'url' => is_array($item) ? ($item['url'] ?? '') : '',
-                'urlText' => is_array($item) ? ($item['urlText'] ?? '') : '',
-            ];
-        })->toArray();
-
-        return response()->json($slides, 200);
+        return response()->json(app(SliderService::class)->getSlides(), 200);
     }
 }

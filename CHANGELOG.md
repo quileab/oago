@@ -24,6 +24,11 @@ Este documento resume los cambios significativos entre la rama `v1` y la rama `m
     *   Se normalizaron los endpoints para mantener respuestas esperadas usando nuevos servicios como `PriceListService` por detrás.
     *   **Visibilidad de Productos Inexistentes:** Se optimizó el endpoint de visibilidad (`changeVisibility`) para realizar búsquedas estrictamente por el ID de producto y eliminar búsquedas redundantes o riesgosas por SKU. Si el producto ya no existe y se intenta establecer su visibilidad a `hidden`, el endpoint responde con `200 OK` (no-op) en lugar de un error `404`, evitando falsas alarmas de fallo de API en producción.
     *   Se restauraron estrictos tipados de retorno en controladores (Ej. `: JsonResponse`) para cumplir los lineamientos del proyecto en PHP 8.4 y evitar quiebres arquitectónicos.
+*   **App Móvil (Flutter) — Slider y Catálogo:**
+    *   **Slider público:** Nuevo endpoint `GET /api/slider` (sin autenticación) para imágenes del carrusel; el existente `GET /api/customer/slider` (Sanctum) ahora delega en `SliderService` que unifica la lectura de `slider.json` (`slider_public` + fallback `storage/slider`).
+    *   **Filtros extendidos:** `GET /api/customer/products` ahora soporta `brand`, `tag` (slug), `featured` (boolean) además de `category`/`search`/`per_page`.
+    *   **Detalle y vocabularios:** Nuevos `GET /api/customer/products/{id}` (precio efectivo + tags) y `GET /api/customer/filters` (`{categories, brands, tags: [{slug,name}]}`).
+    *   **Documentación:** Expuestos automáticamente en Scramble (`/docs/api`, `/docs/api.json`).
 
 ### 🛍️ Productos y Ofertas
 
@@ -47,7 +52,11 @@ Este documento resume los cambios significativos entre la rama `v1` y la rama `m
     *   Se actualizó la lógica de filtrado de pedidos para soportar la **impersonación** de clientes por parte de vendedores, utilizando el helper `current_user()` para resolver correctamente la identidad del usuario activo.
 
 ### 🐛 Correcciones de Errores
-
+ 
+*   **Aislamiento de Sesión y Autenticación Dual (User vs AltUser):**
+    *   Se eliminó la suplantación automática entre `alt_users` y `users` por coincidencia de email en el flujo de inicio de sesión (`login.blade.php`), previniendo que un cliente acceda con datos de otro.
+    *   Se forzó la regeneración de sesión y la limpieza de flags residuales (`is_alt_login`, `sales_acting_as_customer_id`) en cada autenticación exitosa.
+    *   Se estandarizó el uso del helper `current_user()` en lugar de `Auth::user()` en componentes clave (`users.profile`, `web-product-card`, `web-product-detail`) y en los temas asociados.
 *   **Creación de Usuarios Alternativos (AltUser):** Se solucionó un error SQL (`Field 'password' doesn't have a default value`) al crear nuevos usuarios alternativos, generando ahora una contraseña aleatoria segura automáticamente si no se proporciona una.
 
 ---

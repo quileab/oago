@@ -301,6 +301,14 @@ OAGO is a **B2B e-commerce catalog** (TALL stack). Key actors:
 - Checks guards in order: `web` → `sanctum` → `alt`.
 - If role is `sales` AND `session('sales_acting_as_customer_id')` is set → returns the impersonated `User` transparently.
 - `AuthServiceProvider` sets the `alt` guard as default when `session('is_alt_login')` is present.
+- **NEVER use `Auth::user()` directly in Blade views or Livewire components** (e.g., `profile`, `web-product-card`, `web-product-detail`) as it only resolves the default `web` guard and breaks `AltUser` and sales impersonation.
+
+**Login & Session Isolation Rules (CRITICAL to prevent data leakage):**
+- **Strict Guard Separation**: Do NOT automatically link or swap `AltUser` with `User` based merely on an email match without explicit credential authentication on that guard.
+- **Session Cleanup on Login**:
+  - Main user login (`web`): Must regenerate session and remove `is_alt_login` and `sales_acting_as_customer_id`.
+  - Alt user login (`alt`): Must regenerate session, set `is_alt_login = true`, and remove `sales_acting_as_customer_id`.
+- **Theme Synchronization**: Any changes to `login.blade.php`, `web-product-card.blade.php`, or `web-product-detail.blade.php` must be reflected in active themes (e.g., `resources/views/themes/encendido/...`).
 
 **Roles** (`App\Enums\Role` — string-backed enum):
 | Case | Value | Notes |
@@ -462,9 +470,10 @@ Registered in `bootstrap/app.php`:
 Public:           /login, /register, /about, /activate-account/{token}, /proxy-image
 Auth+check_guest: /user/profile, /orders, /alt-orders, /checkout, /product/details/{id?}, etc.
 Admin-only:       /users, /products, /dashboard, /settings, /logs, /slider, /export/*
-API public:       POST /api/register, POST /api/login
-API Sanctum:      /api/user, /api/users/{user}
+API public:       POST /api/register, POST /api/login, GET /api/slider
+API Sanctum:      /api/user, /api/users/{user}, /api/customer/products[?search,category,brand,tag,featured], /api/customer/products/{id}, /api/customer/filters, /api/customer/orders, /api/customer/slider (legacy, delega a SliderService)
 API admin:        /api/orders/*, /api/products/*, /api/list-prices/*, /api/users
+Docs:             /docs/api , /docs/api.json (Scramble)
 ```
 
 ---
@@ -526,6 +535,7 @@ If you need to modify `resources/views/livewire/web-product-detail.blade.php` fo
 | `OrderService` | `placeOrder()`, `validateCart()` |
 | `PriceListService` | `getEffectivePrice()`, `calculateItemPrice()` |
 | `ProductSearchService` | `hydratePrices()` (N+1 prevention for catalog) |
+| `SliderService` | `getSlides()` (unifica `slider_public` + fallback `storage/slider`) |
 
 ---
 

@@ -46,15 +46,20 @@ new class extends Component {
      */
     public function mount(): void
     {
-        $this->user = Auth::user();
+        $this->user = current_user();
 
-        $this->name = $this->user->name;
-        $this->lastname = $this->user->lastname;
-        $this->address = $this->user->address;
-        $this->city = $this->user->city;
-        $this->postal_code = $this->user->postal_code;
-        $this->phone = $this->user->phone;
-        $this->email = $this->user->email;
+        if (!$this->user) {
+            $this->redirect('/');
+            return;
+        }
+
+        $this->name = $this->user->name ?? '';
+        $this->lastname = $this->user->lastname ?? '';
+        $this->address = $this->user->address ?? '';
+        $this->city = $this->user->city ?? '';
+        $this->postal_code = $this->user->postal_code ?? '';
+        $this->phone = $this->user->phone ?? '';
+        $this->email = $this->user->email ?? '';
     }
 
     /**
@@ -62,6 +67,8 @@ new class extends Component {
      */
     public function updateProfile(): void
     {
+        $table = $this->user instanceof \App\Models\AltUser ? 'alt_users' : 'users';
+
         $validated = $this->validate([
             'name' => 'required|string|max:255',
             'lastname' => 'required|string|max:255',
@@ -69,7 +76,7 @@ new class extends Component {
             'city' => 'required|string|max:255',
             'postal_code' => 'required|string|max:20',
             'phone' => 'required|string|max:50',
-            'email' => 'required|email|max:255|unique:users,email,' . $this->user->id,
+            'email' => 'required|email|max:255|unique:' . $table . ',email,' . $this->user->id,
         ]);
 
         $this->user->fill($validated);
@@ -88,8 +95,8 @@ new class extends Component {
      */
     public function updatePassword(): void
     {
-        // Admin doesn't need current password, user does.
-        $is_admin_editing = Auth::user()->is_admin && Auth::id() !== $this->user->id;
+        $currentUser = current_user();
+        $is_admin_editing = ($currentUser && $currentUser->role->value === 'admin') && $currentUser->id !== $this->user->id;
 
         $rules = [
             'password' => 'required|string|min:8|confirmed',
