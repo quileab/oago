@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\OrderStatus;
+use App\Enums\Role;
 use App\Helpers\SettingsHelper;
 use App\Http\Controllers\Controller;
 use App\Mail\OrderMail;
+use App\Models\AltUser;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
@@ -304,7 +306,8 @@ class CustomerApiController extends Controller
     }
 
     /**
-     * Obtener la lista de agentes de ventas asignados al cliente.
+     * Obtener la lista de agentes de ventas (todos los usuarios y AltUsers con rol 'sales').
+     * Incluye 'is_assigned': true/false para el cliente actual, ordenando los asignados primero.
      */
     public function sellers(Request $request): JsonResponse
     {
@@ -313,22 +316,29 @@ class CustomerApiController extends Controller
             return response()->json(['message' => 'No autorizado'], 401);
         }
 
-        if (! ($user instanceof User)) {
-            return response()->json([], 200);
+        // Obtener asignaciones activas si el usuario es de tipo User
+        $assignedMap = collect();
+        if ($user instanceof User) {
+            $assignedMap = $user->assignedSalesAgents()
+                ->where('is_active', true)
+                ->get()
+                ->keyBy(fn ($item) => $item->sales_agent_type.'_'.$item->sales_agent_id);
         }
 
-        $assignedAgents = $user->assignedSalesAgents()
-            ->where('is_active', true)
-            ->with('salesAgent')
-            ->get();
+        // 1. Vendedores desde tabla users
+        $salesUsers = User::where('role', Role::SALES)->get();
 
-        $sellers = $assignedAgents->map(function ($assignment) {
-            $agent = $assignment->salesAgent;
-            if (! $agent) {
-                return null;
-            }
+        // 2. Vendedores desde tabla alt_users
+        $salesAltUsers = AltUser::where('role', Role::SALES)->get();
 
-            return [
+        $allSellers = collect();
+
+        foreach ($salesUsers as $agent) {
+            $key = User::class.'_'.$agent->id;
+            $assignment = $assignedMap->get($key);
+            $isAssigned = $assignment !== null;
+
+            $allSellers->push([
                 'id' => $agent->id,
                 'name' => $agent->name,
                 'lastname' => $agent->lastname ?? '',
@@ -337,11 +347,36 @@ class CustomerApiController extends Controller
                     : trim(($agent->lastname ?? '').', '.($agent->name ?? ''), ', '),
                 'email' => $agent->email,
                 'phone' => $agent->phone ?? null,
-                'is_admin_assigned' => (bool) $assignment->is_admin_assigned,
-                'agent_type' => class_basename($assignment->sales_agent_type),
-            ];
-        })->filter()->values();
+                'is_assigned' => $isAssigned,
+                'is_admin_assigned' => $isAssigned ? (bool) $assignment->is_admin_assigned : false,
+                'agent_type' => 'User',
+            ]);
+        }
 
-        return response()->json($sellers, 200);
+        foreach ($salesAltUsers as $agent) {
+            $key = AltUser::class.'_'.$agent->id;
+            $assignment = $assignedMap->get($key);
+            $isAssigned = $assignment !== null;
+
+            $allSellers->push([
+                'id' => $agent->id,
+                'name' => $agent->name,
+                'lastname' => $agent->lastname ?? '',
+                'full_name' => method_exists($agent, 'getFullNameAttribute') || isset($agent->fullName)
+                    ? $agent->fullName
+                    : trim(($agent->lastname ?? '').', '.($agent->name ?? ''), ', '),
+                'email' => $agent->email,
+                'phone' => $agent->phone ?? null,
+                'is_assigned' => $isAssigned,
+                'is_admin_assigned' => $isAssigned ? (bool) $assignment->is_admin_assigned : false,
+                'agent_type' => 'AltUser',
+            ]);
+        }
+
+        // Ordenar: primero los asignados (is_assigned: true), luego por full_name o nombre
+        $sortedSellers = $allSellers->sortByDesc(fn ($seller) => $seller['is_assigned'] ? 1 : 0)
+            ->values();
+
+        return response()->json($sortedSellers, 200);
     }
 }
