@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\SliderController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\AuthController;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -20,9 +21,14 @@ Route::middleware('auth:sanctum')->group(function () {
     // Auth
     Route::post('/logout', [AuthController::class, 'logout']);
 
-    // Devuelve solo el usuario autenticado
+    // Devuelve solo el usuario autenticado (con agentes de ventas asignados si existen)
     Route::get('/user', function (Request $request) {
-        return $request->user();
+        $user = current_user() ?? $request->user();
+        if ($user instanceof User) {
+            $user->loadMissing(['assignedSalesAgents.salesAgent']);
+        }
+
+        return response()->json($user);
     });
 
     // Rutas protegidas exclusivamente para Administradores
@@ -54,6 +60,7 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // Rutas de Clientes (realizar compras y ver pedidos)
+    Route::get('/customer/sellers', [CustomerApiController::class, 'sellers']);
     Route::get('/customer/products', [CustomerApiController::class, 'products']);
     Route::get('/customer/filters', [CustomerApiController::class, 'filters']);
     Route::get('/customer/products/{id}', [CustomerApiController::class, 'showProduct'])->whereNumber('id');

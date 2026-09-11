@@ -11,6 +11,7 @@ use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\ShippingDetail;
 use App\Models\Tag;
+use App\Models\User;
 use App\Services\PriceListService;
 use App\Services\SliderService;
 use Illuminate\Http\JsonResponse;
@@ -300,5 +301,47 @@ class CustomerApiController extends Controller
     public function slider(Request $request): JsonResponse
     {
         return response()->json(app(SliderService::class)->getSlides(), 200);
+    }
+
+    /**
+     * Obtener la lista de agentes de ventas asignados al cliente.
+     */
+    public function sellers(Request $request): JsonResponse
+    {
+        $user = current_user() ?? $request->user();
+        if (! $user) {
+            return response()->json(['message' => 'No autorizado'], 401);
+        }
+
+        if (! ($user instanceof User)) {
+            return response()->json([], 200);
+        }
+
+        $assignedAgents = $user->assignedSalesAgents()
+            ->where('is_active', true)
+            ->with('salesAgent')
+            ->get();
+
+        $sellers = $assignedAgents->map(function ($assignment) {
+            $agent = $assignment->salesAgent;
+            if (! $agent) {
+                return null;
+            }
+
+            return [
+                'id' => $agent->id,
+                'name' => $agent->name,
+                'lastname' => $agent->lastname ?? '',
+                'full_name' => method_exists($agent, 'getFullNameAttribute') || isset($agent->fullName)
+                    ? $agent->fullName
+                    : trim(($agent->lastname ?? '').', '.($agent->name ?? ''), ', '),
+                'email' => $agent->email,
+                'phone' => $agent->phone ?? null,
+                'is_admin_assigned' => (bool) $assignment->is_admin_assigned,
+                'agent_type' => class_basename($assignment->sales_agent_type),
+            ];
+        })->filter()->values();
+
+        return response()->json($sellers, 200);
     }
 }

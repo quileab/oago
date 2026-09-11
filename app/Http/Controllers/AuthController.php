@@ -28,6 +28,7 @@ class AuthController extends Controller
                 'message' => 'The provided credentials are incorrect.',
             ], 401);
         }
+        $user->loadMissing(['assignedSalesAgents.salesAgent']);
         $token = $user->createToken($user->name)->plainTextToken;
 
         return response()->json([
