@@ -1,4 +1,5 @@
 <?php
+use App\Helpers\SettingsHelper;
 use App\Services\ProductSearchService;
 use Livewire\Volt\Component;
 use Livewire\WithPagination;
@@ -10,8 +11,9 @@ use Mary\Traits\Toast;
 new class extends Component {
     use WithPagination, WithoutUrlPagination, Toast;
 
-    public $items = 30;
-    public $featured = false;
+    public int $items = 30;
+    public string $displayMode = 'infinite_scroll';
+    public bool $featured = false;
     public $filter; // for data passed to the component
 
     #[Url(history: true)]
@@ -31,9 +33,15 @@ new class extends Component {
 
     protected ProductSearchService $productSearchService;
 
-    public function boot()
+    public function boot(): void
     {
         $this->productSearchService = App::make(ProductSearchService::class);
+    }
+
+    public function mount(): void
+    {
+        $this->displayMode = SettingsHelper::settings('catalog_display_mode', 'infinite_scroll');
+        $this->items = (int) SettingsHelper::settings('catalog_items_per_page', 30);
     }
 
     public function products()
@@ -55,12 +63,18 @@ new class extends Component {
             $params = array_merge($params, $this->filter);
         }
 
-        $products = $this->productSearchService->searchProducts($params, (int) $this->items, $this->featured);
+        $products = $this->productSearchService->searchProducts(
+            $params,
+            (int) $this->items,
+            $this->featured,
+            paginate: $this->displayMode === 'paginated'
+        );
 
         $products->map(function ($product) {
             $product->qtty = $product->qtty_package;
             return $product;
         });
+
         return $products;
     }
 
@@ -78,11 +92,11 @@ new class extends Component {
         if ($resetPage) {
             $this->resetPage();
         }
-        
+
         return ['products' => $this->products()];
     }
 
-    public function loadMore()
+    public function loadMore(): void
     {
         $this->items += 15;
     }
@@ -115,11 +129,17 @@ new class extends Component {
         @endforelse
     </div>
 
-    @if (count($products) >= $items)
-        <div x-data x-intersect.full="$wire.loadMore()">
-            <div wire:loading wire:target="loadMore" class="text-center w-full p-4">
-                <p>Cargando más productos...</p>
+    @if ($displayMode === 'infinite_scroll')
+        @if (count($products) >= $items)
+            <div x-data x-intersect.full="$wire.loadMore()">
+                <div wire:loading wire:target="loadMore" class="text-center w-full p-4">
+                    <p>Cargando más productos...</p>
+                </div>
             </div>
+        @endif
+    @else
+        <div class="mt-6 flex justify-center">
+            {{ $products->links('livewire.pagination') }}
         </div>
     @endif
 </div>

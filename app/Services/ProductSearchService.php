@@ -8,11 +8,12 @@ use App\Helpers\SettingsHelper;
 use App\Models\ListPrice;
 use App\Models\Product;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class ProductSearchService
 {
-    public function searchProducts(array $params, int $itemsPerPage = 15, bool $featured = false): Product|LengthAwarePaginator|null
+    public function searchProducts(array $params, int $itemsPerPage = 15, bool $featured = false, bool $paginate = true): Product|LengthAwarePaginator|Collection|null
     {
         $query = Product::query()
             ->with('tags')
@@ -77,11 +78,15 @@ class ProductSearchService
 
         $results = $itemsPerPage === 1
             ? $query->first()
-            : $query->paginate($itemsPerPage);
+            : ($paginate
+                ? $query->paginate($itemsPerPage)
+                : $query->limit($itemsPerPage)->get());
 
         // 💰 Hidratar precios de forma masiva
         if ($results instanceof LengthAwarePaginator) {
             $this->hydratePrices($results->getCollection());
+        } elseif ($results instanceof Collection) {
+            $this->hydratePrices($results);
         } elseif ($results instanceof Product) {
             $this->hydratePrices(collect([$results]));
         }

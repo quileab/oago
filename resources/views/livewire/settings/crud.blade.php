@@ -176,23 +176,23 @@ new class extends Component {
     <x-drawer wire:model="drawer" :title="$isEditing ? 'Editar Configuración' : 'Nueva Configuración'" right
         with-close-button class="lg:w-2/3">
         <x-form wire:submit="save">
-            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
                 <x-input label="Clave (Key)" wire:model="formData.key"
                     hint="Identif. único (ej. 'site_name')" />
 
                 <x-select label="Tipo de Dato" wire:model.live="formData.type" :options="$this->types()" option-value="id"
                     option-label="name" />
+
+                <x-input label="Etiqueta (Texto)" wire:model="formData.text" hint="Nombre visible" />
             </div>
 
-            <x-input label="Etiqueta (Texto)" wire:model="formData.text" hint="Nombre visible para el usuario" />
-
-            <x-textarea label="Descripción" wire:model="formData.description"
+            <x-textarea label="Descripción" wire:model="formData.description" rows="2"
                 hint="Breve explicación de para qué sirve" />
 
             <x-textarea 
                 label="Valor / Configuración" 
                 wire:model="formData.value"
-                :rows="isset($formData['type']) && $formData['type'] === 'json' ? 15 : 4"
+                rows="2"
                 class="font-mono text-sm bg-base-300/50"
                 :hint="isset($formData['type']) && $formData['type'] === 'json' ? 'Para objetos complejos use JSON válido. Para listas simples separe por comas.' : 'Utilice tipografía monoespaciada para mayor claridad.'"
             />
