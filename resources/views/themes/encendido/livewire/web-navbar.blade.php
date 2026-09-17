@@ -15,26 +15,28 @@
         </div>
 
         <div class="flex items-center gap-2 border-l border-white/10 pl-2 sm:pl-4">
-          @if(count($salesCustomers) > 0 || $searchCustomer)
-            <x-dropdown label="{{ $actingAsName ? 'Cliente: ' . $actingAsName : 'Seleccionar Cliente' }}" class="btn-sm btn-outline border-primary/50 text-primary-content hover:bg-primary hover:border-primary"
-              icon="o-users">
-              <div class="p-2 bg-base-100" @click.stop>
-                <x-input placeholder="Buscar..." wire:model.live.debounce="searchCustomer" icon="o-magnifying-glass"
-                  class="input-sm bg-base-200 text-base-content" />
-              </div>
-              <div class="bg-base-100 text-base-content max-h-60 overflow-y-auto">
-                @foreach($salesCustomers as $customer)
-                  @php
-                    $cId = is_object($customer) ? ($customer->id ?? 0) : ($customer['id'] ?? 0);
-                    $cName = is_object($customer)
-                        ? ($customer->full_name ?? 'ID: ' . $cId)
-                        : (trim(($customer['lastname'] ?? '') . ', ' . ($customer['name'] ?? ''), ', ') ?: 'ID: ' . $cId);
-                  @endphp
-                  <x-menu-item title="{{ $cName }}" wire:click="setActingCustomer({{ $cId }})" class="hover:bg-primary hover:text-primary-content" />
-                @endforeach
-              </div>
-            </x-dropdown>
-          @endif
+          @island('sales-customer-dropdown')
+            @if(count($salesCustomers) > 0 || $searchCustomer)
+              <x-dropdown label="{{ $actingAsName ? 'Cliente: ' . $actingAsName : 'Seleccionar Cliente' }}" class="btn-sm btn-outline border-primary/50 text-primary-content hover:bg-primary hover:border-primary"
+                icon="o-users">
+                <div class="p-2 bg-base-100" @click.stop>
+                  <x-input placeholder="Buscar..." wire:model.live.debounce="searchCustomer" icon="o-magnifying-glass"
+                    class="input-sm bg-base-200 text-base-content" />
+                </div>
+                <div class="bg-base-100 text-base-content max-h-60 overflow-y-auto">
+                  @foreach($salesCustomers as $customer)
+                    @php
+                      $cId = is_object($customer) ? ($customer->id ?? 0) : ($customer['id'] ?? 0);
+                      $cName = is_object($customer)
+                          ? ($customer->full_name ?? 'ID: ' . $cId)
+                          : (trim(($customer['lastname'] ?? '') . ', ' . ($customer['name'] ?? ''), ', ') ?: 'ID: ' . $cId);
+                    @endphp
+                    <x-menu-item title="{{ $cName }}" wire:click="setActingCustomer({{ $cId }})" class="hover:bg-primary hover:text-primary-content" />
+                  @endforeach
+                </div>
+              </x-dropdown>
+            @endif
+          @endisland
 
           @if(Auth::guest())
             <x-button label="INGRESAR" icon="o-lock-closed" class="btn btn-sm btn-primary shadow-lg shadow-primary/20 font-black" link="/login" />

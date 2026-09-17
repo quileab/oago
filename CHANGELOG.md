@@ -14,8 +14,13 @@ Este documento resume los cambios significativos entre la rama `v1` y la rama `m
     *   Se cambió el nivel de log para errores de timeout y conexión externa de `warning` a `info` para evitar alertas redundantes que contaminen los registros de producción.
 ### ⚙️ Sistema y Configuración
 
+*   **Modo de Visualización del Catálogo (Paginación vs Infinite Scroll):**
+    *   Se integraron configuraciones globales administrables (`catalog_display_mode` y `catalog_items_per_page`) para alternar entre *scroll infinito* y *paginación* con control de cantidad de elementos por página/bloque.
+    *   Se actualizó el servicio `ProductSearchService` con soporte opcional de paginación (`paginate: bool`), optimizando el rendimiento al evitar consultas de conteo (`COUNT(*)`) cuando se usa infinite scroll.
+    *   Se implementó una vista personalizada de paginación (`livewire.pagination`) con formato simplificado (`151-180 / 2210`).
 *   **Colas de Trabajo (Queues):** Se corrigió la configuración de Supervisor en producción (`user=oagostini`) y se estableció la rotación de logs para evitar el consumo excesivo de disco.
 *   **Comando make:deploy-zip (MakeDeployZip):** Se documentó formalmente el comando `php artisan make:deploy-zip` (anteriormente referido con la firma obsoleta `app:create-deploy-package`), el cual genera un paquete ZIP de despliegue optimizado, ofreciendo filtros interactivos para discriminar assets de marca o exclusión de temas.
+*   **Optimización de Panel de Configuraciones (Settings UI):** Se reorganizó el modal/drawer de edición de configuraciones para pantallas de baja resolución (unificando clave, tipo y etiqueta en una sola fila y reduciendo el alto de los campos de texto).
 
 ### 🔌 API REST (Compatibilidad y Optimizaciones)
 

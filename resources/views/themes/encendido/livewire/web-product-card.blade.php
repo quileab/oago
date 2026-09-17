@@ -107,6 +107,16 @@
                 </div>
 
                 {{-- In Cart --}}
+                @island('cart-badge')
+                    @if(!empty($cart) && isset($cart[$product->id]))
+                        <div class="mb-2 text-center">
+                            <span class="text-emerald-400 font-black bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 text-[10px]" title="Cantidad en carrito">
+                                <x-icon name="o-shopping-cart" class="w-3 h-3 inline mr-0.5" />
+                                <span class="uppercase">en carrito:</span> {{ $cart[$product->id]['quantity'] }}
+                            </span>
+                        </div>
+                    @endif
+                @endisland
                 @php
                     $currUser = current_user();
                     $canBuy = $product->stock > 0 && $currUser && !in_array($currUser->role->value, ['none', 'guest']) && ($display_offer > 0 ? $display_offer : $display_price) > 0;

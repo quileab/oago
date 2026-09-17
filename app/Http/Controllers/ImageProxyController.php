@@ -20,7 +20,7 @@ class ImageProxyController extends Controller
         $fallback = public_path('imgs/fallback.webp');
         $headers = [
             'Content-Type' => 'image/webp',
-            'Cache-Control' => 'public, max-age=86400',
+            'Cache-Control' => 'public, max-age=2592000, immutable',
         ];
 
         // Función para servir archivos locales de forma robusta
@@ -175,7 +175,7 @@ class ImageProxyController extends Controller
 
                 return response($imageContent, 200, [
                     'Content-Type' => $contentType,
-                    'Cache-Control' => 'public, max-age=86400',
+                    'Cache-Control' => 'public, max-age=604800',
                     'Content-Length' => strlen($imageContent),
                 ]);
             } else {

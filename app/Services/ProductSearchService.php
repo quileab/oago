@@ -125,7 +125,12 @@ class ProductSearchService
         }
 
         $user = current_user();
-        if (! $user || ! $user->list_id) {
+        $showPricesToGuests = (bool) SettingsHelper::settings('show_prices_to_guests', false);
+        $defaultGuestListId = $showPricesToGuests ? (int) SettingsHelper::settings('alt_user_default_price', 0) : 0;
+
+        $targetListId = $user?->list_id ?: $defaultGuestListId;
+
+        if (! $targetListId) {
             foreach ($products as $product) {
                 $product->user_price = (float) $product->price;
                 $product->base_price = (float) $product->price;
@@ -136,7 +141,7 @@ class ProductSearchService
         }
 
         $priceService = app(PriceListService::class);
-        $baseListId = $priceService->resolveBaseListId($user->list_id);
+        $baseListId = $priceService->resolveBaseListId($targetListId);
 
         // Cargar precios base en una sola consulta
         $listPrices = ListPrice::query()
@@ -144,6 +149,17 @@ class ProductSearchService
             ->whereIn('product_id', $products->pluck('id'))
             ->get()
             ->keyBy('product_id');
+
+        // Si la lista principal no es la de invitados pero faltan precios y showPricesToGuests está activo,
+        // cargar los precios de la lista por defecto de invitados como fallback
+        $fallbackListPrices = collect();
+        if ($showPricesToGuests && $defaultGuestListId && $defaultGuestListId !== $baseListId) {
+            $fallbackListPrices = ListPrice::query()
+                ->where('list_id', $defaultGuestListId)
+                ->whereIn('product_id', $products->pluck('id'))
+                ->get()
+                ->keyBy('product_id');
+        }
 
         // Cargar precios de promoción en una sola consulta
         $promoListId = (int) SettingsHelper::settings('promo_list_id');
@@ -160,11 +176,18 @@ class ProductSearchService
             $lp = $listPrices->get($product->id);
             $promoLp = $promoListPrices->get($product->id);
 
-            // Calcular precio base (el de la lista del usuario)
-            if ($lp) {
+            // Calcular precio base
+            if ($lp && (float) $lp->price > 0) {
                 $basePrice = (float) $lp->price;
             } else {
-                $basePrice = (float) $product->price;
+                $productPrice = (float) $product->price;
+                if ($productPrice > 0) {
+                    $basePrice = $productPrice;
+                } else {
+                    // Si el producto no tiene precio y show_prices_to_guests está activado, usar alt_user_default_price
+                    $fallbackLp = $fallbackListPrices->get($product->id);
+                    $basePrice = $fallbackLp ? (float) $fallbackLp->price : $productPrice;
+                }
             }
 
             // Calcular precio de promo (si existe)
@@ -176,7 +199,7 @@ class ProductSearchService
 
             $product->base_price = $basePrice;
             $product->promo_price = $promoPrice;
-            $product->user_price = ($promoPrice !== null) ? $promoPrice : $basePrice;
+            $product->user_price = ($promoPrice !== null && $promoPrice < $basePrice) ? $promoPrice : $basePrice;
         }
     }
 

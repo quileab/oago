@@ -9,24 +9,26 @@
       <a href="/registrate" class="hover:bg-gray-400 hover:text-black transition-all duration-300 p-4">Regístrate</a>
 
       <div class="inline-flex items-center">
-        @if(count($salesCustomers) > 0 || $searchCustomer)
-          <x-dropdown label="{{ $actingAsName ? 'Cliente: ' . $actingAsName : 'Seleccionar Cliente' }}" class="btn-ghost"
-            icon="o-users">
-            <div class="p-2" @click.stop>
-              <x-input placeholder="Buscar..." wire:model.live.debounce="searchCustomer" icon="o-magnifying-glass"
-                class="input-sm" />
-            </div>
-            @foreach($salesCustomers as $customer)
-              @php
-                $cId = is_object($customer) ? ($customer->id ?? 0) : ($customer['id'] ?? 0);
-                $cName = is_object($customer)
-                    ? ($customer->full_name ?? 'ID: ' . $cId)
-                    : (trim(($customer['lastname'] ?? '') . ', ' . ($customer['name'] ?? ''), ', ') ?: 'ID: ' . $cId);
-              @endphp
-              <x-menu-item title="{{ $cName }}" wire:click="setActingCustomer({{ $cId }})" />
-            @endforeach
-          </x-dropdown>
-        @endif
+        @island('sales-customer-dropdown')
+          @if(count($salesCustomers) > 0 || $searchCustomer)
+            <x-dropdown label="{{ $actingAsName ? 'Cliente: ' . $actingAsName : 'Seleccionar Cliente' }}" class="btn-ghost"
+              icon="o-users">
+              <div class="p-2" @click.stop>
+                <x-input placeholder="Buscar..." wire:model.live.debounce="searchCustomer" icon="o-magnifying-glass"
+                  class="input-sm" />
+              </div>
+              @foreach($salesCustomers as $customer)
+                @php
+                  $cId = is_object($customer) ? ($customer->id ?? 0) : ($customer['id'] ?? 0);
+                  $cName = is_object($customer)
+                      ? ($customer->full_name ?? 'ID: ' . $cId)
+                      : (trim(($customer['lastname'] ?? '') . ', ' . ($customer['name'] ?? ''), ', ') ?: 'ID: ' . $cId);
+                @endphp
+                <x-menu-item title="{{ $cName }}" wire:click="setActingCustomer({{ $cId }})" />
+              @endforeach
+            </x-dropdown>
+          @endif
+        @endisland
 
         @if(Auth::guest())
           <x-button label="INGRESAR" icon="o-lock-closed" class="btn btn-ghost ml-1" link="/login" />

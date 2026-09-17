@@ -27,4 +27,4 @@
 
 <img src="{{ $displayUrl }}" 
      onerror="this.onerror=null; this.src='{{ $fallbackUrl }}';" 
-     {{ $attributes->merge(['loading' => 'lazy']) }}>
+     {{ $attributes->merge(['loading' => 'lazy', 'decoding' => 'async']) }}>

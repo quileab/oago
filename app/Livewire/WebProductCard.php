@@ -25,12 +25,14 @@ class WebProductCard extends Component
 
     public $offer_price = 0;
 
-    // Escuchamos el evento solo para que el card se refresque y muestre el badge de "En Carrito" actualizado
+    // Escuchamos el evento solo para que el card refresque el badge de "En Carrito" de forma aislada
     #[On('cart-updated')]
-    public function refreshCard()
+    public function refreshCard(): void
     {
-        // No sincronizamos $this->qtty para que el usuario pueda seguir eligiendo cuánto agregar
-        $this->render();
+        $this->renderIsland('cart-badge', with: [
+            'cart' => session()->get('cart', []),
+            'product' => (object) $this->local_product,
+        ]);
     }
 
     public function mount($product)
@@ -38,36 +40,58 @@ class WebProductCard extends Component
         $productModel = $product instanceof Model ? $product : null;
 
         if ($productModel) {
-            $this->local_product = $productModel->toArray();
-            $this->local_product['tags_array'] = $productModel->tags_array;
+            $raw = $productModel->toArray();
+            $raw['tags_array'] = $productModel->tags_array;
 
             if (isset($product->description_html)) {
-                $this->local_product['description_html'] = $product->description_html;
+                $raw['description_html'] = $product->description_html;
             }
             if (isset($product->base_price)) {
-                $this->local_product['base_price'] = $product->base_price;
+                $raw['base_price'] = $product->base_price;
             }
             if (isset($product->promo_price)) {
-                $this->local_product['promo_price'] = $product->promo_price;
+                $raw['promo_price'] = $product->promo_price;
             }
         } else {
-            $this->local_product = (array) $product;
-            if (! isset($this->local_product['tags_array'])) {
-                $this->local_product['tags_array'] = isset($this->local_product['tags']) && ! empty($this->local_product['tags'])
-                    ? array_values(array_filter(explode('|', $this->local_product['tags'])))
+            $raw = (array) $product;
+            if (! isset($raw['tags_array'])) {
+                $raw['tags_array'] = isset($raw['tags']) && ! empty($raw['tags'])
+                    ? array_values(array_filter(explode('|', $raw['tags'])))
                     : [];
             }
         }
 
+        // Retain only essential UI fields to reduce Livewire DOM snapshot payload
+        $this->local_product = array_intersect_key(
+            $raw,
+            array_flip([
+                'id', 'brand', 'model', 'description', 'description_html', 'stock',
+                'qtty_package', 'qtty_unit', 'featured', 'image_url', 'tags_array',
+                'base_price', 'promo_price', 'price',
+            ])
+        );
+
         $priceService = app(PriceListService::class);
-        $listId = current_user()?->list_id ?? 0;
+        $showPricesToGuests = (bool) SettingsHelper::settings('show_prices_to_guests', false);
+        $defaultGuestListId = $showPricesToGuests ? (int) SettingsHelper::settings('alt_user_default_price', 0) : 0;
+        $listId = current_user()?->list_id ?? $defaultGuestListId;
 
         $basePrice = $this->local_product['base_price']
-            ?? ($productModel ? $priceService->getEffectivePrice($listId, $productModel->id, true) : null)
+            ?? ($productModel && $listId ? $priceService->getEffectivePrice($listId, $productModel->id, true) : null)
             ?? ($this->local_product['price'] ?? 0);
 
+        if ((! $basePrice || $basePrice <= 0) && $showPricesToGuests && $defaultGuestListId) {
+            $productId = $productModel ? $productModel->id : ($this->local_product['id'] ?? 0);
+            if ($productId) {
+                $fallbackPrice = $priceService->getEffectivePrice($defaultGuestListId, $productId, true);
+                if ($fallbackPrice && $fallbackPrice > 0) {
+                    $basePrice = $fallbackPrice;
+                }
+            }
+        }
+
         $promoPrice = $this->local_product['promo_price']
-            ?? ($productModel ? $priceService->getEffectivePrice($listId, $productModel->id, false) : null)
+            ?? ($productModel && $listId ? $priceService->getEffectivePrice($listId, $productModel->id, false) : null)
             ?? null;
 
         if ($promoPrice !== null && $promoPrice < $basePrice) {

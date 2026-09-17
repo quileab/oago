@@ -108,12 +108,14 @@
                 </div>
 
                 <div class="text-center">
-                    @if(!empty($cart) && isset($cart[$product->id]))
-                        <span class="text-green-700 font-black bg-green-100 px-2 py-0.5 rounded-full border border-green-200" title="Cantidad en carrito">
-                            <x-icon name="o-shopping-cart" class="w-3 h-3 inline mr-0.5" />
-                            <span class="uppercase">en carrito:</span> {{ $cart[$product->id]['quantity'] }}
-                        </span>
-                    @endif
+                    @island('cart-badge')
+                        @if(!empty($cart) && isset($cart[$product->id]))
+                            <span class="text-green-700 font-black bg-green-100 px-2 py-0.5 rounded-full border border-green-200" title="Cantidad en carrito">
+                                <x-icon name="o-shopping-cart" class="w-3 h-3 inline mr-0.5" />
+                                <span class="uppercase">en carrito:</span> {{ $cart[$product->id]['quantity'] }}
+                            </span>
+                        @endif
+                    @endisland
                 </div>
             </div>
 

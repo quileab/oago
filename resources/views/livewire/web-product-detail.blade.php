@@ -1,6 +1,7 @@
 <?php
 use App\Models\Product;
 use App\Services\ProductSearchService;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Volt\Component;
 use Mary\Traits\Toast;
@@ -50,9 +51,23 @@ new class extends Component
             $this->qtty = $this->product->qtty_package;
             $this->media = $this->product->media ?? [];
             $this->tags = $this->product->tags_array ?? [];
-            $this->related_products = app(ProductSearchService::class)
-                ->searchRelatedProducts($this->product, 12);
         }
+    }
+
+    public function getRelatedProducts(): Collection|array
+    {
+        if (! empty($this->related_products)) {
+            return $this->related_products;
+        }
+
+        if (! $this->product || ! $this->product->id) {
+            return collect();
+        }
+
+        $this->related_products = app(ProductSearchService::class)
+            ->searchRelatedProducts($this->product, 12);
+
+        return $this->related_products;
     }
 
     public function buy(int $productId): void
@@ -305,17 +320,38 @@ new class extends Component
     @endif
 
     <!-- Productos Relacionados -->
-    @if(count($related_products) > 0)
-        <div class="mt-16">
-            <h2 class="text-2xl font-black text-gray-900 mb-8 px-2 flex items-center gap-3">
-                <span class="w-2 h-8 bg-blue-600 rounded-full"></span>
-                PRODUCTOS RELACIONADOS
-            </h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                @foreach ($related_products as $rel_product)
-                    <livewire:web-product-card :product="$rel_product" :key="'rel-'.$rel_product->id" />
-                @endforeach
+    @island('related-products', lazy: true)
+        @placeholder
+            <div class="mt-16">
+                <h2 class="text-2xl font-black text-gray-900 mb-8 px-2 flex items-center gap-3">
+                    <span class="w-2 h-8 bg-blue-600 rounded-full"></span>
+                    PRODUCTOS RELACIONADOS
+                </h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    @for ($i = 0; $i < 4; $i++)
+                        <div class="h-64 bg-white shadow-md rounded-2xl animate-pulse p-4 flex flex-col justify-between border border-gray-100">
+                            <div class="w-full h-36 bg-gray-200 rounded-xl"></div>
+                            <div class="h-4 bg-gray-200 rounded w-3/4"></div>
+                            <div class="h-4 bg-gray-200 rounded w-1/2"></div>
+                        </div>
+                    @endfor
+                </div>
             </div>
-        </div>
-    @endif
+        @endplaceholder
+
+        @php($relatedItems = $this->getRelatedProducts())
+        @if(count($relatedItems) > 0)
+            <div class="mt-16">
+                <h2 class="text-2xl font-black text-gray-900 mb-8 px-2 flex items-center gap-3">
+                    <span class="w-2 h-8 bg-blue-600 rounded-full"></span>
+                    PRODUCTOS RELACIONADOS
+                </h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    @foreach ($relatedItems as $rel_product)
+                        <livewire:web-product-card :product="$rel_product" :key="'rel-'.$rel_product->id" />
+                    @endforeach
+                </div>
+            </div>
+        @endif
+    @endisland
 </div>
