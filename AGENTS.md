@@ -405,12 +405,31 @@ SettingsHelper::getProductTags(): array
 ```
 
 **Known settings keys:**
+Defined in `config/default_settings.php` and provisioned via `php artisan app:sync-settings`:
 | Key | Type | Default | Purpose |
 |-----|------|---------|---------|
 | `guest_access_ttl_days` | number | 10 | Guest trial duration |
-| `order_placed_mail` | string | — | Admin email CC on orders |
-| `product_tags` | json | [] | Available product tags |
+| `show_prices_to_guests` | boolean | 0 | Show prices to non-logged visitors |
+| `alt_user_default_price` | number | 2 | Default price list ID for guest users |
+| `promo_list_id` | number | null | Promotional price list ID |
+| `order_placed_mail` | string | null | Admin email CC on orders |
+| `catalog_display_mode` | string | infinite_scroll | Catalog mode (infinite_scroll / paginated) |
+| `catalog_items_per_page` | number | 30 | Items per page / initial scroll chunk |
+| `number_format_separator` | string | , | Decimal separator for formatting |
+| `csv_separator` | string | , | Column separator for CSV files |
+| `product_tags` | json | [...] | Available product tags |
 | `image_proxy_allowed_hosts` | json | [] | SSRF whitelist for image proxy |
+| `company_name` | string | 'Distribuidora Agostini' | Company title |
+| `company_phone` | string | '+54 9 342 463-8925' | Main company phone |
+| `company_email` | string | 'contacto@oagostini.com.ar' | Main company email |
+| `company_address` | string | 'Av. José Gorriti, S3000...' | Physical address |
+| `company_map_iframe` | string | iframe code | Google Maps embed code |
+| `social_networks` | json | [...] | Array of social networks with icons and URLs |
+| `copyright` | string | '© InnoDesign - 2025' | Footer copyright notice |
+
+**Settings Synchronization:**
+- `php artisan app:sync-settings`: Checks `config/default_settings.php` against the `settings` table and creates any missing settings without overriding existing database values. Also automatically executed at the end of `php artisan db:import`.
+- `php artisan app:sync-settings --overwrite`: Forces reset of all default settings values.
 
 ---
 

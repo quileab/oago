@@ -164,7 +164,7 @@ class DataImport extends Command
 
         $this->newLine();
         $this->info('⚙️  Verificando e insertando configuraciones del sistema faltantes...');
-        $this->callSilent('db:seed', ['--class' => 'SettingsSeeder']);
+        $this->callSilent('app:sync-settings');
 
         $this->newLine();
         $this->info('🔄 Sincronizando tags de productos a tabla relacional...');
