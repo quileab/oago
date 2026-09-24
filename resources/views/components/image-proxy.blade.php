@@ -1,5 +1,6 @@
+@props(['url', 'fallback' => null])
 @php
-    $fallbackUrl = asset('imgs/fallback.webp');
+    $fallbackUrl = $fallback ?? asset('imgs/fallback.webp');
     $currentHost = parse_url(config('app.url'), PHP_URL_HOST);
     $requestHost = request()->getHost();
     $urlHost = $url ? parse_url($url, PHP_URL_HOST) : null;
@@ -11,7 +12,7 @@
                   $urlHost !== 'localhost' && 
                   $urlHost !== '127.0.0.1';
                   
-    $displayUrl = $url ? ($isExternal ? route('proxy.image', ['url' => $url]) : $url) : $fallbackUrl;
+    $displayUrl = $url ? ($isExternal ? route('proxy.image', ['url' => $url, 'return_404' => 1]) : $url) : $fallbackUrl;
 
     // Check if local file exists to prevent 404 requests in browser
     if (!$isExternal && $url) {
@@ -26,5 +27,8 @@
 @endphp
 
 <img src="{{ $displayUrl }}" 
-     onerror="this.onerror=null; this.src='{{ $fallbackUrl }}';" 
-     {{ $attributes->merge(['loading' => 'lazy', 'decoding' => 'async']) }}>
+     {{ $attributes->merge([
+         'loading' => 'lazy', 
+         'decoding' => 'async', 
+         'onerror' => "this.onerror=null; this.src='{$fallbackUrl}';"
+     ]) }}>

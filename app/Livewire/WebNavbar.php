@@ -52,7 +52,6 @@ class WebNavbar extends Component
     public function updatedSearchCustomer()
     {
         $this->loadCustomers();
-        $this->renderIsland('sales-customer-dropdown');
     }
 
     public function loadCustomers()

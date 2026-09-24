@@ -102,19 +102,35 @@ new class extends Component {
     }
 }; ?>
 
-<div class="mx-5 z-10 bg-gray-200">
+<div class="max-w-7xl mx-auto px-4 mt-6 z-10 relative">
     @if($featured)
-        <h2 class="text-2xl font-black text-gray-900 my-8 flex items-center gap-3">
-            <span class="w-2 h-8 bg-blue-600 rounded-full"></span>
-            PRODUCTOS DESTACADOS
-        </h2>
+        <div class="flex items-center gap-3 mb-6">
+            <!-- Hexagon -->
+            <div class="w-8 h-8 bg-gray-400 shrink-0" style="clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);"></div>
+            
+            <h2 class="text-xl md:text-3xl font-black text-gray-400 tracking-wide uppercase">
+                PRODUCTO DESTACADOS
+            </h2>
+            
+            <div class="ml-4 text-xs md:text-sm text-gray-400 text-left leading-tight font-bold hidden sm:block">
+                Lo mejor de nuestro catálogo, reunido en un solo lugar.<br>Descubrí nuestros productos destacados.
+            </div>
+        </div>
     @else
-        <h2 class="text-2xl font-black text-gray-900 my-8 flex items-center gap-3">
-            <span class="w-2 h-8 bg-blue-600 rounded-full"></span>
-            NUESTRO CATÁLOGO
-        </h2>
+        <div class="flex items-center gap-3 mb-6">
+            <!-- Hexagon -->
+            <div class="w-8 h-8 bg-gray-400 shrink-0" style="clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);"></div>
+            
+            <h2 class="text-xl md:text-3xl font-black text-gray-400 tracking-wide uppercase">
+                NUEVOS INGRESOS
+            </h2>
+            
+            <div class="ml-4 text-xs md:text-sm text-gray-400 text-left leading-tight font-bold hidden sm:block">
+                Lo mejor de nuestro catálogo, reunido en un solo lugar.<br>Descubrí nuestros productos destacados.
+            </div>
+        </div>
     @endif
-    <div wire:ignore.self class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div wire:ignore.self class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
         @forelse ($products as $product)
             <div>
                 @php

@@ -1,0 +1,390 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-23T21:52:43.313025+00:00",
+  "title": "Design System: OAGO — EncendidorQTA",
+  "extensions": {
+    "colorMeta": {
+      "cibat-navy": {
+        "role": "primary",
+        "displayName": "CIBAT Navy",
+        "canonical": "#1b365d",
+        "tonalRamp": [
+          "#0b1626",
+          "#12203a",
+          "#1b365d",
+          "#2a4a7a",
+          "#3d548f",
+          "#6b7fb0",
+          "#9aafcf",
+          "#d6deee"
+        ]
+      },
+      "cibat-blue": {
+        "role": "primary",
+        "displayName": "CIBAT Blue",
+        "canonical": "#3d548f",
+        "tonalRamp": [
+          "#16233f",
+          "#23365a",
+          "#3d548f",
+          "#5870a5",
+          "#7d95c2",
+          "#a8bcdb",
+          "#cdd9ec",
+          "#e8eef7"
+        ]
+      },
+      "er-red": {
+        "role": "primary",
+        "displayName": "ER Red",
+        "canonical": "#a6282e",
+        "tonalRamp": [
+          "#3d0f13",
+          "#5a1820",
+          "#7a1e27",
+          "#a6282e",
+          "#c94a4a",
+          "#e07a7a",
+          "#ecaaaa",
+          "#f8dddd"
+        ]
+      },
+      "er-red-bright": {
+        "role": "primary",
+        "displayName": "ER Bright Red",
+        "canonical": "#cc0000",
+        "tonalRamp": [
+          "#3d0d0d",
+          "#661111",
+          "#991111",
+          "#cc0000",
+          "#e64545",
+          "#ef8080",
+          "#f5b3b3",
+          "#fce0e0"
+        ]
+      },
+      "secondary-burgundy": {
+        "role": "secondary",
+        "displayName": "Burgundy",
+        "canonical": "#8a053c",
+        "tonalRamp": [
+          "#2b0a16",
+          "#4a0e24",
+          "#6e1430",
+          "#8a053c",
+          "#a82450",
+          "#c94d6e",
+          "#e08a9a",
+          "#f2c2cb"
+        ]
+      },
+      "success": {
+        "role": "secondary",
+        "displayName": "Success Green",
+        "canonical": "#3c8e26",
+        "tonalRamp": [
+          "#0f2410",
+          "#1a3d18",
+          "#2a5e1f",
+          "#3c8e26",
+          "#5aa845",
+          "#7cc46a",
+          "#a9dc9e",
+          "#d8f0d2"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#111111",
+        "tonalRamp": [
+          "#111111",
+          "#222222",
+          "#444444",
+          "#666666",
+          "#8c8c8c",
+          "#b0b0b0",
+          "#d6d6d6",
+          "#f0f0f0"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted Stone",
+        "canonical": "#8c8c8c",
+        "tonalRamp": [
+          "#4a4a4a",
+          "#666666",
+          "#8c8c8c",
+          "#a8a8a8",
+          "#cccccc",
+          "#d9d9d9",
+          "#e8e8e8",
+          "#f5f5f5"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Surface",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "#f3f4f6",
+          "#f9fafb",
+          "#ffffff",
+          "#ffffff",
+          "#ffffff",
+          "#ffffff",
+          "#ffffff",
+          "#ffffff"
+        ]
+      },
+      "page-bg": {
+        "role": "neutral",
+        "displayName": "Page BG",
+        "canonical": "#e5e7eb",
+        "tonalRamp": [
+          "#9ca3af",
+          "#b8bec9",
+          "#d1d5db",
+          "#e5e7eb",
+          "#f3f4f6",
+          "#f9fafb",
+          "#ffffff",
+          "#ffffff"
+        ]
+      },
+      "navbar-stone": {
+        "role": "neutral",
+        "displayName": "Navbar Stone",
+        "canonical": "#cccccc",
+        "tonalRamp": [
+          "#8c8c8c",
+          "#a8a8a8",
+          "#cccccc",
+          "#d9d9d9",
+          "#e5e7eb",
+          "#f0f0f0",
+          "#f9fafb",
+          "#ffffff"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Hero stats (50 AÑOS) only, italic black with drop-shadow over photo."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Section titles (PRODUCTOS DESTACADOS) with hexagon accent."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Product card titles, 13px black uppercase clamp-2."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Descriptions and selects, 14px regular."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Badges, price, CTAs, 11px bold uppercase tracking."
+      }
+    },
+    "shadows": [
+      {
+        "name": "card-rest",
+        "value": "0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.06)",
+        "purpose": "Base card elevation (shadow-md)."
+      },
+      {
+        "name": "card-hover",
+        "value": "0 20px 25px rgba(0,0,0,0.10), 0 10px 10px rgba(0,0,0,0.04)",
+        "purpose": "Card hover lift (hover:shadow-xl)."
+      },
+      {
+        "name": "search-elevated",
+        "value": "0 10px 15px rgba(0,0,0,0.10), 0 4px 6px rgba(0,0,0,0.05)",
+        "purpose": "Pill search bar resting elevation."
+      },
+      {
+        "name": "search-focus",
+        "value": "0 20px 25px rgba(0,0,0,0.10), 0 10px 10px rgba(0,0,0,0.04)",
+        "purpose": "Pill search focus-within elevation."
+      },
+      {
+        "name": "drawer",
+        "value": "0 25px 50px rgba(0,0,0,0.25)",
+        "purpose": "Cart drawer and modal shadow-2xl."
+      },
+      {
+        "name": "navbar-stone",
+        "value": "0 10px 15px rgba(0,0,0,0.10)",
+        "purpose": "Stone center nav elevation."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-standard",
+        "value": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "purpose": "Default for hover/transition-colors 200ms."
+      },
+      {
+        "name": "ease-image",
+        "value": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "purpose": "Image scale 500ms hover:scale-110."
+      },
+      {
+        "name": "ease-drawer",
+        "value": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "purpose": "Mobile drawer x-transition."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      },
+      {
+        "name": "xl",
+        "value": "1280px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button — BUSCAR",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Pill BUSCAR negro del buscador monolítico.",
+      "html": "<button class=\"ds-btn-primary\">BUSCAR</button>",
+      "css": ".ds-btn-primary{background:#111111;color:#ffffff;padding:10px 32px;border-radius:9999px;font-weight:700;font-size:14px;letter-spacing:0.04em;border:none;transition:background 0.2s ease}.ds-btn-primary:hover{background:#222222}.ds-btn-primary:focus-visible{outline:2px solid #111111;outline-offset:2px}"
+    },
+    {
+      "name": "Brand CTA — CIBAT",
+      "kind": "button",
+      "refersTo": "button-brand-cibat",
+      "description": "AGREGAR AL CARRITO en navy CIBAT.",
+      "html": "<button class=\"ds-btn-cibat\">AGREGAR AL CARRITO</button>",
+      "css": ".ds-btn-cibat{background:#1b365d;color:#ffffff;padding:10px 16px;border-radius:8px;font-weight:900;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;box-shadow:0 4px 6px rgba(0,0,0,0.10);transition:filter 0.2s,transform 0.15s;border:none;width:100%}.ds-btn-cibat:hover{filter:brightness(1.10)}.ds-btn-cibat:active{transform:scale(0.98)}.ds-btn-cibat:disabled{opacity:0.5;pointer-events:none}"
+    },
+    {
+      "name": "Brand CTA — ER",
+      "kind": "button",
+      "refersTo": "button-brand-er",
+      "description": "AGREGAR AL CARRITO en rojo ER.",
+      "html": "<button class=\"ds-btn-er\">AGREGAR AL CARRITO</button>",
+      "css": ".ds-btn-er{background:#a6282e;color:#ffffff;padding:10px 16px;border-radius:8px;font-weight:900;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;box-shadow:0 4px 6px rgba(0,0,0,0.10);transition:filter 0.2s,transform 0.15s;border:none;width:100%}.ds-btn-er:hover{filter:brightness(1.10)}.ds-btn-er:active{transform:scale(0.98)}"
+    },
+    {
+      "name": "Product Card",
+      "kind": "card",
+      "refersTo": "card-product",
+      "description": "Card vertical 4/4 con badge por marca.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-badge\">OFERTA</div><div class=\"ds-card-img\">IMG</div><div class=\"ds-card-body\"><div class=\"ds-card-brand\">CIBAT</div><div class=\"ds-card-title\">BATERIA 12V 75AH</div><hr/><div class=\"ds-card-price\">$ 12.500,00</div><button class=\"ds-btn-cibat\">AGREGAR AL CARRITO</button></div></div>",
+      "css": ".ds-card{background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden;box-shadow:0 4px 6px rgba(0,0,0,0.07);transition:box-shadow 0.3s;width:280px}.ds-card:hover{box-shadow:0 20px 25px rgba(0,0,0,0.10)}.ds-card-badge{display:inline-block;background:#1b365d;color:#fff;font-size:10px;font-weight:900;padding:4px 8px;border-radius:4px;letter-spacing:0.06em;text-transform:uppercase;margin:12px}.ds-card-img{aspect-ratio:1/1;background:#f3f4f6;display:flex;align-items:center;justify-content:center;color:#8c8c8c;font-size:10px;font-weight:700}.ds-card-body{padding:16px;display:flex;flex-direction:column;gap:8px}.ds-card-brand{color:#1b365d;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.04em}.ds-card-title{font-size:13px;font-weight:900;line-height:1.3;text-transform:uppercase;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.ds-card-price{font-size:18px;font-weight:900;color:#111111}"
+    },
+    {
+      "name": "Pill Search Input",
+      "kind": "input",
+      "refersTo": "input-search",
+      "description": "Buscador monolítico pill con selects.",
+      "html": "<div class=\"ds-search\"><span class=\"ds-search-icon\">⌕</span><input class=\"ds-search-input\" placeholder=\"Buscar productos, marcas, códigos...\"/><button class=\"ds-btn-primary\">BUSCAR</button></div>",
+      "css": ".ds-search{display:flex;align-items:center;gap:4px;background:#ffffff;border:1px solid #d1d5db;border-radius:9999px;padding:4px 4px 4px 16px;box-shadow:0 10px 15px rgba(0,0,0,0.10);width:100%;max-width:720px}.ds-search:focus-within{box-shadow:0 20px 25px rgba(0,0,0,0.10)}.ds-search-icon{color:#8c8c8c;font-size:18px;flex-shrink:0}.ds-search-input{flex:1;border:none;outline:none;font-size:14px;font-weight:600;color:#111111;background:transparent}.ds-search-input::placeholder{color:#8c8c8c}"
+    },
+    {
+      "name": "Chip Tag — Default",
+      "kind": "chip",
+      "refersTo": "chip-tag",
+      "description": "Tag outline filtro.",
+      "html": "<button class=\"ds-chip\">TAG</button>",
+      "css": ".ds-chip{background:#ffffff;color:#6b7280;border:1px solid #d1d5db;border-radius:9999px;padding:4px 12px;font-size:12px;font-weight:700;text-transform:uppercase;transition:all 0.2s}.ds-chip:hover{border-color:#1b365d;color:#1b365d}"
+    },
+    {
+      "name": "Chip Tag — Active CIBAT",
+      "kind": "chip",
+      "refersTo": "chip-tag-active-cibat",
+      "description": "Tag activo CIBAT.",
+      "html": "<button class=\"ds-chip-active-cibat\">TAG</button>",
+      "css": ".ds-chip-active-cibat{background:#3d548f;color:#ffffff;border:1px solid transparent;border-radius:9999px;padding:4px 12px;font-size:12px;font-weight:700;text-transform:uppercase}"
+    },
+    {
+      "name": "Navbar Stone Center",
+      "kind": "nav",
+      "refersTo": "button-ghost",
+      "description": "Centro piedra navbar con links.",
+      "html": "<nav class=\"ds-nav-stone\"><a class=\"ds-nav-link\">Home</a><a class=\"ds-nav-link\">Nosotros</a><a class=\"ds-nav-link\">Locales</a></nav>",
+      "css": ".ds-nav-stone{display:flex;gap:24px;background:#cccccc;border-radius:0 0 12px 12px;padding:12px 24px;box-shadow:0 10px 15px rgba(0,0,0,0.10)}.ds-nav-link{color:#8c8c8c;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;text-decoration:none;transition:color 0.2s}.ds-nav-link:hover{color:#ffffff}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Dual Brand Marketplace",
+    "overview": "OAGO EncendidorQTA es un marketplace B2B que alberga dos universos de marca — ER (rojo) y CIBAT (azul navy) — dentro de una sola arquitectura de catálogo. No es una tienda aspiracional; es un mostrador mayorista técnico y ordenado, pensado para reponer stock rápido. La interfaz prioriza densidad legible sobre teatralidad: grilla estricta, tarjetas verticales 4/4, precio en negro puro y badges por marca que funcionan como wayfinding.",
+    "keyCharacteristics": [
+      "Dualidad cromática como navegación (ER #a6282e/#cc0000 vs CIBAT #1b365d/#3d548f)",
+      "Grilla catálogo 2 → 4 columnas, tarjetas rounded-2xl blancas sobre bg-gray-200 con imagen 4/4",
+      "Tipografía sans black uppercase para títulos, precio text-lg font-black negro",
+      "Elevación suave y funcional: sombras sólo para buscador/cards/drawer",
+      "Motion mínimo: hover:scale-110 imagen, hover:brightness-110 CTA"
+    ],
+    "rules": [
+      {
+        "name": "The Two Inks Rule",
+        "body": "Una tarjeta pertenece a CIBAT o ER, nunca a ambos. El brandColor tiñe badge + CTA + estado activo coherentemente.",
+        "section": "colors"
+      },
+      {
+        "name": "The Black Price Rule",
+        "body": "El precio siempre es negro con tachado gris, nunca en color de marca.",
+        "section": "colors"
+      },
+      {
+        "name": "The Stone Navigation Rule",
+        "body": "El centro piedra #cccccc es el único sólido del header; no agregar segundo color sólido.",
+        "section": "colors"
+      },
+      {
+        "name": "The Uppercase Wayfinding Rule",
+        "body": "Todo lo que navega es uppercase bold con tracking; sólo la descripción es sentence case.",
+        "section": "typography"
+      },
+      {
+        "name": "The Price Is Black Rule",
+        "body": "Precio nunca usa color de marca ni peso menor a 900.",
+        "section": "typography"
+      },
+      {
+        "name": "The Functional Lift Rule",
+        "body": "Sombras sólo en respuesta a estado (hover, focus, sticky, drawer). En reposo, flat con border.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do usar brandColor coherente por producto (badge + CTA + tag activo comparten mismo #1b365d o #a6282e)",
+      "Do mantener precio en negro text-lg font-black con tachado gris",
+      "Do usar rounded-2xl en cards y rounded-full en todo lo filtrable",
+      "Do elevar sólo buscador/cards/drawer con shadow-lg/xl; resto flat",
+      "Do mantener títulos en uppercase font-black line-clamp-2 con hover:text por marca",
+      "Do mostrar IMAGEN NO DISPONIBLE con brightness-0 opacity-20",
+      "Do respetar View::prependLocation() — cambios visuales en themes/encendidorqta/"
+    ],
+    "donts": [
+      "Don't pintar precio con color de marca",
+      "Don't duplicar bg sólido en navbar más allá de piedra central",
+      "Don't agregar toggle bulto/unidad sin re-hidratar ProductSearchService::hydratePrices()",
+      "Don't usar Auth::user() — siempre current_user() para guard alt e impersonación",
+      "Don't introducir serifas o fonts decorativas",
+      "Don't usar sombras coloreadas o shadow-primary en storefront",
+      "Don't crear nuevos offsets de color sin tonal ramp"
+    ]
+  }
+}

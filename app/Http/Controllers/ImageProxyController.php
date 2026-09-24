@@ -17,6 +17,7 @@ class ImageProxyController extends Controller
     public function show(Request $request)
     {
         $remoteUrl = $request->query('url');
+        $return404 = $request->query('return_404');
         $fallback = public_path('imgs/fallback.webp');
         $headers = [
             'Content-Type' => 'image/webp',
@@ -45,19 +46,19 @@ class ImageProxyController extends Controller
 
         // 1. Validar URL vacía o malformada
         if (empty($remoteUrl) || ! filter_var($remoteUrl, FILTER_VALIDATE_URL)) {
-            return $serveLocal($fallback);
+            return $return404 ? response('', 404) : $serveLocal($fallback);
         }
 
         // 2. Validar esquema
         $scheme = parse_url($remoteUrl, PHP_URL_SCHEME);
         if (! in_array($scheme, ['http', 'https'])) {
-            return $serveLocal($fallback);
+            return $return404 ? response('', 404) : $serveLocal($fallback);
         }
 
         // 3. Whitelist Check
         $allowedHosts = SettingsHelper::settings('image_proxy_allowed_hosts', []);
         if (! SecurityService::isAllowedHost($remoteUrl, $allowedHosts)) {
-            return $serveLocal($fallback);
+            return $return404 ? response('', 404) : $serveLocal($fallback);
         }
 
         // 4. SSRF Protection (DNS Resolve)
@@ -68,11 +69,11 @@ class ImageProxyController extends Controller
                 if (SecurityService::isPrivateIp($ip)) {
                     Log::warning('ImageProxy: Intento de SSRF detectado para IP privada: '.$ip);
 
-                    return $serveLocal($fallback);
+                    return $return404 ? response('', 404) : $serveLocal($fallback);
                 }
             }
         } else {
-            return $serveLocal($fallback);
+            return $return404 ? response('', 404) : $serveLocal($fallback);
         }
 
         // 5. Lógica de Caché
@@ -80,7 +81,7 @@ class ImageProxyController extends Controller
 
         $failureCacheKey = 'image_proxy_failed_'.$cacheKey;
         if (Cache::has($failureCacheKey)) {
-            return $serveLocal($fallback);
+            return $return404 ? response('', 404) : $serveLocal($fallback);
         }
 
         $part1 = substr($cacheKey, 0, 2);
@@ -125,17 +126,17 @@ class ImageProxyController extends Controller
                 if ($contentType && ! str_starts_with($contentType, 'image/')) {
                     Log::warning("ImageProxy: Content-Type no válido ({$contentType}) detectado tras descarga: {$remoteUrl}");
 
-                    return $serveLocal($fallback);
+                    return $return404 ? response('', 404) : $serveLocal($fallback);
                 }
 
                 if (($contentLength && (int) $contentLength > $maxSize) || strlen($imageContent) > $maxSize) {
                     Log::warning("ImageProxy: Archivo demasiado grande detectado tras descarga: {$remoteUrl}");
 
-                    return $serveLocal($fallback);
+                    return $return404 ? response('', 404) : $serveLocal($fallback);
                 }
 
                 if (empty($imageContent)) {
-                    return $serveLocal($fallback);
+                    return $return404 ? response('', 404) : $serveLocal($fallback);
                 }
 
                 // Intentar conversión a WEBP si GD está disponible
@@ -200,6 +201,6 @@ class ImageProxyController extends Controller
         }
 
         // Si nada funcionó, fallback final
-        return $serveLocal($fallback);
+        return $return404 ? response('', 404) : $serveLocal($fallback);
     }
 }

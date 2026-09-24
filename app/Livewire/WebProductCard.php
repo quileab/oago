@@ -25,14 +25,12 @@ class WebProductCard extends Component
 
     public $offer_price = 0;
 
-    // Escuchamos el evento solo para que el card refresque el badge de "En Carrito" de forma aislada
+    // Escuchamos el evento solo para que el card refresque el badge de "En Carrito"
     #[On('cart-updated')]
     public function refreshCard(): void
     {
-        $this->renderIsland('cart-badge', with: [
-            'cart' => session()->get('cart', []),
-            'product' => (object) $this->local_product,
-        ]);
+        // El simple hecho de escuchar el evento hace que Livewire re-renderice
+        // este componente, actualizando así la información visual del carrito.
     }
 
     public function mount($product)

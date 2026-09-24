@@ -1,0 +1,36 @@
+bfadaee Restore theme encendido files from local main branch
+37b7140 Fix auth session isolation and modularize slider API
+b188d4d fix(api,perf): robusteza de API y optimizaciones de ordenamiento y proxy de imagenes
+9d88a90 Feat(ThemeManager): allow selecting default theme and prevent overrides
+8005f6c Feat(Command): add admin existence check and password reset option
+2385d2c UI(Admin): add themes manager route
+11535e3 UI(Admin): move themes menu item to web submenu
+623e3ca Feat(ThemeManager): support variants, redesign UI to select, and dynamic env switching
+bc97be8 Docs(AI): clarify that theme files should only be copied if modifications are needed
+42bb088 Docs(AI): document theme override system in AGENTS.md and create theme-development skill
+1df1157 Fix(DataImport): make column indices dynamic and replace null model with empty string
+255e11f feat: optimizacion de ordenamiento de productos y comandos
+6580408 fix: theme cleanup and fallback image handling
+f36261e Fix(db:import): corrección en DataImport para no omitir la columna tags y manejo de tablas existentes en migración
+c04b930 feat(deploy): add --engine-only option and interactive confirmation to make:deploy-zip
+b84b5b9 feat(themes): add multi-tenant theme and seasonal variant support with cascade view fallback
+2eae00d feat(db): add db:export artisan command with drop and if-not-exists options
+619905d feat(tags): implement relational tags system for products
+7384729 fix(catalog): improve product detail pricing, images and export controllers
+c371c6c Revert About Us to Agostini and backup G Insumos version
+22f3c00 Keep only table layout in cart drawer for all screen sizes
+e95de58 Wrap desktop table and header in hidden containers to avoid duplication on mobile
+7d9f6ff Remove mobile-only header row from cart drawer
+9c4e349 Style close button as bordered amber ghost
+01511e1 Restore close button in cart drawer header
+f6d1039 Remove Total Pedido label and enlarge total amount
+210987f Force remove padding from drawer with inline styles
+ea331a9 Remove default padding from cart drawer
+8deeb49 Remove bultos legend from cart footer
+e66300c Redesign cart footer into 4-column grid layout
+f95d3e5 Remove global drawer fixed position
+9f2f6ad Ignore and remove ginsumos_assets from tracking
+98dea33 Fix cart drawer layout and fix total price calculation
+751b079 feat: add customer slider endpoint and update product prices with promo support
+73a6d2c feat: ignore ignore.me and prompt for brand images in deploy
+9387b2f feat(api): add customer API endpoints for products and orders
