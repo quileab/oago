@@ -18,93 +18,118 @@
         @if (count($cart) > 0)
             <div class="flex flex-col" style="height: 100dvh;">
 
-                {{-- ENCABEZADO FIJO --}}
-                <div class="shrink-0 bg-base-200 border-b border-base-300 px-4 py-3 flex items-center justify-between">
+                {{-- ENCABEZADO FIJO (Solo móvil) --}}
+                <div class="shrink-0 bg-base-200 border-b border-base-300 px-4 py-3 flex items-center justify-between md:hidden">
                     <h2 class="text-lg font-black text-primary flex items-center gap-2 uppercase tracking-wider">
                         <x-icon name="o-shopping-cart" class="w-5 h-5" /> Tu Pedido
                     </h2>
                     <x-button icon="o-x-mark" class="btn-ghost btn-sm btn-circle" wire:click="$toggle('showCart')" />
                 </div>
-                <div class="shrink-0 bg-base-200/50 px-2 py-2">
-                    <table class="w-full table-compact table">
-                        <thead class="font-bold text-base-content/70 text-center text-xs uppercase">
-                            <tr>
-                                <th class="w-20">Imagen</th>
-                                <th class="text-left">Producto</th>
-                                <th>Precio</th>
-                                <th class="w-32">Cantidad</th>
-                                <th>Total</th>
-                                <th class="w-12"></th>
-                            </tr>
-                        </thead>
-                    </table>
-                </div>
 
                 {{-- ZONA SCROLLEABLE --}}
-                <div class="flex-1 overflow-y-auto bg-base-100">
-                    <table class="w-full table-compact table">
-                        <tbody>
-                            @foreach ($cart as $item)
-                                <tr class="border-b border-base-200/50 hover:bg-base-200/20 transition-colors">
-                                    <td class="text-center w-20 p-2">
-                                        <div class="w-16 h-16 rounded-md overflow-hidden border border-base-200 bg-white">
+                <div class="flex-1 overflow-y-auto bg-base-100 relative">
+                    {{-- Desktop Header --}}
+                    <div class="hidden md:grid grid-cols-[80px_1fr_100px_120px_100px_48px] gap-2 items-center font-bold text-base-content/70 text-xs uppercase px-4 py-3 sticky top-0 bg-base-200/95 backdrop-blur z-20 border-b border-base-300 shadow-sm">
+                        <div class="text-center">Imagen</div>
+                        <div class="text-left">Producto</div>
+                        <div class="text-right">Precio</div>
+                        <div class="text-center">Cantidad</div>
+                        <div class="text-right">Total</div>
+                        <div class="text-center">
+                            <x-button icon="o-x-mark" class="btn-ghost btn-sm btn-circle" wire:click="$toggle('showCart')" />
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col">
+                        @foreach ($cart as $item)
+                            <div class="border-b border-base-200/50 hover:bg-base-200/20 transition-colors p-3 md:p-2 flex flex-col md:grid md:grid-cols-[80px_1fr_100px_120px_100px_48px] gap-2 md:items-center relative">
+                                
+                                {{-- Top Section on Mobile (Image + Title) --}}
+                                <div class="flex items-start gap-3 mb-2 md:mb-0 md:contents">
+                                    {{-- Image --}}
+                                    <div class="shrink-0 w-20 h-20 md:w-16 md:h-16 flex justify-center md:mx-auto">
+                                        <div class="w-full h-full rounded-md overflow-hidden border border-base-200 bg-white">
                                             <x-image-proxy url="{{ config('services.regente.base_url') . $item['product_id'] . '.jpg' }}"
                                                 alt="{{ $item['product_id'] }}" class="w-full h-full object-contain" />
                                         </div>
-                                    </td>
-                                    <td class="p-2">
-                                        <div class="font-bold text-sm text-base-content line-clamp-2 leading-tight">
-                                            {{ $item['name'] }}
-                                        </div>
+                                    </div>
+                                    
+                                    {{-- Title --}}
+                                    <div class="flex-1 font-bold text-sm text-base-content leading-tight pr-6 md:pr-0">
+                                        {{ $item['name'] }}
                                         @if (isset($item['product_model']) && $item['product_model']->hasBonus())
+                                            <br>
                                             <div class="text-[10px] font-black text-accent bg-accent/10 px-2 py-0.5 rounded-sm inline-block mt-1">
                                                 {{ $item['product_model']->bonus_label }}
                                             </div>
                                         @endif
-                                    </td>
-                                    <td class="text-right p-2 {{ ($item['is_price_changed'] ?? false) ? 'text-error font-bold' : 'text-base-content/80 font-medium' }}">
+                                    </div>
+                                </div>
+                                
+                                {{-- Delete Button (Mobile Absolute overlay) --}}
+                                <div class="absolute top-2 right-2 md:hidden z-10">
+                                    <x-dropdown>
+                                        <x-slot:trigger>
+                                            <x-button icon="o-trash" class="text-error/70 hover:text-error hover:bg-error/10 btn-ghost btn-sm btn-circle transition-colors" />
+                                        </x-slot:trigger>
+                                        <div class="bg-base-100 border border-base-200 shadow-xl rounded-lg overflow-hidden z-[100]">
+                                            <x-menu-item title="Eliminar" icon="o-trash" class="text-error hover:bg-error/10 font-bold"
+                                                wire:click="removeFromCart({{ $item['product_id'] }})" />
+                                            <x-menu-item title="Cancelar" icon="o-x-mark" class="hover:bg-base-200" />
+                                        </div>
+                                    </x-dropdown>
+                                </div>
+
+                                {{-- Details Grid for Mobile / Columns for Desktop --}}
+                                <div class="grid grid-cols-3 gap-2 md:contents items-center text-center">
+                                    <div class="text-left md:text-right flex flex-col justify-center h-full {{ ($item['is_price_changed'] ?? false) ? 'text-error font-bold' : 'text-base-content/80 font-medium' }}">
+                                        <span class="md:hidden text-[10px] uppercase text-base-content/50">Precio</span>
                                         ${{ number_format($item['price'], 2) }}
                                         @if($item['is_price_changed'] ?? false)
                                             <div class="text-[10px] text-error font-bold bg-error/10 px-1 rounded inline-block mt-0.5">Act: ${{ number_format($item['current_price'], 2) }}</div>
                                         @endif
-                                    </td>
-                                    <td class="p-2 w-32">
+                                    </div>
+                                    <div class="flex flex-col items-center">
+                                        <span class="md:hidden text-[10px] uppercase text-base-content/50 mb-1">Cant</span>
                                         <input type="number" min="{{ $item['bulkQuantity'] }}" step="{{ $item['bulkQuantity'] }}"
                                             wire:change="updateQuantity({{ $item['product_id'] }}, $event.target.value)"
                                             wire:key="cart-{{ $item['product_id'] }}-{{ $item['quantity'] }}" id="cart-{{ $item['product_id'] }}-{{ $item['quantity'] }}"
-                                            value="{{ $item['quantity'] }}" class="input input-sm input-bordered w-full text-center font-bold {{ ($item['is_stock_insufficient'] ?? false) ? 'border-error bg-error/10 text-error' : 'bg-base-100 focus:border-primary' }}" />
+                                            value="{{ $item['quantity'] }}" class="input input-sm input-bordered w-full max-w-[4rem] md:max-w-[5rem] text-center font-bold {{ ($item['is_stock_insufficient'] ?? false) ? 'border-error bg-error/10 text-error' : 'bg-base-100 focus:border-primary' }}" />
 
                                         @if($item['is_stock_insufficient'] ?? false)
                                             <div class="text-[10px] text-error font-black text-center mt-1">Disp: {{ $item['available_stock'] }}</div>
                                         @endif
 
                                         <div class="text-[10px] text-base-content/50 font-bold text-center mt-1">
-                                        @if($item['quantity'] % $item['bulkQuantity'] === 0)
-                                            <x-icon name="o-cube" class="w-3 h-3 inline mr-0.5" /> {{ $item['quantity'] / $item['bulkQuantity']}} x {{ $item['bulkQuantity'] }}
-                                        @else
-                                            <x-icon name="o-cube" class="w-3 h-3 inline mr-0.5" /> {{ floor($item['quantity'] / $item['bulkQuantity']) }} x {{ $item['bulkQuantity'] }} <br/> + {{ $item['quantity'] - (floor($item['quantity'] / $item['bulkQuantity']) * $item['bulkQuantity']) }} un.
-                                        @endif
+                                            @if($item['quantity'] % $item['bulkQuantity'] === 0)
+                                                <x-icon name="o-cube" class="w-3 h-3 inline mr-0.5" /> {{ $item['quantity'] / $item['bulkQuantity']}} x {{ $item['bulkQuantity'] }}
+                                            @else
+                                                <x-icon name="o-cube" class="w-3 h-3 inline mr-0.5" /> {{ floor($item['quantity'] / $item['bulkQuantity']) }} x {{ $item['bulkQuantity'] }} <br/> + {{ $item['quantity'] - (floor($item['quantity'] / $item['bulkQuantity']) * $item['bulkQuantity']) }} un.
+                                            @endif
                                         </div>
-                                    </td>
-                                    <td class="text-right p-2 font-black text-base-content text-lg">
+                                    </div>
+                                    <div class="text-right flex flex-col justify-center h-full font-black text-base-content text-lg">
+                                        <span class="md:hidden text-[10px] uppercase text-base-content/50">Total</span>
                                         ${{ number_format($item['total_price'], 2) }}
-                                    </td>
-                                    <td class="text-center w-12 p-2">
-                                        <x-dropdown>
-                                            <x-slot:trigger>
-                                                <x-button icon="o-trash" class="text-error/70 hover:text-error hover:bg-error/10 w-full btn-ghost btn-sm btn-circle transition-colors" />
-                                            </x-slot:trigger>
-                                            <div class="bg-base-100 border border-base-200 shadow-xl rounded-lg overflow-hidden z-[100]">
-                                                <x-menu-item title="Eliminar" icon="o-trash" class="text-error hover:bg-error/10 font-bold"
-                                                    wire:click="removeFromCart({{ $item['product_id'] }})" />
-                                                <x-menu-item title="Cancelar" icon="o-x-mark" class="hover:bg-base-200" />
-                                            </div>
-                                        </x-dropdown>
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
+                                    </div>
+                                </div>
+                                
+                                {{-- Desktop Delete Button --}}
+                                <div class="hidden md:flex justify-center">
+                                    <x-dropdown>
+                                        <x-slot:trigger>
+                                            <x-button icon="o-trash" class="text-error/70 hover:text-error hover:bg-error/10 w-full btn-ghost btn-sm btn-circle transition-colors" />
+                                        </x-slot:trigger>
+                                        <div class="bg-base-100 border border-base-200 shadow-xl rounded-lg overflow-hidden z-[100]">
+                                            <x-menu-item title="Eliminar" icon="o-trash" class="text-error hover:bg-error/10 font-bold"
+                                                wire:click="removeFromCart({{ $item['product_id'] }})" />
+                                            <x-menu-item title="Cancelar" icon="o-x-mark" class="hover:bg-base-200" />
+                                        </div>
+                                    </x-dropdown>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
                 </div>
 
                 {{-- PIE FIJO --}}
