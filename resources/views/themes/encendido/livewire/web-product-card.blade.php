@@ -9,150 +9,127 @@
     }"
     class="prod-card-item h-full">
 
-    <div class="card ring-1 ring-white/5 shadow-lg hover:shadow-xl transition-all duration-200 flex flex-col h-full overflow-hidden group rounded-lg bg-neutral-900 hover:ring-white/15 hover:-translate-y-0.5">
+    @php
+        // Verificar si el producto tiene el tag de cibat o encendido
+        $tagsLower = array_map('strtolower', $product->tags_array ?? []);
+        $isCibat = in_array('cibat', $tagsLower);
+        
+        // Asignar colores específicos
+        $bgBrand = $isCibat ? 'bg-[#002b6b]' : 'bg-[#e60000]';
+        $textBrand = $isCibat ? 'text-[#002b6b]' : 'text-[#e60000]';
+        $hoverBgBrand = $isCibat ? 'hover:bg-[#001f4d]' : 'hover:bg-[#cc0000]';
+    @endphp
 
-        {{-- Image — full width top --}}
-        <a href="./?product_id={{ $product->id }}" class="block relative bg-neutral-950 overflow-hidden" style="aspect-ratio: 4/3;">
-            @if($product->featured)
-                <div class="absolute top-0 left-0 z-10">
-                    <span class="text-[9px] font-black px-2 py-1 text-white bg-primary uppercase tracking-wider flex items-center gap-1">
-                        <x-icon name="s-star" class="w-2.5 h-2.5" /> Destacado
-                    </span>
+    <div class="card bg-white border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col h-full relative overflow-hidden group rounded-[12px] hover:-translate-y-0.5">
+
+        {{-- Oferta Pill --}}
+        @if($display_offer > 0 || $product->featured)
+            <div class="absolute top-0 left-0 z-10">
+                <span class="text-[10px] font-black px-3 py-1 text-white {{ $bgBrand }} uppercase tracking-wider rounded-br-lg shadow-sm">
+                    {{ $display_offer > 0 ? 'OFERTA' : 'DESTACADO' }}
+                </span>
+            </div>
+        @endif
+
+        {{-- Heart Icon (Favorite) --}}
+        <div class="absolute top-2 right-2 z-10 cursor-pointer {{ $textBrand }} hover:scale-110 transition-transform">
+            <x-icon name="s-heart" class="w-5 h-5" />
+        </div>
+
+        {{-- Image — full width top with grey bg --}}
+        <a href="./?product_id={{ $product->id }}" class="block relative bg-[#e5e7eb] flex items-center justify-center p-4" style="aspect-ratio: 4/4;">
+            @if($product->image_url)
+                <x-image-proxy url="{{ $product->image_url }}"
+                    class="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105 {{ $product->stock == 0 ? 'opacity-30 grayscale' : '' }}" />
+            @else
+                <div class="flex flex-col items-center justify-center text-gray-400 opacity-50 select-none">
+                    @if($isCibat)
+                        <img src="{{ asset('imgs/Logos/logo_cibat.png') }}" class="w-28 h-auto grayscale mb-4 object-contain opacity-70" alt="Cibat Placeholder" />
+                    @else
+                        <img src="{{ asset('imgs/Logos/ER50.png') }}" class="w-24 h-auto grayscale mb-4 object-contain opacity-70" alt="Encendido Placeholder" />
+                    @endif
+                    <span class="text-[10px] font-bold uppercase tracking-widest text-center text-gray-400">IMAGEN NO DISPONIBLE</span>
                 </div>
             @endif
 
-            <x-image-proxy url="{{ $product->image_url }}"
-                class="w-full h-full object-contain p-4 transition-transform duration-300 group-hover:scale-105 {{ $product->stock == 0 ? 'opacity-30 grayscale' : '' }}" />
-
             @if($product->stock == 0)
-                <div class="absolute inset-0 flex items-center justify-center bg-neutral-950/70">
-                    <span class="text-xs font-black px-3 py-1.5 text-white bg-red-700 uppercase tracking-widest">Agotado</span>
+                <div class="absolute inset-0 flex items-center justify-center bg-black/40">
+                    <span class="text-[10px] font-black px-3 py-1 text-white bg-red-600 uppercase tracking-widest rounded">Agotado</span>
                 </div>
             @endif
         </a>
 
         {{-- Content --}}
-        <div class="flex flex-col flex-grow p-4 border-t border-white/5">
+        <div class="flex flex-col flex-grow p-4 bg-white">
 
-            {{-- Tags --}}
-            @if(!empty($product->tags_array))
-                <div class="flex flex-wrap gap-1 mb-2">
-                    @foreach ($product->tags_array as $tag)
-                        <span class="px-1.5 py-0.5 text-[9px] font-black bg-amber-500/15 text-amber-400 border border-amber-500/25 uppercase tracking-wider">
-                            {{ $tag }}
-                        </span>
-                    @endforeach
-                </div>
-            @endif
+            {{-- Title --}}
+            <a href="./?product_id={{ $product->id }}" class="mb-3 block group/link min-h-[40px]">
+                <h2 class="text-xs sm:text-[13px] font-black text-black leading-tight uppercase group-hover/link:{{ $textBrand }} transition-colors line-clamp-2" title="{{ $product->description }}">
+                    {{ $product->description }}
+                </h2>
+            </a>
 
-            {{-- Price — prominent --}}
-            <div class="mb-3">
+            {{-- Divider --}}
+            <hr class="border-gray-200 my-2">
+
+            {{-- Price or Guest Message --}}
+            <div class="flex-grow flex flex-col justify-end">
                 @if($showPrices)
                     @if(($display_offer > 0 ? $display_offer : $display_price) <= 0)
-                        <span class="text-xs font-bold text-neutral-500 uppercase tracking-wider">Muy pronto</span>
+                        <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Muy pronto</span>
                     @else
-                        @if($display_offer > 0)
-                            <div class="flex items-baseline gap-2 flex-wrap">
-                                <span class="text-2xl font-black text-emerald-400 font-technical leading-none">$ {{ number_format($display_offer, 2, ',', '.') }}</span>
-                                <span class="text-xs text-neutral-500 line-through font-medium">$ {{ number_format($display_price, 2, ',', '.') }}</span>
-                            </div>
-                        @else
-                            <span class="text-2xl font-black text-emerald-400 font-technical leading-none">$ {{ number_format($display_price, 2, ',', '.') }}</span>
-                        @endif
-                        @if($product->qtty_unit > 1)
-                            <div class="text-[10px] text-neutral-500 mt-1 font-technical">
-                                $ {{ number_format(($display_offer > 0 ? $display_offer : $display_price) / $product->qtty_unit, 2, ',', '.') }} / un.
-                            </div>
-                        @endif
+                        <div class="mb-2">
+                            @if($display_offer > 0)
+                                <div class="flex items-baseline gap-2 flex-wrap">
+                                    <span class="text-lg font-black text-black leading-none">$ {{ number_format($display_offer, 2, ',', '.') }}</span>
+                                    <span class="text-[10px] text-gray-500 line-through font-medium">$ {{ number_format($display_price, 2, ',', '.') }}</span>
+                                </div>
+                            @else
+                                <span class="text-lg font-black text-black leading-none">$ {{ number_format($display_price, 2, ',', '.') }}</span>
+                            @endif
+                        </div>
                     @endif
                 @else
-                    <span class="text-xs text-neutral-500 italic">Precios solo para usuarios</span>
+                    <p class="text-[10px] text-gray-400 leading-tight italic mb-3">
+                        *Los precios sólo están disponibles<br>para los usuarios registrados.
+                    </p>
                 @endif
             </div>
 
-            {{-- Name & Brand --}}
-            <a href="./?product_id={{ $product->id }}" class="flex-grow mb-3 block group/link">
-                <h2 class="text-sm font-bold text-neutral-200 leading-snug line-clamp-2 group-hover/link:text-white transition-colors" title="{{ $product->description }}">
-                    {{ $product->description }}
-                </h2>
-                <div class="flex items-center gap-2 mt-2">
-                    @if($product->brand)
-                        <span class="text-[10px] font-bold text-primary/80 uppercase tracking-wider">{{ $product->brand }}</span>
-                        <span class="text-neutral-700">·</span>
-                    @endif
-                    <span class="text-[10px] text-neutral-600 font-technical">#{{ $product->id }}</span>
-                </div>
-            </a>
-
-            {{-- Controls --}}
-            @if(Auth::guest())
-                <div class="text-center text-xs text-neutral-500 border-t border-white/5 pt-3">
-                    <x-icon name="o-lock-closed" class="w-3.5 h-3.5 inline mr-1 text-amber-500" /> {{ $guestMessage }}
-                </div>
-            @else
-                {{-- Stock & Bulto info --}}
-                <div class="flex justify-between items-center text-[10px] mb-3 border-t border-white/5 pt-3">
-                    <div>
-                        @if($product->stock < 10)
-                            <span class="text-rose-400 font-black flex items-center gap-1"><x-icon name="s-bolt" class="w-3 h-3" /> STOCK BAJO</span>
-                        @elseif($product->stock < 100)
-                            <span class="text-amber-400 font-black flex items-center gap-1"><x-icon name="s-bolt" class="w-3 h-3" /> STOCK MEDIO</span>
-                        @else
-                            <span class="text-emerald-400 font-black flex items-center gap-1"><x-icon name="s-check-circle" class="w-3 h-3" /> EN STOCK</span>
-                        @endif
-                    </div>
-                    <span class="text-neutral-500 flex items-center gap-1">
-                        <x-icon name="o-cube" class="w-3 h-3" /> <span class="font-technical">{{ $product->qtty_package }}</span> un/bto
-                    </span>
-                </div>
-
-                {{-- In Cart --}}
-                @island('cart-badge')
-                    @if(!empty($cart) && isset($cart[$product->id]))
-                        <div class="mb-2 text-center">
-                            <span class="text-emerald-400 font-black bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 text-[10px]" title="Cantidad en carrito">
-                                <x-icon name="o-shopping-cart" class="w-3 h-3 inline mr-0.5" />
-                                <span class="uppercase">en carrito:</span> {{ $cart[$product->id]['quantity'] }}
-                            </span>
+            {{-- Controls / Buttons --}}
+            <div class="mt-2 flex flex-col gap-1.5">
+                @if(Auth::guest())
+                    <a href="/registrate" class="w-full bg-gray-400 hover:bg-gray-500 text-white text-[10px] font-bold py-2 rounded-md flex items-center justify-center gap-1.5 transition-colors tracking-wide uppercase">
+                        <x-icon name="s-lock-closed" class="w-3.5 h-3.5" /> REGISTRARSE
+                    </a>
+                    <a href="/login" class="w-full {{ $bgBrand }} {{ $hoverBgBrand }} text-white text-[10px] font-bold py-2 rounded-md flex items-center justify-center gap-1.5 transition-colors tracking-wide uppercase">
+                        <x-icon name="s-shopping-cart" class="w-3.5 h-3.5" /> AGREGAR AL CARRITO
+                    </a>
+                @else
+                    {{-- Qtty Control & Buy for Logged In Users --}}
+                    @php
+                        $currUser = current_user();
+                        $canBuy = $product->stock > 0 && $currUser && !in_array($currUser->role->value, ['none', 'guest']) && ($display_offer > 0 ? $display_offer : $display_price) > 0;
+                    @endphp
+                    @if($canBuy)
+                        <div class="flex items-stretch h-8 rounded-md overflow-hidden border border-gray-300 bg-gray-50 mb-1.5">
+                            <button wire:click="decrementUnit" class="w-8 bg-gray-200 hover:bg-gray-300 text-gray-600 font-bold transition-colors shrink-0">-</button>
+                            <input type="number" wire:model="qtty" class="flex-grow min-w-0 text-center text-xs font-bold bg-transparent text-black focus:outline-none" min="1">
+                            <button wire:click="incrementUnit" class="w-8 bg-gray-200 hover:bg-gray-300 text-gray-600 font-bold transition-colors shrink-0">+</button>
                         </div>
-                    @endif
-                @endisland
-                @php
-                    $currUser = current_user();
-                    $canBuy = $product->stock > 0 && $currUser && !in_array($currUser->role->value, ['none', 'guest']) && ($display_offer > 0 ? $display_offer : $display_price) > 0;
-                @endphp
-                @if($canBuy)
-                    <div class="flex items-stretch h-10 overflow-hidden border border-neutral-700 bg-neutral-950/60 focus-within:border-primary transition-colors">
-                        @if($product->qtty_package > 1)
-                            <button wire:click="decrementQtty" class="w-10 bg-neutral-800 hover:bg-rose-500/20 hover:text-rose-400 text-[10px] font-black text-neutral-400 transition-colors border-r border-neutral-700 shrink-0" title="-{{ $product->qtty_package }}">
-                                -{{ $product->qtty_package }}
-                            </button>
-                        @endif
-                        <button wire:click="decrementUnit" class="w-10 bg-neutral-900 hover:bg-rose-500/15 hover:text-rose-400 text-base font-black text-neutral-400 transition-colors border-r border-neutral-700 shrink-0">-</button>
-                        <input type="number" wire:model="qtty" class="flex-grow min-w-0 text-center text-base font-black bg-transparent text-white focus:outline-none font-technical" min="1">
-                        <button wire:click="incrementUnit" class="w-10 bg-neutral-900 hover:bg-emerald-500/15 hover:text-emerald-400 text-base font-black text-neutral-400 transition-colors border-l border-neutral-700 shrink-0">+</button>
-                        @if($product->qtty_package > 1)
-                            <button wire:click="incrementQtty" class="w-10 bg-neutral-800 hover:bg-emerald-500/20 hover:text-emerald-400 text-[10px] font-black text-neutral-400 transition-colors border-l border-neutral-700 shrink-0" title="+{{ $product->qtty_package }}">
-                                +{{ $product->qtty_package }}
-                            </button>
-                        @endif
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-1.5 mt-1.5">
-                        <button wire:click="searchSimilar" class="btn btn-xs btn-ghost border border-neutral-700 text-neutral-400 hover:border-neutral-500 hover:text-neutral-200 font-bold rounded-none text-[10px]">
-                            <x-icon name="o-magnifying-glass" class="w-3 h-3" /> Similares
-                        </button>
+                        
                         <button wire:click="buy" onclick="flyToCart('prod-img-{{ $product->id }}')"
-                            class="btn btn-xs btn-primary font-black rounded-none text-[10px] tracking-wide"
-                            wire:loading.class="btn-disabled">
-                            <span wire:loading.remove wire:target="buy" class="flex items-center gap-1">
-                                <x-icon name="o-shopping-cart" class="w-3 h-3" /> AGREGAR
+                            class="w-full {{ $bgBrand }} {{ $hoverBgBrand }} text-white text-[10px] font-bold py-2 rounded-md flex items-center justify-center gap-1.5 transition-colors tracking-wide uppercase"
+                            wire:loading.class="opacity-70 pointer-events-none">
+                            <span wire:loading.remove wire:target="buy" class="flex items-center gap-1.5">
+                                <x-icon name="s-shopping-cart" class="w-3.5 h-3.5" /> AGREGAR AL CARRITO
                             </span>
                             <span wire:loading wire:target="buy" class="loading loading-spinner loading-xs"></span>
                         </button>
-                    </div>
+                    @endif
                 @endif
-            @endif
+            </div>
+
         </div>
 
         {{-- Image ID anchor for fly-to-cart --}}
