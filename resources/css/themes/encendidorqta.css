@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+@plugin "daisyui" {
+    darktheme: "dark";
+    themes: dark --default, light --preferslight;
+}
+@plugin "daisyui/theme" {
+    default: true;
+}
+
+[data-theme="light"] {
+    --color-primary: #ff5722;
+    --color-secondary: #333333;
+    --color-success: #3c8e26;
+}
+[data-theme="dark"] {
+    --color-primary: #ff5722;
+    --color-secondary: #333333;
+    --color-success: #3c8e26;
+}
+
+@source "../../../vendor/robsontenorio/mary/src/View/Components/**/*.php";
+@source "../../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php";
+@source "../../../storage/framework/views/*.php";
+@source "../../**/*.blade.php";
+@source "../../**/*.js";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Agrega aquí los estilos personalizados para el tema encendidorqta */

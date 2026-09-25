@@ -85,7 +85,52 @@ new class extends Component {
         }
 
         File::makeDirectory($themePath, 0755, true);
-        $this->success("Tema '{$name}' creado correctamente.");
+        
+        // --- INICIO: Crear archivo CSS para el tema automáticamente ---
+        $cssDir = resource_path("css/themes");
+        if (!File::exists($cssDir)) {
+            File::makeDirectory($cssDir, 0755, true);
+        }
+        
+        $cssFile = resource_path("css/themes/{$name}.css");
+        if (!File::exists($cssFile)) {
+            $cssTemplate = <<<CSS
+@import "tailwindcss";
+
+@plugin "daisyui" {
+    darktheme: "dark";
+    themes: dark --default, light --preferslight;
+}
+@plugin "daisyui/theme" {
+    default: true;
+}
+
+[data-theme="light"] {
+    --color-primary: #002b6b;
+    --color-secondary: #8a053c;
+    --color-success: #3c8e26;
+}
+[data-theme="dark"] {
+    --color-primary: #002b6b;
+    --color-secondary: #8a053c;
+    --color-success: #3c8e26;
+}
+
+@source "../../../vendor/robsontenorio/mary/src/View/Components/**/*.php";
+@source "../../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php";
+@source "../../../storage/framework/views/*.php";
+@source "../../**/*.blade.php";
+@source "../../**/*.js";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Agrega aquí los estilos personalizados para el tema {$name} */
+CSS;
+            File::put($cssFile, $cssTemplate);
+        }
+        // --- FIN ---
+
+        $this->success("Tema '{$name}' y su archivo CSS creado correctamente.");
         $this->newThemeName = '';
         $this->loadThemes();
         $this->selectedTheme = $name;
@@ -315,6 +360,19 @@ new class extends Component {
                 <p class="text-sm mt-2 opacity-75">No es posible crear overrides aquí. Si deseas hacer modificaciones personalizadas, crea un nuevo tema.</p>
             </div>
         @else
+            <div class="mb-4 flex flex-col gap-2 p-4 bg-base-100 border border-base-300 rounded-lg text-sm text-base-content/80 shadow-sm">
+                <div class="flex items-center gap-2">
+                    <x-icon name="o-folder" class="w-4 h-4 text-primary" />
+                    <span class="font-semibold">Vistas:</span> 
+                    <span class="font-mono bg-base-200 px-1 rounded">resources/views/themes/{{ $selectedTheme }}</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <x-icon name="o-paint-brush" class="w-4 h-4 text-secondary" />
+                    <span class="font-semibold">CSS (Tailwind):</span> 
+                    <span class="font-mono bg-base-200 px-1 rounded">resources/css/themes/{{ $selectedTheme }}.css</span>
+                </div>
+            </div>
+
             <x-card title="Vistas del motor" class="shadow-sm">
                 <div class="flex flex-col md:flex-row items-center justify-between mb-4 gap-4">
                     <div class="text-sm opacity-70 w-full md:w-auto text-center md:text-left">
