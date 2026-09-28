@@ -516,6 +516,11 @@ If you need to modify `resources/views/livewire/web-product-detail.blade.php` fo
 - Set via `.env`: `APP_THEME=encendido` and optionally `APP_THEME_VARIANT=xmas`.
 - Resolved in `AppServiceProvider::boot()` using `config('app.theme')` and `config('app.theme_variant')`.
 
+**Theme Assets (Images, Documents, PDFs):**
+- **NEVER** place static assets in `resources/views/themes/...`. The `resources/views/` directory is not publicly accessible.
+- Place all theme-specific images and public files inside `public/themes/{theme_name}/images/` or `public/themes/{theme_name}/docs/`.
+- Reference them in Blade views using `asset("themes/{theme_name}/images/logo.png")`.
+
 **Theme CSS (Tailwind):**
 - Each theme has its own Tailwind entry-point at `resources/css/themes/{theme_name}.css`.
 - The `vite.config.js` automatically discovers all files in `resources/css/themes/*.css` and registers them as Vite entry-points — no manual changes needed when adding a new theme.
