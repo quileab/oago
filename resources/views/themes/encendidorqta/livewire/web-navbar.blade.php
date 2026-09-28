@@ -1,4 +1,4 @@
-<div x-data="{ mobileMenuOpen: false }" class="w-full relative font-sans z-50 bg-cover bg-center" style="background-image: url('{{ asset('themes/encendidorqta/backgroundnavbar.webp') }}');">
+<div x-data="{ mobileMenuOpen: false }" class="w-full relative font-sans z-50 bg-cover bg-center" style="background-image: url('{{ asset('themes/' . config('app.theme') . '/images/backgroundnavbar.webp') }}');">
     <!-- Navbar Container -->
     <div class="w-full pt-0 pb-2 md:pb-4 min-h-[80px] md:min-h-[150px]">
         
@@ -9,8 +9,8 @@
                 
                 <!-- Logo ER -->
                 <a href="/" class="flex flex-col items-center md:mt-2">
-                    <img src="{{ asset('themes/encendidorqta/erlogo.png') }}" alt="ER" class="h-16 lg:h-20 object-contain drop-shadow-md" />
-                    <img src="{{ asset('themes/encendidorqta/desde1975.png') }}" alt="Desde 1975" class="h-8 lg:h-10 object-contain mt-2 drop-shadow-md" />
+                    <img src="{{ asset('themes/' . config('app.theme') . '/images/erlogo.png') }}" alt="ER" class="h-16 lg:h-20 object-contain drop-shadow-md" />
+                    <img src="{{ asset('themes/' . config('app.theme') . '/images/desde1975.png') }}" alt="Desde 1975" class="h-8 lg:h-10 object-contain mt-2 drop-shadow-md" />
                 </a>
 
                 <!-- Link Productos ER -->
@@ -49,8 +49,8 @@
 
                 <!-- Logo CIBAT -->
                 <a href="/?store=cibat" class="flex flex-col items-center md:mt-2">
-                    <img src="{{ asset('themes/encendidorqta/cibatlogo.png') }}" alt="CIBAT" class="h-16 lg:h-20 object-contain drop-shadow-md" />
-                    <img src="{{ asset('themes/encendidorqta/llavecodificada.png') }}" alt="Llaves Codificadas" class="h-8 lg:h-10 object-contain mt-2 drop-shadow-md z-50 lg:scale-[2.5] lg:origin-top" />
+                    <img src="{{ asset('themes/' . config('app.theme') . '/images/cibatlogo.png') }}" alt="CIBAT" class="h-16 lg:h-20 object-contain drop-shadow-md" />
+                    <img src="{{ asset('themes/' . config('app.theme') . '/images/llavecodificada.png') }}" alt="Llaves Codificadas" class="h-8 lg:h-10 object-contain mt-2 drop-shadow-md z-50 lg:scale-[2.5] lg:origin-top" />
                 </a>
                 
             </div>
@@ -68,10 +68,10 @@
                 <!-- Logos Mobile (Centrados) -->
                 <div class="absolute w-full left-0 flex justify-center items-center gap-16 z-10">
                     <a href="/" class="flex flex-col items-center">
-                        <img src="{{ asset('themes/encendidorqta/erlogo.png') }}" alt="ER" class="h-12 object-contain drop-shadow-md" />
+                        <img src="{{ asset('themes/' . config('app.theme') . '/images/erlogo.png') }}" alt="ER" class="h-12 object-contain drop-shadow-md" />
                     </a>
                     <a href="/" class="flex flex-col items-center">
-                        <img src="{{ asset('themes/encendidorqta/cibatlogo.png') }}" alt="CIBAT" class="h-12 object-contain drop-shadow-md" />
+                        <img src="{{ asset('themes/' . config('app.theme') . '/images/cibatlogo.png') }}" alt="CIBAT" class="h-12 object-contain drop-shadow-md" />
                     </a>
                 </div>
                 

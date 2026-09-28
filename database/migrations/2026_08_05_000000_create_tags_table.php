@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (!Schema::hasTable('tags')) {
+        if (! Schema::hasTable('tags')) {
             Schema::create('tags', function (Blueprint $table) {
                 $table->id();
                 $table->string('name')->unique();
@@ -19,7 +19,7 @@ return new class extends Migration
             });
         }
 
-        if (!Schema::hasTable('taggables')) {
+        if (! Schema::hasTable('taggables')) {
             Schema::create('taggables', function (Blueprint $table) {
                 $table->id();
                 $table->unsignedBigInteger('tag_id');

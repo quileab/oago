@@ -1,8 +1,8 @@
 <div class="w-full bg-neutral text-neutral-content shadow-lg border-b-[3px] border-primary sticky top-0 z-50 transition-all duration-300">
   <div class="max-w-7xl mx-auto flex justify-between items-center px-4 py-2">
       <a href="/" class="flex-shrink-0 hover:scale-105 transition-transform">
-        <img src="{{ asset('imgs/Logos/ER50.png') }}" class="w-auto h-14 p-1 hidden md:block logo-glow rounded-lg" alt="Encendido Reconquista" />
-        <img src="{{ asset('imgs/Logos/ER50.png') }}" class="w-auto h-12 p-1 md:hidden logo-glow rounded-lg" alt="Encendido Reconquista" />
+        <img src="{{ asset('themes/' . config('app.theme') . '/images/ER50.png') }}" class="w-auto h-14 p-1 hidden md:block logo-glow rounded-lg" alt="Encendido Reconquista" />
+        <img src="{{ asset('themes/' . config('app.theme') . '/images/ER50.png') }}" class="w-auto h-12 p-1 md:hidden logo-glow rounded-lg" alt="Encendido Reconquista" />
       </a>
 
       <div class="flex items-center gap-1 sm:gap-4">

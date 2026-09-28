@@ -39,7 +39,7 @@ new #[Layout('components.layouts.clean')] #[Title('Nosotros — Encendido Reconq
     {{-- Hero — mismo ADN que home frentelocal --}}
     <div class="relative w-full overflow-hidden bg-gray-900">
         <div class="absolute inset-0">
-            <img src="{{ asset('themes/encendidorqta/frentelocal.png') }}" alt="Frente Encendido Reconquista" class="w-full h-full object-cover object-top">
+            <img src="{{ asset('themes/encendidorqta/images/frentelocal.png') }}" alt="Frente Encendido Reconquista" class="w-full h-full object-cover object-top">
             <div class="absolute inset-0 bg-black/55"></div>
             <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/20"></div>
         </div>
@@ -113,7 +113,7 @@ new #[Layout('components.layouts.clean')] #[Title('Nosotros — Encendido Reconq
                 <div class="absolute -inset-3 bg-[#1b365d] rounded-2xl opacity-10 rotate-1"></div>
                 <div class="absolute -inset-3 bg-[#a6282e] rounded-2xl opacity-10 -rotate-1"></div>
                 <div class="relative bg-white rounded-2xl overflow-hidden shadow-xl border border-gray-100">
-                    <img src="{{ asset('themes/encendidorqta/equipo_frente.jpg') }}" alt="Equipo en el frente" class="w-full h-auto object-cover">
+                    <img src="{{ asset('themes/encendidorqta/images/equipo_frente.jpg') }}" alt="Equipo en el frente" class="w-full h-auto object-cover">
                     <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/75 to-transparent p-4">
                         <p class="text-white text-xs font-black uppercase tracking-widest flex items-center gap-2">
                             <span class="w-6 h-0.5 bg-white rounded-full"></span> Segunda generación al frente
@@ -122,7 +122,7 @@ new #[Layout('components.layouts.clean')] #[Title('Nosotros — Encendido Reconq
                 </div>
                 {{-- badge desde 1975 --}}
                 <div class="absolute -bottom-4 -right-2 md:-right-4 bg-white rounded-2xl shadow-lg border border-gray-100 px-4 py-3 flex items-center gap-3">
-                    <img src="{{ asset('themes/encendidorqta/desde1975.png') }}" alt="Desde 1975" class="h-10 w-auto object-contain">
+                    <img src="{{ asset('themes/encendidorqta/images/desde1975.png') }}" alt="Desde 1975" class="h-10 w-auto object-contain">
                     <div class="leading-tight">
                         <div class="text-xs font-black uppercase tracking-widest text-gray-900">Legado familiar</div>
                         <div class="text-[11px] font-bold text-gray-500">Lealtad · Honestidad · Ética</div>
@@ -183,7 +183,7 @@ new #[Layout('components.layouts.clean')] #[Title('Nosotros — Encendido Reconq
     {{-- banner vans — ya existente pero integrado --}}
     <div class="max-w-7xl mx-auto px-4 md:px-6">
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 md:p-4">
-            <img src="{{ asset('themes/encendidorqta/banner_vans.png') }}" alt="Servicio a domicilio" class="w-full h-auto rounded-xl">
+            <img src="{{ asset('themes/encendidorqta/images/banner_vans.png') }}" alt="Servicio a domicilio" class="w-full h-auto rounded-xl">
         </div>
     </div>
 
@@ -200,11 +200,11 @@ new #[Layout('components.layouts.clean')] #[Title('Nosotros — Encendido Reconq
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {{-- ER --}}
             <div class="relative bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300">
-                <div class="absolute inset-0 opacity-[0.04] pointer-events-none" style="background-image: url('{{ asset('themes/encendidorqta/patron_hex2.png') }}'); background-size: cover; background-position: right center;"></div>
+                <div class="absolute inset-0 opacity-[0.04] pointer-events-none" style="background-image: url('{{ asset('themes/encendidorqta/images/patron_hex2.png') }}'); background-size: cover; background-position: right center;"></div>
                 <div class="absolute -right-10 -top-10 w-36 h-36 bg-[#a6282e]/10" style="clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);"></div>
                 <div class="relative p-6 md:p-8">
                     <div class="flex items-center justify-between">
-                        <img src="{{ asset('themes/encendidorqta/erlogo.png') }}" alt="ER" class="h-10 w-auto object-contain grayscale opacity-60" style="filter: grayscale(1) brightness(0.35) contrast(1.05);">
+                        <img src="{{ asset('themes/encendidorqta/images/erlogo.png') }}" alt="ER" class="h-10 w-auto object-contain grayscale opacity-60" style="filter: grayscale(1) brightness(0.35) contrast(1.05);">
                         <span class="text-[10px] font-black uppercase tracking-widest bg-[#a6282e] text-white px-3 py-1 rounded-full">Repuestos y electricidad</span>
                     </div>
                     <ul class="mt-6 space-y-3">
@@ -223,11 +223,11 @@ new #[Layout('components.layouts.clean')] #[Title('Nosotros — Encendido Reconq
 
             {{-- CIBAT --}}
             <div class="relative bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300">
-                <div class="absolute inset-0 opacity-[0.04] pointer-events-none grayscale" style="background-image: url('{{ asset('themes/encendidorqta/patron_hex2.png') }}'); background-size: cover; background-position: left center;"></div>
+                <div class="absolute inset-0 opacity-[0.04] pointer-events-none grayscale" style="background-image: url('{{ asset('themes/encendidorqta/images/patron_hex2.png') }}'); background-size: cover; background-position: left center;"></div>
                 <div class="absolute -right-10 -top-10 w-36 h-36 bg-[#1b365d]/10" style="clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);"></div>
                 <div class="relative p-6 md:p-8">
                     <div class="flex items-center justify-between">
-                        <img src="{{ asset('themes/encendidorqta/cibatlogo.png') }}" alt="CIBAT" class="h-10 w-auto object-contain grayscale opacity-60" style="filter: grayscale(1) brightness(0.35) contrast(1.05);">
+                        <img src="{{ asset('themes/encendidorqta/images/cibatlogo.png') }}" alt="CIBAT" class="h-10 w-auto object-contain grayscale opacity-60" style="filter: grayscale(1) brightness(0.35) contrast(1.05);">
                         <span class="text-[10px] font-black uppercase tracking-widest bg-[#1b365d] text-white px-3 py-1 rounded-full">Baterías y cerrajería</span>
                     </div>
                     <ul class="mt-6 space-y-3">
@@ -246,9 +246,29 @@ new #[Layout('components.layouts.clean')] #[Title('Nosotros — Encendido Reconq
         </div>
     </div>
 
+    {{-- Medios de pago --}}
+    <div class="max-w-7xl mx-auto px-4 md:px-6 py-10">
+        <div class="flex items-center gap-3 mb-6">
+            <div class="w-8 h-8 bg-gray-400 shrink-0 flex items-center justify-center" style="clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);">
+                <span class="w-2 h-2 bg-white rounded-full"></span>
+            </div>
+            <h2 class="text-xl md:text-2xl font-black uppercase tracking-wide text-gray-400">Medios de pago</h2>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-10 flex flex-wrap items-center justify-center gap-8 md:gap-14">
+            <img src="{{ asset('themes/encendidorqta/images/medios-de-pago/visa.png') }}" class="h-8 md:h-12 w-auto object-contain grayscale hover:grayscale-0 transition-all opacity-70 hover:opacity-100" alt="Visa">
+            <img src="{{ asset('themes/encendidorqta/images/medios-de-pago/mastercard.svg') }}" class="h-8 md:h-12 w-auto object-contain grayscale hover:grayscale-0 transition-all opacity-70 hover:opacity-100" alt="Mastercard">
+            <img src="{{ asset('themes/encendidorqta/images/medios-de-pago/cabal.jpg') }}" class="h-8 md:h-12 w-auto object-contain grayscale hover:grayscale-0 transition-all opacity-70 hover:opacity-100" alt="Cabal">
+            <img src="{{ asset('themes/encendidorqta/images/medios-de-pago/naranjax.webp') }}" class="h-8 md:h-12 w-auto object-contain grayscale hover:grayscale-0 transition-all opacity-70 hover:opacity-100" alt="Naranja X">
+            <img src="{{ asset('themes/encendidorqta/images/medios-de-pago/nativa.png') }}" class="h-8 md:h-12 w-auto object-contain grayscale hover:grayscale-0 transition-all opacity-70 hover:opacity-100" alt="Nativa">
+            <img src="{{ asset('themes/encendidorqta/images/medios-de-pago/mercado_pago.webp') }}" class="h-10 md:h-16 w-auto object-contain grayscale hover:grayscale-0 transition-all opacity-70 hover:opacity-100" alt="Mercado Pago">
+            <img src="{{ asset('themes/encendidorqta/images/medios-de-pago/modo.png') }}" class="h-10 md:h-14 w-auto object-contain grayscale hover:grayscale-0 transition-all opacity-70 hover:opacity-100" alt="MODO">
+        </div>
+    </div>
+
     {{-- Cierre instalaciones — oscuro con interior + piedra --}}
     <div class="relative mt-6 overflow-hidden bg-gray-900">
-        <img src="{{ asset('themes/encendidorqta/local_interior.jpg') }}" alt="Interior" class="absolute inset-0 w-full h-full object-cover opacity-20">
+        <img src="{{ asset('themes/encendidorqta/images/local_interior.jpg') }}" alt="Interior" class="absolute inset-0 w-full h-full object-cover opacity-20">
         <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
 
         <div class="relative max-w-7xl mx-auto px-6 py-12 md:py-16">
@@ -288,9 +308,9 @@ new #[Layout('components.layouts.clean')] #[Title('Nosotros — Encendido Reconq
                         <div class="mt-3 inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wide opacity-90">Escribir <x-icon name="o-arrow-right" class="w-3.5 h-3.5" /></div>
                     </a>
                     <div class="col-span-2 bg-[#1a1a1a] rounded-2xl p-4 shadow-xl border border-white/10 flex items-center gap-4">
-                        <img src="{{ asset('themes/encendidorqta/erlogo.png') }}" class="h-8 w-auto object-contain grayscale brightness-0 invert opacity-80" alt="ER" style="filter: grayscale(1) brightness(0) invert(1) opacity(0.8);">
+                        <img src="{{ asset('themes/encendidorqta/images/erlogo.png') }}" class="h-8 w-auto object-contain grayscale brightness-0 invert opacity-80" alt="ER" style="filter: grayscale(1) brightness(0) invert(1) opacity(0.8);">
                         <div class="w-px h-8 bg-white/15"></div>
-                        <img src="{{ asset('themes/encendidorqta/cibatlogo.png') }}" class="h-7 w-auto object-contain grayscale brightness-0 invert opacity-80" alt="CIBAT" style="filter: grayscale(1) brightness(0) invert(1) opacity(0.8);">
+                        <img src="{{ asset('themes/encendidorqta/images/cibatlogo.png') }}" class="h-7 w-auto object-contain grayscale brightness-0 invert opacity-80" alt="CIBAT" style="filter: grayscale(1) brightness(0) invert(1) opacity(0.8);">
                         <div class="ml-auto text-right leading-tight">
                             <div class="text-xs font-black uppercase tracking-widest text-white">50 años</div>
                             <div class="text-[11px] font-bold text-white/60">potenciando tu negocio</div>
