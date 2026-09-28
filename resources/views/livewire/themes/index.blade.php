@@ -460,7 +460,7 @@ CSS;
                     <x-icon name="o-photo" class="w-4 h-4 text-info" />
                     <span class="font-semibold">Assets (Públicos):</span> 
                     <span class="font-mono bg-base-200 px-1 rounded">public/themes/{{ $selectedTheme }}/images/</span>
-                    <span class="text-xs opacity-70 ml-2 hidden md:inline">Uso en Blade: <code>{{ "{{ asset('themes/{$selectedTheme}/images/archivo.png') }}" }}</code></span>
+                    <span class="text-xs opacity-70 ml-2 hidden md:inline">Uso en Blade: <code>&lbrace;&lbrace; asset('themes/{{ $selectedTheme }}/images/archivo.png') &rbrace;&rbrace;</code></span>
                 </div>
             </div>
 
