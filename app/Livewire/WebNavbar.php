@@ -5,6 +5,7 @@ namespace App\Livewire;
 use App\Enums\Role;
 use App\Helpers\SettingsHelper;
 use App\Models\AltUser;
+use App\Services\ThemePageService;
 use Illuminate\Support\Collection;
 use Livewire\Component;
 use Mary\Traits\Toast;
@@ -17,15 +18,19 @@ class WebNavbar extends Component
 
     public Collection $salesCustomers;
 
+    /** @var array<int, array{slug: string, title: string, url: string}> */
+    public array $themePages = [];
+
     public $actingAsId = null;
 
     public $actingAsName = null;
 
     public $searchCustomer = '';
 
-    public function mount()
+    public function mount(ThemePageService $themePageService): void
     {
         $this->salesCustomers = collect();
+        $this->themePages = $themePageService->getAvailablePages();
         $loggedInUser = real_user();
 
         if ($loggedInUser && $loggedInUser->role === Role::SALES) {

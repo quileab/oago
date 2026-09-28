@@ -6,6 +6,7 @@ use App\Http\Controllers\Reports\ExportController;
 use App\Models\AltOrder;
 use App\Models\AltUser;
 use App\Models\Order;
+use App\Services\ThemePageService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
@@ -170,3 +171,12 @@ Route::middleware(['auth', 'check_guest'])->group(function () {
     Route::get('/export/customers-products', [ExportController::class, 'exportCustomersProducts'])->middleware('is_admin');
     Route::get('/export/users-order-stats', [ExportController::class, 'exportUsersOrderStats'])->middleware('is_admin');
 });
+
+// Theme static pages — must be declared last to avoid conflicts
+Route::get('/page/{slug}', function (string $slug, ThemePageService $themePageService) {
+    $view = $themePageService->resolvePageView($slug);
+
+    abort_unless($view, 404);
+
+    return view($view);
+})->name('theme.page')->where('slug', '[a-zA-Z0-9\-_]+');

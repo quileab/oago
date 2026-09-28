@@ -8,7 +8,9 @@
       <div class="flex items-center gap-1 sm:gap-4">
         <div class="hidden md:flex items-center gap-2">
           <a href="/" class="font-bold uppercase tracking-wider text-xs px-3 py-2 rounded-md hover:bg-white/10 hover:text-primary transition-colors">Inicio</a>
-          <a href="/about" class="font-bold uppercase tracking-wider text-xs px-3 py-2 rounded-md hover:bg-white/10 hover:text-primary transition-colors">Nosotros</a>
+          @foreach($themePages as $page)
+            <a href="{{ $page['url'] }}" class="font-bold uppercase tracking-wider text-xs px-3 py-2 rounded-md hover:bg-white/10 hover:text-primary transition-colors">{{ $page['title'] }}</a>
+          @endforeach
           @if(Auth::guest())
               <a href="/registrate" class="font-bold uppercase tracking-wider text-xs px-3 py-2 rounded-md hover:bg-white/10 hover:text-primary transition-colors">Regístrate</a>
           @endif

@@ -5,7 +5,9 @@
   <div>
     <div class="inline-flex flex-wrap items-right align-middle justify-end">
       <a href="/" class="hover:bg-gray-400 hover:text-black transition-all duration-300 p-4">Inicio</a>
-      <a href="/about" class="hover:bg-gray-400 hover:text-black transition-all duration-300 p-4">Nosotros</a>
+      @foreach($themePages as $page)
+        <a href="{{ $page['url'] }}" class="hover:bg-gray-400 hover:text-black transition-all duration-300 p-4">{{ $page['title'] }}</a>
+      @endforeach
       <a href="/registrate" class="hover:bg-gray-400 hover:text-black transition-all duration-300 p-4">Regístrate</a>
 
       <div class="inline-flex items-center">

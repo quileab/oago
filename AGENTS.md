@@ -487,6 +487,7 @@ Registered in `bootstrap/app.php`:
 
 ```
 Public:           /login, /register, /about, /activate-account/{token}, /proxy-image
+Public (pages):   /page/{slug} → served from themes/{theme}/pages/{slug}.blade.php via ThemePageService
 Auth+check_guest: /user/profile, /orders, /alt-orders, /checkout, /product/details/{id?}, etc.
 Admin-only:       /users, /products, /dashboard, /settings, /logs, /slider, /export/*
 API public:       POST /api/register, POST /api/login, GET /api/slider
@@ -511,7 +512,65 @@ If you need to modify `resources/views/livewire/web-product-detail.blade.php` fo
 3. If it doesn't exist AND you need to make changes to it for this theme, **copy** the base file into that theme path, and modify the copy. If no modifications are needed, do nothing (the system automatically falls back to the base file).
 4. If it already exists in the theme directory, apply your modifications there.
 
+**Active Theme Configuration:**
+- Set via `.env`: `APP_THEME=encendido` and optionally `APP_THEME_VARIANT=xmas`.
+- Resolved in `AppServiceProvider::boot()` using `config('app.theme')` and `config('app.theme_variant')`.
+
+**Theme CSS (Tailwind):**
+- Each theme has its own Tailwind entry-point at `resources/css/themes/{theme_name}.css`.
+- The `vite.config.js` automatically discovers all files in `resources/css/themes/*.css` and registers them as Vite entry-points — no manual changes needed when adding a new theme.
+- When creating a new theme via the admin Theme Manager, its CSS file is auto-generated from a template.
+
 ---
+
+### Theme Static Pages System
+
+A file-convention based system for serving static marketing/institutional pages (e.g. `/page/nosotros`, `/page/contacto`) without a CMS or database.
+
+**How it works:**
+1. Place a `.blade.php` file inside `resources/views/themes/{theme_name}/pages/`.
+2. The file is auto-detected by `ThemePageService` — no code changes needed.
+3. The page URL is automatically `GET /page/{slug}` (named route: `theme.page`).
+4. The slug → title is generated via `Str::headline($slug)` (e.g. `nosotros` → `"Nosotros"`).
+5. Links appear automatically in `WebNavbar` via the `$themePages` property.
+
+**View Resolution (priority order):**
+```
+themes/{theme}/{variant}/pages/{slug}  → Highest priority (variant override)
+themes/{theme}/pages/{slug}            → Theme-specific page
+pages/{slug}                           → Base fallback (shared across themes)
+```
+
+**Adding a new page (example):**
+```
+resources/views/themes/encendidorqta/pages/contacto.blade.php
+```
+→ Accessible at `/page/contacto`, title `"Contacto"`, link appears in navbar automatically.
+
+**Minimal page template:**
+```php
+<?php
+use Livewire\Attributes\Layout;
+use Livewire\Attributes\Title;
+use Livewire\Volt\Component;
+
+new #[Layout('components.layouts.clean')] #[Title('Mi Página')] class extends Component {
+}; ?>
+
+<div>
+    {{-- Page content here --}}
+</div>
+```
+
+**Key files:**
+- `app/Services/ThemePageService.php` — `getAvailablePages()` and `resolvePageView(string $slug)`.
+- `app/Livewire/WebNavbar.php` — injects `ThemePageService` in `mount()`, exposes `$themePages`.
+- `routes/web.php` — `GET /page/{slug}` declared at the **end of file** (avoids route conflicts).
+
+> [!IMPORTANT]
+> The `GET /page/{slug}` route must always remain the **last route** in `routes/web.php`. Placing it earlier can shadow other named routes.
+
+
 
 ### Components Map
 
@@ -555,6 +614,7 @@ If you need to modify `resources/views/livewire/web-product-detail.blade.php` fo
 | `PriceListService` | `getEffectivePrice()`, `calculateItemPrice()` |
 | `ProductSearchService` | `hydratePrices()` (N+1 prevention for catalog) |
 | `SliderService` | `getSlides()` (unifica `slider_public` + fallback `storage/slider`) |
+| `ThemePageService` | `getAvailablePages()` (navbar links), `resolvePageView(string $slug)` (route resolution) |
 
 ---
 
