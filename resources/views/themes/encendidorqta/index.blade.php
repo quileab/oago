@@ -5,7 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    @vite(['resources/css/themes/encendidorqta.css', 'resources/js/app.js'])
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="icon" type="image/webp" href="{{ asset('imgs/fallback.webp') }}">
 </head>
 <!-- Charly -->
@@ -50,7 +50,7 @@
             </div>
 
             <!-- Sección de la foto (fondo) con aspect ratio real de la imagen -->
-            <div class="relative w-full bg-cover bg-top -mt-56 md:-mt-72" style="background-image: url('{{ asset('img/frentelocal.png') }}'); aspect-ratio: 1919/899;">
+            <div class="relative w-full bg-cover bg-top -mt-56 md:-mt-72" style="background-image: url('{{ asset('themes/encendidorqta/images/frentelocal.png') }}'); aspect-ratio: 1919/899;">
                 <!-- Overlay oscuro y en escala de grises -->
                 <div class="absolute inset-0 bg-black/30 backdrop-grayscale"></div>
                 
