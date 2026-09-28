@@ -27,8 +27,8 @@ class AppServiceProvider extends ServiceProvider
     {
         Tag::observe(TagObserver::class);
 
-        $theme = config('app.theme', env('APP_THEME', 'default'));
-        $variant = config('app.theme_variant', env('APP_THEME_VARIANT'));
+        $theme = config('app.theme', 'default');
+        $variant = config('app.theme_variant');
 
         $pathsToRegister = [];
 

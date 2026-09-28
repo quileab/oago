@@ -130,9 +130,16 @@ new class extends Component {
 CSS;
             File::put($cssFile, $cssTemplate);
         }
+        // --- FIN CSS ---
+
+        // --- INICIO: Crear carpeta pública de assets del tema ---
+        $publicAssetsPath = public_path("themes/{$name}/images");
+        if (!File::exists($publicAssetsPath)) {
+            File::makeDirectory($publicAssetsPath, 0755, true);
+        }
         // --- FIN ---
 
-        $this->success("Tema '{$name}' y su archivo CSS creado correctamente.");
+        $this->success("Tema '{$name}' creado: vistas, CSS y carpeta de assets lista.");
         $this->newThemeName = '';
         $this->loadThemes();
         $this->selectedTheme = $name;

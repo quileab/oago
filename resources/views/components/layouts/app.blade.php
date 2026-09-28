@@ -8,6 +8,10 @@
     <title>{{ isset($title) ? $title . ' - ' . App\Helpers\SettingsHelper::settings('company_name', config('app.name')) : App\Helpers\SettingsHelper::settings('company_name', config('app.name')) }}</title>
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @php $activeThemeCss = 'resources/css/themes/' . config('app.theme', 'default') . '.css'; @endphp
+    @if(config('app.theme', 'default') !== 'default' && file_exists(base_path($activeThemeCss)))
+        @vite([$activeThemeCss])
+    @endif
     <script src="{{ asset('js/tinymce/tinymce.min.js') }}"></script>
     {{-- Cropper.js --}}
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
