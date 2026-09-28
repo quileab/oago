@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Str;
 use Livewire\Volt\Component;
 use Mary\Traits\Toast;
 
@@ -17,6 +18,7 @@ new class extends Component {
     
     public string $newThemeName = '';
     public string $newVariantName = '';
+    public string $newPageSlug = '';
 
     public function mount()
     {
@@ -305,6 +307,89 @@ CSS;
 
         return $viewsList;
     }
+
+    public function getThemePagesProperty()
+    {
+        if (empty($this->selectedTheme)) {
+            return [];
+        }
+
+        $prefix = $this->getCurrentOverridePrefix();
+        $pagesPath = resource_path("views/themes/{$prefix}/pages");
+
+        if (!File::isDirectory($pagesPath)) {
+            return [];
+        }
+
+        $pages = [];
+        foreach (File::files($pagesPath) as $file) {
+            if (Str::endsWith($file->getFilename(), '.blade.php')) {
+                $slug = Str::before($file->getFilename(), '.blade.php');
+                $pages[] = [
+                    'slug' => $slug,
+                    'file' => $file->getRelativePathname(),
+                    'title' => Str::headline($slug),
+                    'url' => route('theme.page', ['slug' => $slug])
+                ];
+            }
+        }
+        return $pages;
+    }
+
+    public function createThemePage()
+    {
+        if (empty($this->selectedTheme)) {
+            $this->error('Selecciona un tema primero.');
+            return;
+        }
+
+        $name = trim($this->newPageSlug);
+        if (empty($name)) {
+            $this->error('El nombre de la página no puede estar vacío.');
+            return;
+        }
+
+        $slug = Str::slug($name);
+        $prefix = $this->getCurrentOverridePrefix();
+        $pagesPath = resource_path("views/themes/{$prefix}/pages");
+
+        if (!File::isDirectory($pagesPath)) {
+            File::makeDirectory($pagesPath, 0755, true);
+        }
+
+        $filePath = "{$pagesPath}/{$slug}.blade.php";
+        if (File::exists($filePath)) {
+            $this->warning("La página '{$slug}' ya existe.");
+            return;
+        }
+
+        $title = Str::headline($slug);
+        
+        $base64Template = 'PD9waHAKdXNlIExpdmV3aXJlXEF0dHJpYnV0ZXNcTGF5b3V0Owp1c2UgTGl2ZXdpcmVcQXR0cmlidXRlc1xUaXRsZTsKdXNlIExpdmV3aXJlXFZvbHRcQ29tcG9uZW50OwoKbmV3ICNbTGF5b3V0KCdjb21wb25lbnRzLmxheW91dHMuY2xlYW4nKV0gI1tUaXRsZSgne3t0aXRsZX19JyldIGNsYXNzIGV4dGVuZHMgQ29tcG9uZW50IHsKfTsgPz4KCjxkaXYgY2xhc3M9ImJnLXdoaXRlIG1pbi1oLXNjcmVlbiBkYXJrOmJnLWdyYXktOTUwIHB4LTQgcHktOCB0ZXh0LWdyYXktOTAwIGRhcms6dGV4dC1ncmF5LTEwMCI+CiAgICA8ZGl2IGNsYXNzPSJteC1hdXRvIG1heC13LTR4bCBzcGFjZS15LTYiPgogICAgICAgIDxoMSBjbGFzcz0idGV4dC0zeGwgZm9udC1ib2xkIj57e3RpdGxlfX08L2gxPgogICAgICAgIDxwPkNvbnRlbmlkbyBkZSBsYSBw4WdpbmEgdmEgYXF17S4uLjwvcD4KICAgIDwvZGl2Pgo8L2Rpdj4=';
+        $template = str_replace('{{title}}', $title, base64_decode($base64Template));
+
+        File::put($filePath, $template);
+        $this->success("Página '{$slug}' creada correctamente.");
+        $this->newPageSlug = '';
+    }
+
+    public function deleteThemePage($slug)
+    {
+        if (empty($this->selectedTheme)) {
+            $this->error('Selecciona un tema primero.');
+            return;
+        }
+
+        $prefix = $this->getCurrentOverridePrefix();
+        $filePath = resource_path("views/themes/{$prefix}/pages/{$slug}.blade.php");
+
+        if (File::exists($filePath)) {
+            File::delete($filePath);
+            $this->success("Página '{$slug}' eliminada.");
+        } else {
+            $this->error("La página '{$slug}' no existe.");
+        }
+    }
 }
 ?>
 
@@ -415,6 +500,54 @@ CSS;
                                 <tr>
                                     <td colspan="3" class="text-center py-4 text-gray-500">
                                         No se encontraron vistas con esa búsqueda.
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </x-card>
+            
+            <x-card title="Páginas Estáticas (/page)" class="shadow-sm mt-6">
+                <div class="flex flex-col md:flex-row items-center justify-between mb-4 gap-4">
+                    <div class="text-sm opacity-70 w-full md:w-1/2 text-center md:text-left">
+                        Agrega páginas institucionales o informativas (ej: nosotros, contacto).<br>Aparecerán automáticamente en el menú.
+                    </div>
+                    <div class="w-full md:w-auto flex items-center gap-2 justify-end">
+                        <x-input wire:model="newPageSlug" placeholder="Nombre de página..." class="input-sm" />
+                        <x-button wire:click="createThemePage" icon="o-plus" class="btn-primary btn-sm" tooltip="Crear página" />
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto border border-base-300 rounded-lg">
+                    <table class="table table-zebra table-sm w-full">
+                        <thead>
+                            <tr>
+                                <th>Título</th>
+                                <th>URL (Slug)</th>
+                                <th>Archivo Físico</th>
+                                <th class="text-right">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($this->themePages as $page)
+                                <tr>
+                                    <td class="font-bold">{{ $page['title'] }}</td>
+                                    <td class="font-mono text-sm">
+                                        <a href="{{ $page['url'] }}" target="_blank" class="text-primary hover:underline flex items-center gap-1">
+                                            /page/{{ $page['slug'] }}
+                                            <x-icon name="o-arrow-top-right-on-square" class="w-3 h-3" />
+                                        </a>
+                                    </td>
+                                    <td class="font-mono text-xs opacity-75">{{ $page['file'] }}</td>
+                                    <td class="text-right">
+                                        <x-button wire:click="deleteThemePage('{{ $page['slug'] }}')" wire:confirm="¿Estás seguro de eliminar la página '{{ $page['title'] }}'? Se borrará el archivo físico permanentemente." icon="o-trash" class="btn-error btn-xs btn-outline" tooltip="Eliminar página" />
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="4" class="text-center py-4 text-gray-500">
+                                        No se han creado páginas para este tema aún.
                                     </td>
                                 </tr>
                             @endforelse
