@@ -29,12 +29,12 @@
         {{-- Paymethods Banner --}}
         <div class="max-w-7xl mx-auto px-4 mt-2 mb-6 z-10 relative">
             <div class="bg-white rounded-lg shadow-md py-4 px-6 flex flex-wrap justify-center items-center gap-4 md:gap-8">
-                <img src="{{ asset('img/medios-de-pago/visa.png') }}" alt="Visa" class="h-6 md:h-8 object-contain">
-                <img src="{{ asset('img/medios-de-pago/cabal.jpg') }}" alt="Cabal" class="h-6 md:h-8 object-contain">
-                <img src="{{ asset('img/medios-de-pago/mercado_pago.webp') }}" alt="Mercado Pago" class="h-6 md:h-8 object-contain">
-                <img src="{{ asset('img/medios-de-pago/modo.png') }}" alt="Modo" class="h-6 md:h-8 object-contain">
-                <img src="{{ asset('img/medios-de-pago/mastercard.svg') }}" alt="Mastercard" class="h-6 md:h-8 object-contain">
-                <img src="{{ asset('img/medios-de-pago/naranjax.webp') }}" alt="Naranja X" class="h-6 md:h-8 object-contain">
+                <img src="{{ asset('themes/encendidorqta/images/medios-de-pago/visa.png') }}" alt="Visa" class="h-6 md:h-8 object-contain">
+                <img src="{{ asset('themes/encendidorqta/images/medios-de-pago/cabal.jpg') }}" alt="Cabal" class="h-6 md:h-8 object-contain">
+                <img src="{{ asset('themes/encendidorqta/images/medios-de-pago/mercado_pago.webp') }}" alt="Mercado Pago" class="h-6 md:h-8 object-contain">
+                <img src="{{ asset('themes/encendidorqta/images/medios-de-pago/modo.png') }}" alt="Modo" class="h-6 md:h-8 object-contain">
+                <img src="{{ asset('themes/encendidorqta/images/medios-de-pago/mastercard.svg') }}" alt="Mastercard" class="h-6 md:h-8 object-contain">
+                <img src="{{ asset('themes/encendidorqta/images/medios-de-pago/naranjax.webp') }}" alt="Naranja X" class="h-6 md:h-8 object-contain">
             </div>
         </div>
     @endif

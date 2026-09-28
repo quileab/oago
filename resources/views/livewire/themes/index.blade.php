@@ -456,6 +456,12 @@ CSS;
                     <span class="font-semibold">CSS (Tailwind):</span> 
                     <span class="font-mono bg-base-200 px-1 rounded">resources/css/themes/{{ $selectedTheme }}.css</span>
                 </div>
+                <div class="flex items-center gap-2">
+                    <x-icon name="o-photo" class="w-4 h-4 text-info" />
+                    <span class="font-semibold">Assets (Públicos):</span> 
+                    <span class="font-mono bg-base-200 px-1 rounded">public/themes/{{ $selectedTheme }}/images/</span>
+                    <span class="text-xs opacity-70 ml-2 hidden md:inline">Uso en Blade: <code>{{ "{{ asset('themes/{$selectedTheme}/images/archivo.png') }}" }}</code></span>
+                </div>
             </div>
 
             <x-card title="Vistas del motor" class="shadow-sm">
