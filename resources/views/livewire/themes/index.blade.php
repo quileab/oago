@@ -4,21 +4,26 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Str;
 use Livewire\Volt\Component;
+use Livewire\WithFileUploads;
 use Mary\Traits\Toast;
 
 new class extends Component {
     use Toast;
+    use WithFileUploads;
 
     public string $selectedTheme = '';
     public string $selectedVariant = '';
     public array $themes = [];
     public array $variants = [];
-    
+
     public string $search = '';
-    
+
     public string $newThemeName = '';
     public string $newVariantName = '';
     public string $newPageSlug = '';
+
+    /** @var \Livewire\Features\SupportFileUploads\TemporaryUploadedFile|null */
+    public $importFile = null;
 
     public function mount()
     {
@@ -397,6 +402,118 @@ CSS;
             $this->error("La página '{$slug}' no existe.");
         }
     }
+
+    public function exportTheme(): mixed
+    {
+        if (empty($this->selectedTheme) || $this->selectedTheme === 'default') {
+            $this->error('Selecciona un tema válido para exportar.');
+            return null;
+        }
+
+        $theme = $this->selectedTheme;
+        $exportDir = storage_path('app/private/theme-exports');
+        File::ensureDirectoryExists($exportDir);
+
+        $zipPath = "{$exportDir}/{$theme}-theme-" . now()->format('Ymd_His') . '.zip';
+
+        $zip = new \ZipArchive();
+        if ($zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
+            $this->error('No se pudo crear el archivo ZIP.');
+            return null;
+        }
+
+        // 1. Vistas del tema → views/
+        $viewsPath = resource_path("views/themes/{$theme}");
+        if (File::isDirectory($viewsPath)) {
+            foreach (File::allFiles($viewsPath) as $file) {
+                $zip->addFile($file->getRealPath(), 'views/' . $file->getRelativePathname());
+            }
+        }
+
+        // 2. CSS del tema → css/
+        $cssFile = resource_path("css/themes/{$theme}.css");
+        if (File::exists($cssFile)) {
+            $zip->addFile($cssFile, "css/{$theme}.css");
+        }
+
+        // 3. Assets públicos → public/
+        $assetsPath = public_path("themes/{$theme}");
+        if (File::isDirectory($assetsPath)) {
+            foreach (File::allFiles($assetsPath) as $file) {
+                $zip->addFile($file->getRealPath(), 'public/' . $file->getRelativePathname());
+            }
+        }
+
+        $zip->close();
+
+        return response()->download($zipPath, "{$theme}-theme.zip")->deleteFileAfterSend(true);
+    }
+
+    public function importTheme(): void
+    {
+        $this->validate(['importFile' => 'required|file|mimes:zip|max:51200']);
+
+        $zipPath = $this->importFile->getRealPath();
+        $zip = new \ZipArchive();
+
+        if ($zip->open($zipPath) !== true) {
+            $this->error('No se pudo abrir el archivo ZIP.');
+            return;
+        }
+
+        // Detect theme name from the zip structure
+        $detectedTheme = null;
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $name = $zip->getNameIndex($i);
+            if (str_starts_with($name, 'css/') && str_ends_with($name, '.css')) {
+                $detectedTheme = Str::before(basename($name), '.css');
+                break;
+            }
+        }
+
+        if (!$detectedTheme) {
+            $zip->close();
+            $this->error('No se pudo detectar el nombre del tema en el ZIP. Asegúrate de exportar desde este gestor.');
+            return;
+        }
+
+        $exclude = ['default', 'livewire', 'components', 'layouts', 'vendor', 'emails', 'auth', 'errors'];
+        if (in_array(strtolower($detectedTheme), $exclude)) {
+            $zip->close();
+            $this->error("El nombre de tema '{$detectedTheme}' está reservado y no puede importarse.");
+            return;
+        }
+
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $entry = $zip->getNameIndex($i);
+            if (str_ends_with($entry, '/')) {
+                continue; // skip directories
+            }
+
+            $content = $zip->getFromIndex($i);
+
+            if (str_starts_with($entry, 'views/')) {
+                $dest = resource_path("views/themes/{$detectedTheme}/" . substr($entry, strlen('views/')));
+            } elseif (str_starts_with($entry, 'css/')) {
+                $dest = resource_path("css/themes/{$detectedTheme}.css");
+            } elseif (str_starts_with($entry, 'public/')) {
+                $dest = public_path("themes/{$detectedTheme}/" . substr($entry, strlen('public/')));
+            } else {
+                continue; // unknown structure, skip
+            }
+
+            File::ensureDirectoryExists(dirname($dest));
+            File::put($dest, $content);
+        }
+
+        $zip->close();
+
+        $this->importFile = null;
+        $this->loadThemes();
+        $this->selectedTheme = $detectedTheme;
+        $this->updatedSelectedTheme();
+        $this->success("Tema '{$detectedTheme}' importado correctamente.");
+    }
 }
 ?>
 
@@ -468,6 +585,46 @@ CSS;
                     <span class="font-semibold">Assets (Públicos):</span> 
                     <span class="font-mono bg-base-200 px-1 rounded">public/themes/{{ $selectedTheme }}/images/</span>
                     <span class="text-xs opacity-70 ml-2 hidden md:inline">Uso en Blade: <code>&lbrace;&lbrace; asset('themes/{{ $selectedTheme }}/images/archivo.png') &rbrace;&rbrace;</code></span>
+                </div>
+
+                <div class="divider my-2"></div>
+
+                {{-- Export / Import --}}
+                <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                    <div class="flex items-center gap-2 shrink-0">
+                        <x-icon name="o-archive-box-arrow-down" class="w-4 h-4 text-success" />
+                        <span class="font-semibold text-sm">Portabilidad:</span>
+                    </div>
+
+                    {{-- Export button --}}
+                    <x-button
+                        wire:click="exportTheme"
+                        icon="o-arrow-down-tray"
+                        class="btn-success btn-sm"
+                        spinner="exportTheme"
+                        tooltip="Descarga un ZIP con vistas, CSS y assets del tema"
+                    >
+                        Exportar tema
+                    </x-button>
+
+                    {{-- Import --}}
+                    <div class="flex items-center gap-2 flex-1">
+                        <x-file
+                            wire:model="importFile"
+                            accept=".zip"
+                            class="file-input-sm flex-1"
+                        />
+                        <x-button
+                            wire:click="importTheme"
+                            icon="o-arrow-up-tray"
+                            class="btn-warning btn-sm"
+                            spinner="importTheme"
+                            wire:confirm="¿Importar este tema? Si ya existe, sus archivos serán sobreescritos."
+                            tooltip="Importa un ZIP exportado desde este gestor"
+                        >
+                            Importar
+                        </x-button>
+                    </div>
                 </div>
             </div>
 
