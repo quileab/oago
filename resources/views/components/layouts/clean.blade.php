@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" data-theme="light">
 
 <head>
   <meta charset="utf-8">
@@ -13,7 +13,7 @@
     <link rel="icon" type="image/webp" href="{{ asset('imgs/fallback.webp') }}">
 </head>
 
-<body class="grid m-0 p-0 min-h-screen font-sans antialiased bg-base-200/50 dark:bg-base-200">
+<body class="grid m-0 p-0 min-h-screen font-sans antialiased bg-base-200/50">
   <livewire:web-navbar />
   <x-main>
     <x-slot:content>

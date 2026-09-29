@@ -1,22 +1,26 @@
 @import "tailwindcss";
 
 @plugin "daisyui" {
-    darktheme: "dark";
-    themes: dark --default, light --preferslight;
+    /* backend follows the device color scheme; frontend stays light via [data-theme="light"] below */
+    themes: light --default, dark --prefersdark;
 }
 @plugin "daisyui/theme" {
     default: true;
 }
 
+:root,
 [data-theme="light"] {
     --color-primary: #ff5722;
     --color-secondary: #333333;
     --color-success: #3c8e26;
 }
-[data-theme="dark"] {
-    --color-primary: #ff5722;
-    --color-secondary: #333333;
-    --color-success: #3c8e26;
+[data-theme="light"] {
+    color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        color-scheme: dark;
+    }
 }
 
 @source "../../../vendor/robsontenorio/mary/src/View/Components/**/*.php";

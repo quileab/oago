@@ -1,28 +1,35 @@
 <?php
 
-use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\Volt\Component;
 use Livewire\WithFileUploads;
 use Mary\Traits\Toast;
 
-new class extends Component {
+new class extends Component
+{
     use Toast;
     use WithFileUploads;
 
     public string $selectedTheme = '';
+
     public string $selectedVariant = '';
+
     public array $themes = [];
+
     public array $variants = [];
 
     public string $search = '';
 
     public string $newThemeName = '';
+
     public string $newVariantName = '';
+
     public string $newPageSlug = '';
 
-    /** @var \Livewire\Features\SupportFileUploads\TemporaryUploadedFile|null */
+    /** @var TemporaryUploadedFile|null */
     public $importFile = null;
 
     public function mount()
@@ -42,14 +49,14 @@ new class extends Component {
     public function loadThemes()
     {
         $themesPath = resource_path('views/themes');
-        if (!File::exists($themesPath)) {
+        if (! File::exists($themesPath)) {
             File::makeDirectory($themesPath, 0755, true);
         }
 
         $directories = File::directories($themesPath);
-        $this->themes = array_map(fn($dir) => basename($dir), $directories);
-        
-        if (!in_array('default', $this->themes)) {
+        $this->themes = array_map(fn ($dir) => basename($dir), $directories);
+
+        if (! in_array('default', $this->themes)) {
             array_unshift($this->themes, 'default');
         }
     }
@@ -62,16 +69,16 @@ new class extends Component {
         }
 
         $themePath = resource_path("views/themes/{$this->selectedTheme}");
-        if (!File::exists($themePath)) {
+        if (! File::exists($themePath)) {
             return;
         }
 
         $directories = File::directories($themePath);
         $exclude = ['livewire', 'components', 'layouts', 'vendor', 'emails', 'auth', 'errors'];
-        
+
         foreach ($directories as $dir) {
             $name = basename($dir);
-            if (!in_array($name, $exclude)) {
+            if (! in_array($name, $exclude)) {
                 $this->variants[] = $name;
             }
         }
@@ -82,45 +89,51 @@ new class extends Component {
         $name = trim($this->newThemeName);
         if (empty($name)) {
             $this->error('El nombre del tema no puede estar vacío.');
+
             return;
         }
 
         $themePath = resource_path("views/themes/{$name}");
         if (File::exists($themePath)) {
             $this->warning('El tema ya existe.');
+
             return;
         }
 
         File::makeDirectory($themePath, 0755, true);
-        
+
         // --- INICIO: Crear archivo CSS para el tema automáticamente ---
-        $cssDir = resource_path("css/themes");
-        if (!File::exists($cssDir)) {
+        $cssDir = resource_path('css/themes');
+        if (! File::exists($cssDir)) {
             File::makeDirectory($cssDir, 0755, true);
         }
-        
+
         $cssFile = resource_path("css/themes/{$name}.css");
-        if (!File::exists($cssFile)) {
+        if (! File::exists($cssFile)) {
             $cssTemplate = <<<CSS
 @import "tailwindcss";
 
 @plugin "daisyui" {
-    darktheme: "dark";
-    themes: dark --default, light --preferslight;
+    /* backend follows the device color scheme; frontend stays light via [data-theme="light"] below */
+    themes: light --default, dark --prefersdark;
 }
 @plugin "daisyui/theme" {
     default: true;
 }
 
+:root,
 [data-theme="light"] {
     --color-primary: #002b6b;
     --color-secondary: #8a053c;
     --color-success: #3c8e26;
 }
-[data-theme="dark"] {
-    --color-primary: #002b6b;
-    --color-secondary: #8a053c;
-    --color-success: #3c8e26;
+[data-theme="light"] {
+    color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        color-scheme: dark;
+    }
 }
 
 @source "../../../vendor/robsontenorio/mary/src/View/Components/**/*.php";
@@ -139,7 +152,7 @@ CSS;
 
         // --- INICIO: Crear carpeta pública de assets del tema ---
         $publicAssetsPath = public_path("themes/{$name}/images");
-        if (!File::exists($publicAssetsPath)) {
+        if (! File::exists($publicAssetsPath)) {
             File::makeDirectory($publicAssetsPath, 0755, true);
         }
         // --- FIN ---
@@ -156,18 +169,21 @@ CSS;
         $name = trim($this->newVariantName);
         if (empty($name) || empty($this->selectedTheme)) {
             $this->error('El nombre de la variante o tema es inválido.');
+
             return;
         }
 
         $exclude = ['livewire', 'components', 'layouts', 'vendor', 'emails', 'auth', 'errors'];
         if (in_array(strtolower($name), $exclude)) {
             $this->error('Ese nombre está reservado para directorios de vistas.');
+
             return;
         }
 
         $variantPath = resource_path("views/themes/{$this->selectedTheme}/{$name}");
         if (File::exists($variantPath)) {
             $this->warning('La variante ya existe.');
+
             return;
         }
 
@@ -182,12 +198,14 @@ CSS;
     {
         if (empty($this->selectedTheme)) {
             $this->error('Selecciona un tema primero.');
+
             return;
         }
 
         $envPath = base_path('.env');
-        if (!File::exists($envPath)) {
+        if (! File::exists($envPath)) {
             $this->error('El archivo .env no existe.');
+
             return;
         }
 
@@ -195,27 +213,27 @@ CSS;
 
         // Update APP_THEME
         if (preg_match('/^APP_THEME=.*$/m', $env)) {
-            $env = preg_replace('/^APP_THEME=.*$/m', 'APP_THEME=' . $this->selectedTheme, $env);
+            $env = preg_replace('/^APP_THEME=.*$/m', 'APP_THEME='.$this->selectedTheme, $env);
         } else {
-            $env .= "\nAPP_THEME=" . $this->selectedTheme;
+            $env .= "\nAPP_THEME=".$this->selectedTheme;
         }
 
         // Update APP_THEME_VARIANT
         if (preg_match('/^APP_THEME_VARIANT=.*$/m', $env)) {
-            $env = preg_replace('/^APP_THEME_VARIANT=.*$/m', 'APP_THEME_VARIANT=' . $this->selectedVariant, $env);
+            $env = preg_replace('/^APP_THEME_VARIANT=.*$/m', 'APP_THEME_VARIANT='.$this->selectedVariant, $env);
         } else {
-            $env .= "\nAPP_THEME_VARIANT=" . $this->selectedVariant;
+            $env .= "\nAPP_THEME_VARIANT=".$this->selectedVariant;
         }
 
         File::put($envPath, $env);
         Artisan::call('config:clear');
-        $this->success("Tema activado exitosamente. Se limpió la caché de config.");
+        $this->success('Tema activado exitosamente. Se limpió la caché de config.');
     }
 
     private function getCurrentOverridePrefix()
     {
-        return $this->selectedVariant 
-            ? "{$this->selectedTheme}/{$this->selectedVariant}" 
+        return $this->selectedVariant
+            ? "{$this->selectedTheme}/{$this->selectedVariant}"
             : $this->selectedTheme;
     }
 
@@ -223,11 +241,13 @@ CSS;
     {
         if (empty($this->selectedTheme)) {
             $this->error('Selecciona un tema primero.');
+
             return;
         }
 
         if ($this->selectedTheme === 'default') {
             $this->error('No se pueden sobrescribir archivos en el tema default. Usa otro tema o modifica los archivos base (Core).');
+
             return;
         }
 
@@ -235,18 +255,20 @@ CSS;
         $prefix = $this->getCurrentOverridePrefix();
         $themePath = resource_path("views/themes/{$prefix}/{$file}");
 
-        if (!File::exists($basePath)) {
+        if (! File::exists($basePath)) {
             $this->error('El archivo base no existe.');
+
             return;
         }
 
         if (File::exists($themePath)) {
             $this->warning('El archivo ya está sobrescrito en este nivel.');
+
             return;
         }
 
         $directory = dirname($themePath);
-        if (!File::exists($directory)) {
+        if (! File::exists($directory)) {
             File::makeDirectory($directory, 0755, true);
         }
 
@@ -258,29 +280,31 @@ CSS;
     {
         if (empty($this->selectedTheme)) {
             $this->error('Selecciona un tema primero.');
+
             return;
         }
 
         $prefix = $this->getCurrentOverridePrefix();
         $themePath = resource_path("views/themes/{$prefix}/{$file}");
 
-        if (!File::exists($themePath)) {
+        if (! File::exists($themePath)) {
             $this->warning('El archivo no está sobrescrito.');
+
             return;
         }
 
         File::delete($themePath);
-        
+
         // Clean up empty directories
         $directory = dirname($themePath);
         $themeRoot = resource_path("views/themes/{$prefix}");
-        
+
         while ($directory !== $themeRoot && File::isDirectory($directory) && empty(File::allFiles($directory)) && empty(File::directories($directory))) {
             File::deleteDirectory($directory);
             $directory = dirname($directory);
         }
 
-        $this->success("Vista revertida. Ahora usa el fallback.");
+        $this->success('Vista revertida. Ahora usa el fallback.');
     }
 
     public function getViewsProperty()
@@ -291,19 +315,19 @@ CSS;
 
         $basePath = resource_path('views');
         $allFiles = File::allFiles($basePath);
-        
+
         $viewsList = [];
         $prefix = $this->getCurrentOverridePrefix();
-        
+
         foreach ($allFiles as $file) {
             $relativePath = $file->getRelativePathname();
             $relativePath = str_replace('\\', '/', $relativePath);
-            
+
             // Ignore files that are inside the themes directory itself
             if (str_starts_with($relativePath, 'themes/')) {
                 continue;
             }
-            
+
             if ($this->search && stripos($relativePath, $this->search) === false) {
                 continue;
             }
@@ -329,7 +353,7 @@ CSS;
         $prefix = $this->getCurrentOverridePrefix();
         $pagesPath = resource_path("views/themes/{$prefix}/pages");
 
-        if (!File::isDirectory($pagesPath)) {
+        if (! File::isDirectory($pagesPath)) {
             return [];
         }
 
@@ -341,10 +365,11 @@ CSS;
                     'slug' => $slug,
                     'file' => $file->getRelativePathname(),
                     'title' => Str::headline($slug),
-                    'url' => route('theme.page', ['slug' => $slug])
+                    'url' => route('theme.page', ['slug' => $slug]),
                 ];
             }
         }
+
         return $pages;
     }
 
@@ -352,12 +377,14 @@ CSS;
     {
         if (empty($this->selectedTheme)) {
             $this->error('Selecciona un tema primero.');
+
             return;
         }
 
         $name = trim($this->newPageSlug);
         if (empty($name)) {
             $this->error('El nombre de la página no puede estar vacío.');
+
             return;
         }
 
@@ -365,18 +392,19 @@ CSS;
         $prefix = $this->getCurrentOverridePrefix();
         $pagesPath = resource_path("views/themes/{$prefix}/pages");
 
-        if (!File::isDirectory($pagesPath)) {
+        if (! File::isDirectory($pagesPath)) {
             File::makeDirectory($pagesPath, 0755, true);
         }
 
         $filePath = "{$pagesPath}/{$slug}.blade.php";
         if (File::exists($filePath)) {
             $this->warning("La página '{$slug}' ya existe.");
+
             return;
         }
 
         $title = Str::headline($slug);
-        
+
         $base64Template = 'PD9waHAKdXNlIExpdmV3aXJlXEF0dHJpYnV0ZXNcTGF5b3V0Owp1c2UgTGl2ZXdpcmVcQXR0cmlidXRlc1xUaXRsZTsKdXNlIExpdmV3aXJlXFZvbHRcQ29tcG9uZW50OwoKbmV3ICNbTGF5b3V0KCdjb21wb25lbnRzLmxheW91dHMuY2xlYW4nKV0gI1tUaXRsZSgne3t0aXRsZX19JyldIGNsYXNzIGV4dGVuZHMgQ29tcG9uZW50IHsKfTsgPz4KCjxkaXYgY2xhc3M9ImJnLXdoaXRlIG1pbi1oLXNjcmVlbiBkYXJrOmJnLWdyYXktOTUwIHB4LTQgcHktOCB0ZXh0LWdyYXktOTAwIGRhcms6dGV4dC1ncmF5LTEwMCI+CiAgICA8ZGl2IGNsYXNzPSJteC1hdXRvIG1heC13LTR4bCBzcGFjZS15LTYiPgogICAgICAgIDxoMSBjbGFzcz0idGV4dC0zeGwgZm9udC1ib2xkIj57e3RpdGxlfX08L2gxPgogICAgICAgIDxwPkNvbnRlbmlkbyBkZSBsYSBw4WdpbmEgdmEgYXF17S4uLjwvcD4KICAgIDwvZGl2Pgo8L2Rpdj4=';
         $template = str_replace('{{title}}', $title, base64_decode($base64Template));
 
@@ -389,6 +417,7 @@ CSS;
     {
         if (empty($this->selectedTheme)) {
             $this->error('Selecciona un tema primero.');
+
             return;
         }
 
@@ -407,6 +436,7 @@ CSS;
     {
         if (empty($this->selectedTheme) || $this->selectedTheme === 'default') {
             $this->error('Selecciona un tema válido para exportar.');
+
             return null;
         }
 
@@ -414,11 +444,12 @@ CSS;
         $exportDir = storage_path('app/private/theme-exports');
         File::ensureDirectoryExists($exportDir);
 
-        $zipPath = "{$exportDir}/{$theme}-theme-" . now()->format('Ymd_His') . '.zip';
+        $zipPath = "{$exportDir}/{$theme}-theme-".now()->format('Ymd_His').'.zip';
 
-        $zip = new \ZipArchive();
-        if ($zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
+        $zip = new ZipArchive;
+        if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
             $this->error('No se pudo crear el archivo ZIP.');
+
             return null;
         }
 
@@ -426,7 +457,7 @@ CSS;
         $viewsPath = resource_path("views/themes/{$theme}");
         if (File::isDirectory($viewsPath)) {
             foreach (File::allFiles($viewsPath) as $file) {
-                $zip->addFile($file->getRealPath(), 'views/' . $file->getRelativePathname());
+                $zip->addFile($file->getRealPath(), 'views/'.$file->getRelativePathname());
             }
         }
 
@@ -440,7 +471,7 @@ CSS;
         $assetsPath = public_path("themes/{$theme}");
         if (File::isDirectory($assetsPath)) {
             foreach (File::allFiles($assetsPath) as $file) {
-                $zip->addFile($file->getRealPath(), 'public/' . $file->getRelativePathname());
+                $zip->addFile($file->getRealPath(), 'public/'.$file->getRelativePathname());
             }
         }
 
@@ -454,10 +485,11 @@ CSS;
         $this->validate(['importFile' => 'required|file|mimes:zip|max:51200']);
 
         $zipPath = $this->importFile->getRealPath();
-        $zip = new \ZipArchive();
+        $zip = new ZipArchive;
 
         if ($zip->open($zipPath) !== true) {
             $this->error('No se pudo abrir el archivo ZIP.');
+
             return;
         }
 
@@ -471,9 +503,10 @@ CSS;
             }
         }
 
-        if (!$detectedTheme) {
+        if (! $detectedTheme) {
             $zip->close();
             $this->error('No se pudo detectar el nombre del tema en el ZIP. Asegúrate de exportar desde este gestor.');
+
             return;
         }
 
@@ -481,6 +514,7 @@ CSS;
         if (in_array(strtolower($detectedTheme), $exclude)) {
             $zip->close();
             $this->error("El nombre de tema '{$detectedTheme}' está reservado y no puede importarse.");
+
             return;
         }
 
@@ -493,11 +527,11 @@ CSS;
             $content = $zip->getFromIndex($i);
 
             if (str_starts_with($entry, 'views/')) {
-                $dest = resource_path("views/themes/{$detectedTheme}/" . substr($entry, strlen('views/')));
+                $dest = resource_path("views/themes/{$detectedTheme}/".substr($entry, strlen('views/')));
             } elseif (str_starts_with($entry, 'css/')) {
                 $dest = resource_path("css/themes/{$detectedTheme}.css");
             } elseif (str_starts_with($entry, 'public/')) {
-                $dest = public_path("themes/{$detectedTheme}/" . substr($entry, strlen('public/')));
+                $dest = public_path("themes/{$detectedTheme}/".substr($entry, strlen('public/')));
             } else {
                 continue; // unknown structure, skip
             }

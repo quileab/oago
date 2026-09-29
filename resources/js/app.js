@@ -44,7 +44,7 @@ document.addEventListener('livewire:init', () => {
                 height: 350
             },
             tooltip: {
-                theme: 'dark',
+                theme: 'light',
                 y: {
                     formatter: function (value) {
                         return currencyFormatter.format(value);
@@ -87,7 +87,7 @@ document.addEventListener('livewire:init', () => {
                 type: 'bar'
             },
             tooltip: {
-                theme: 'dark',
+                theme: 'light',
                 y: {
                     formatter: function (value) {
                         return currencyFormatter.format(value);
@@ -129,7 +129,7 @@ document.addEventListener('livewire:init', () => {
                 type: 'bar'
             },
             tooltip: {
-                theme: 'dark'
+                theme: 'light'
             },
             series: [{
                 name: 'Quantity',
