@@ -21,7 +21,7 @@
             @if(count($salesCustomers) > 0 || $searchCustomer)
               <x-dropdown label="{{ $actingAsName ? 'Cliente: ' . $actingAsName : 'Seleccionar Cliente' }}" class="btn-sm btn-outline border-primary/50 text-primary-content hover:bg-primary hover:border-primary"
                 icon="o-users">
-                <div class="p-2 bg-base-100" @click.stop>
+                <div class="p-2 bg-base-100 text-base-content" @click.stop>
                   <x-input placeholder="Buscar..." wire:model.live.debounce="searchCustomer" icon="o-magnifying-glass"
                     class="input-sm bg-base-200 text-base-content" />
                 </div>

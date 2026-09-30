@@ -5,6 +5,7 @@
   <div>
     <div class="inline-flex flex-wrap items-right align-middle justify-end">
       <a href="/" class="hover:bg-gray-400 hover:text-black transition-all duration-300 p-4">Inicio</a>
+      <a href="/about" class="hover:bg-gray-400 hover:text-black transition-all duration-300 p-4">Nosotros</a>
       @foreach($themePages as $page)
         <a href="{{ $page['url'] }}" class="hover:bg-gray-400 hover:text-black transition-all duration-300 p-4">{{ $page['title'] }}</a>
       @endforeach
@@ -15,19 +16,21 @@
           @if(count($salesCustomers) > 0 || $searchCustomer)
             <x-dropdown label="{{ $actingAsName ? 'Cliente: ' . $actingAsName : 'Seleccionar Cliente' }}" class="btn-ghost"
               icon="o-users">
-              <div class="p-2" @click.stop>
-                <x-input placeholder="Buscar..." wire:model.live.debounce="searchCustomer" icon="o-magnifying-glass"
-                  class="input-sm" />
+              <div class="text-base-content">
+                <div class="p-2" @click.stop>
+                  <x-input placeholder="Buscar..." wire:model.live.debounce="searchCustomer" icon="o-magnifying-glass"
+                    class="input-sm" />
+                </div>
+                @foreach($salesCustomers as $customer)
+                  @php
+                    $cId = is_object($customer) ? ($customer->id ?? 0) : ($customer['id'] ?? 0);
+                    $cName = is_object($customer)
+                        ? ($customer->full_name ?? 'ID: ' . $cId)
+                        : (trim(($customer['lastname'] ?? '') . ', ' . ($customer['name'] ?? ''), ', ') ?: 'ID: ' . $cId);
+                  @endphp
+                  <x-menu-item title="{{ $cName }}" wire:click="setActingCustomer({{ $cId }})" />
+                @endforeach
               </div>
-              @foreach($salesCustomers as $customer)
-                @php
-                  $cId = is_object($customer) ? ($customer->id ?? 0) : ($customer['id'] ?? 0);
-                  $cName = is_object($customer)
-                      ? ($customer->full_name ?? 'ID: ' . $cId)
-                      : (trim(($customer['lastname'] ?? '') . ', ' . ($customer['name'] ?? ''), ', ') ?: 'ID: ' . $cId);
-                @endphp
-                <x-menu-item title="{{ $cName }}" wire:click="setActingCustomer({{ $cId }})" />
-              @endforeach
             </x-dropdown>
           @endif
         @endisland
@@ -38,12 +41,14 @@
           @php $user = current_user(); @endphp
           <div class="flex items-center gap-2">
             <x-dropdown label="{{ $user->name }}" class="btn-ghost" title="{{ $user->role->value }}">
-              <x-menu-item title="Mi Perfil" icon="o-user" link="/user/profile" />
-              <x-menu-item title="Ordenes de Compra" icon="o-archive-box" link="/orders" />
-              @if($user->role->value === 'customer')
-                <x-menu-item title="Mis Vendedores" icon="o-users" link="/my-sales-agents" />
-              @endif
-              <x-menu-item title="SALIR" icon="o-arrow-right-start-on-rectangle" link="/logout" no-wire-navigate />
+              <div class="text-base-content">
+                <x-menu-item title="Mi Perfil" icon="o-user" link="/user/profile" />
+                <x-menu-item title="Ordenes de Compra" icon="o-archive-box" link="/orders" />
+                @if($user->role->value === 'customer')
+                  <x-menu-item title="Mis Vendedores" icon="o-users" link="/my-sales-agents" />
+                @endif
+                <x-menu-item title="SALIR" icon="o-arrow-right-start-on-rectangle" link="/logout" no-wire-navigate />
+              </div>
             </x-dropdown>
 
             @if($user instanceof \App\Models\AltUser && isset($trial_days_remaining))
