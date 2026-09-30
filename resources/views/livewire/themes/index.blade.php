@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
+use Livewire\Attributes\Validate;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\Volt\Component;
 use Livewire\WithFileUploads;
@@ -30,6 +31,7 @@ new class extends Component
     public string $newPageSlug = '';
 
     /** @var TemporaryUploadedFile|null */
+    #[Validate('required|file|mimes:zip|max:51200')]
     public $importFile = null;
 
     public function mount()
@@ -482,9 +484,25 @@ CSS;
 
     public function importTheme(): void
     {
-        $this->validate(['importFile' => 'required|file|mimes:zip|max:51200']);
+        $this->validate(
+            ['importFile' => 'required|file|mimes:zip|max:51200'],
+            [
+                'importFile.required' => 'Selecciona un archivo ZIP para importar.',
+                'importFile.file' => 'El archivo no se pudo subir. Verifica que no supere el límite de PHP (upload_max_filesize).',
+                'importFile.mimes' => 'El archivo debe ser un ZIP exportado desde este gestor.',
+                'importFile.max' => 'El ZIP supera los 50 MB permitidos.',
+            ],
+            ['importFile' => 'archivo']
+        );
 
         $zipPath = $this->importFile->getRealPath();
+
+        if (! $zipPath || ! is_file($zipPath)) {
+            $this->error('El archivo no se pudo subir. Verifica el límite de subida de PHP (public/.user.ini).');
+
+            return;
+        }
+
         $zip = new ZipArchive;
 
         if ($zip->open($zipPath) !== true) {
