@@ -1,5 +1,6 @@
 <?php
 
+use App\Providers\VoltServiceProvider;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\View;
 
@@ -48,4 +49,33 @@ test('theme system loads base theme and seasonal variant in cascade order', func
 
     // Cleanup
     File::deleteDirectory(resource_path('views/themes/empresa_test'));
+});
+
+test('theme single-file volt components take priority over base in the livewire finder', function () {
+    $originalTheme = config('app.theme');
+    $originalVariant = config('app.theme_variant');
+
+    $themeLivewirePath = resource_path('views/themes/empresa_test/livewire');
+
+    File::makeDirectory($themeLivewirePath, 0755, true, true);
+    File::put(
+        $themeLivewirePath.'/about.blade.php',
+        '<?php use Livewire\Volt\Component; new class extends Component { public array $timeline = []; }; ?> <div>Tema About</div>'
+    );
+
+    config(['app.theme' => 'empresa_test', 'app.theme_variant' => null]);
+
+    (new VoltServiceProvider(app()))->boot();
+
+    // The Finder must resolve the theme file, not the base views/livewire one,
+    // otherwise the component class comes from base while the template comes
+    // from the theme (mixed rendering).
+    $resolved = app('livewire.finder')->resolveSingleFileComponentPath('about');
+
+    expect($resolved)->toContain('empresa_test')->toEndWith('about.blade.php');
+
+    // Cleanup: restore real theme configuration and provider registrations
+    File::deleteDirectory(resource_path('views/themes/empresa_test'));
+    config(['app.theme' => $originalTheme, 'app.theme_variant' => $originalVariant]);
+    (new VoltServiceProvider(app()))->boot();
 });
