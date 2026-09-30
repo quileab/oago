@@ -690,3 +690,16 @@ Existing tests (do **not** delete without approval):
 - **YouTube**: thumbnails only — `https://img.youtube.com/vi/{videoId}/mqdefault.jpg`
 - **Image Proxy** (`ImageProxyController`): fetches/resizes remote product images; SSRF-protected (no private IPs, host whitelist from `image_proxy_allowed_hosts` setting). Caches download failures/timeouts for 1 hour to prevent HTTP thread starvation on slow/dead remote servers; logs connection/timeout errors as INFO instead of WARNING.
 
+---
+
+## Pendientes (próxima sesión — 2026-09-29)
+
+> Borrar esta sección al cerrar cada tarea.
+
+1. **Probar importación de ZIP de tema >2 MB en Theme Manager.** El error "El importFile no se pudo subir" se causó por `upload_max_filesize=2M` en el PHP de Herd. Se editó `C:\Users\quile\.config\herd\bin\php84\php.ini` (64M/64M) y se reiniciaron los `php-cgi` 8.4 a mano (`-b 127.0.0.1:9084`). Verificar que Herd no revirtió los procesos/ini y que un ZIP de ~7 MB sube bien. Nota: `.user.ini` en `public/` NO funciona con Herd (nginx manda todo a `server.php` de Valet, no a `public/index.php`).
+2. **Arreglar ruta `GET /page/{slug}`** (routes/web.php:176): hace `return view($view)`, lo que renderiza los componentes Volt **sin su `#[Layout]`** → la página sale sin estilos/`<head>`. Afecta a `themes/encendidorqta/pages/nosotros.blade.php` cuando ese tema está activo. Solución probable: montar los `pages/` de tema en `VoltServiceProvider` y resolver vía componente Volt (o envolver con el layout manualmente).
+3. **Navbar `encendido` sin link "Nosotros"**: el base y `encendidorqta` sí lo tienen (`/about`); sincronizar si se usa ese tema.
+4. **`WebProductsMainTest` falla preexistente** (no relacionado con cambios recientes): `no such table: settings` — el test no usa `RefreshDatabase` y consulta `catalog_display_mode` vía `SettingsHelper`.
+5. **Commits sin push**: `72f90ef`, `2de18c3`, `0c23353`, `b2772f5` en `dev` (usuario hace el push).
+
+
