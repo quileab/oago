@@ -67,15 +67,16 @@ test('theme single-file volt components take priority over base in the livewire 
 
     (new VoltServiceProvider(app()))->boot();
 
-    // The Finder must resolve the theme file, not the base views/livewire one,
-    // otherwise the component class comes from base while the template comes
-    // from the theme (mixed rendering).
-    $resolved = app('livewire.finder')->resolveSingleFileComponentPath('about');
+    try {
+        // The Finder must resolve the theme file, not the base views/livewire one,
+        // otherwise the component class comes from base while the template comes
+        // from the theme (mixed rendering).
+        $resolved = app('livewire.finder')->resolveSingleFileComponentPath('about');
 
-    expect($resolved)->toContain('empresa_test')->toEndWith('about.blade.php');
-
-    // Cleanup: restore real theme configuration and provider registrations
-    File::deleteDirectory(resource_path('views/themes/empresa_test'));
-    config(['app.theme' => $originalTheme, 'app.theme_variant' => $originalVariant]);
-    (new VoltServiceProvider(app()))->boot();
+        expect($resolved)->toContain('empresa_test')->toEndWith('about.blade.php');
+    } finally {
+        File::deleteDirectory(resource_path('views/themes/empresa_test'));
+        config(['app.theme' => $originalTheme, 'app.theme_variant' => $originalVariant]);
+        (new VoltServiceProvider(app()))->boot();
+    }
 });

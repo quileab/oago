@@ -20,8 +20,9 @@
                 <div class="bg-[#cccccc] rounded-b-xl shadow-lg px-3 xl:px-8 py-3 w-fit self-start order-first md:order-none mb-4 md:mb-0">
                     <div class="flex flex-nowrap justify-center items-center gap-3 xl:gap-8">
                         <a href="/" class="text-[#8c8c8c] hover:text-white transition-colors uppercase font-bold text-xs xl:text-sm tracking-wide whitespace-nowrap">Home</a>
-                        <a href="/about" class="text-[#8c8c8c] hover:text-white transition-colors uppercase font-bold text-xs xl:text-sm tracking-wide whitespace-nowrap">Nosotros</a>
-                        <a href="/locales" class="text-[#8c8c8c] hover:text-white transition-colors uppercase font-bold text-xs xl:text-sm tracking-wide whitespace-nowrap">Locales</a>
+                        @foreach($themePages as $page)
+                            <a href="{{ $page['url'] }}" class="text-[#8c8c8c] hover:text-white transition-colors uppercase font-bold text-xs xl:text-sm tracking-wide whitespace-nowrap">{{ $page['title'] }}</a>
+                        @endforeach
                         
                         @if(Auth::guest())
                             <a href="/login" class="text-[#8c8c8c] hover:text-white transition-colors uppercase font-bold text-xs xl:text-sm tracking-wide whitespace-nowrap">Login</a>
@@ -90,8 +91,9 @@
             
             <!-- Links Centrales -->
             <a href="/" class="text-[#8c8c8c] hover:text-[#a6282e] transition-colors uppercase font-bold text-sm tracking-wide">Home</a>
-            <a href="/about" class="text-[#8c8c8c] hover:text-[#a6282e] transition-colors uppercase font-bold text-sm tracking-wide">Nosotros</a>
-            <a href="/locales" class="text-[#8c8c8c] hover:text-[#a6282e] transition-colors uppercase font-bold text-sm tracking-wide">Locales</a>
+            @foreach($themePages as $page)
+                <a href="{{ $page['url'] }}" class="text-[#8c8c8c] hover:text-[#a6282e] transition-colors uppercase font-bold text-sm tracking-wide">{{ $page['title'] }}</a>
+            @endforeach
             
             @if(Auth::guest())
                 <a href="/login" class="text-[#8c8c8c] hover:text-[#a6282e] transition-colors uppercase font-bold text-sm tracking-wide">Login o Registrarte</a>
