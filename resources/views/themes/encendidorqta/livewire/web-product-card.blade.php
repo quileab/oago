@@ -1,7 +1,7 @@
 @php
     $isCibat = stripos($product->brand ?? '', 'CIBAT') !== false || stripos($product->description ?? '', 'BATERIA') !== false;
     $brandColor = $isCibat ? '#1b365d' : '#cc0000'; // CIBAT = blue, ER = red
-    $logoSrc = $isCibat ? asset('themes/encendidorqta/cibatlogo.png') : asset('themes/encendidorqta/erlogo.png');
+    $logoSrc = $isCibat ? asset('themes/' . config('app.theme') . '/images/cibatlogo.png') : asset('themes/' . config('app.theme') . '/images/erlogo.png');
     $hoverTextBrand = $isCibat ? 'hover:text-[#1b365d]' : 'hover:text-[#cc0000]';
 @endphp
 
@@ -38,8 +38,8 @@
                 <x-image-proxy url="{{ $product->image_url }}"
                     class="w-full h-full object-contain mix-blend-multiply transition-transform duration-500 hover:scale-110 {{ $product->stock == 0 ? 'opacity-40' : '' }}" />
             @else
-                <img src="{{ $logoSrc }}" alt="Placeholder" class="w-2/3 max-w-[160px] h-auto brightness-0 opacity-20">
-                <span class="absolute bottom-4 left-0 right-0 text-center text-[11px] font-bold text-gray-400 uppercase tracking-widest">IMAGEN NO DISPONIBLE</span>
+                <img src="{{ $logoSrc }}" alt="" class="w-2/3 max-w-[160px] h-auto brightness-0 opacity-20">
+                <span class="absolute bottom-4 left-0 right-0 text-center text-[11px] font-bold text-gray-500 uppercase tracking-widest select-none">Imagen no disponible</span>
             @endif
             
             @if($product->stock == 0)

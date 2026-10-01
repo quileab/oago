@@ -1,12 +1,12 @@
-<footer class="relative w-full bg-gradient-to-b from-base-100 via-neutral to-neutral text-neutral-content pt-20 pb-6 mt-32 rounded-t-[3rem] shadow-[0_-20px_50px_rgba(0,0,0,0.6)] border-t border-white/10 overflow-hidden">
+<footer class="relative w-full text-white pt-20 pb-6 mt-32 rounded-t-[3rem] shadow-[0_-20px_50px_rgba(0,0,0,0.6)] border-t border-white/10 overflow-hidden" style="background: linear-gradient(to bottom, #374151, #030712);">
     
     <div class="relative z-10 max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-10">
         <!-- Columna 1: Marca -->
         <div class="flex flex-col items-center md:items-start text-center md:text-left">
             <div class="flex items-center gap-4 mb-4">
-                <img src="{{ asset('themes/encendidorqta/erlogo.png') }}" alt="Encendido Reconquista" class="h-14 brightness-0 invert opacity-90">
+                <img src="{{ asset('themes/encendidorqta/images/erlogo.png') }}" alt="Encendido Reconquista" class="h-14 drop-shadow-md" style="filter: grayscale(1) brightness(0) invert(0.8);">
                 <div class="w-px h-10 bg-white/20"></div>
-                <img src="{{ asset('themes/encendidorqta/cibatlogo.png') }}" alt="CIBAT Baterías" class="h-10 brightness-0 invert opacity-90">
+                <img src="{{ asset('themes/encendidorqta/images/cibatlogo.png') }}" alt="CIBAT Baterías" class="h-10 drop-shadow-md" style="filter: grayscale(1) brightness(0) invert(0.8);">
             </div>
             <p class="text-sm leading-relaxed max-w-xs text-neutral-content/70">
                 {{ \App\Helpers\SettingsHelper::settings('company_name', 'Encendido Reconquista y CIBAT') }}<br>

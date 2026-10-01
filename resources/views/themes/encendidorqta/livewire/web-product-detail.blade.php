@@ -128,7 +128,7 @@ new class extends Component
                 @php
                     $primaryMedia = $this->primaryMedia();
                     $isCibat = stripos($product->brand ?? '', 'CIBAT') !== false || stripos($product->description ?? '', 'BATERIA') !== false;
-                    $fallbackLogo = $isCibat ? asset('themes/encendidorqta/cibatlogo.png') : asset('themes/encendidorqta/erlogo.png');
+                    $fallbackLogo = $isCibat ? asset('themes/' . config('app.theme') . '/images/cibatlogo.png') : asset('themes/' . config('app.theme') . '/images/erlogo.png');
                 @endphp
 
                 <div x-data="{
@@ -183,8 +183,8 @@ new class extends Component
                                 <!-- Fallback State -->
                                 <template x-if="activeMedia.isFallback || !activeMedia.url">
                                     <div class="w-full h-full flex flex-col items-center justify-center">
-                                        <img src="{{ $fallbackLogo }}" alt="Placeholder" class="w-2/3 max-w-[160px] h-auto brightness-0 opacity-20">
-                                        <span class="absolute bottom-8 left-0 right-0 text-center text-[11px] font-bold text-gray-400 uppercase tracking-widest">IMAGEN NO DISPONIBLE</span>
+                                        <img src="{{ $fallbackLogo }}" alt="" class="w-2/3 max-w-[160px] h-auto brightness-0 opacity-20">
+                                        <span class="absolute bottom-8 left-0 right-0 text-center text-[11px] font-bold text-gray-500 uppercase tracking-widest select-none">Imagen no disponible</span>
                                     </div>
                                 </template>
                             </div>
@@ -226,7 +226,7 @@ new class extends Component
 
                                     <template x-if="item.isFallback || !item.url">
                                         <div class="w-full h-full flex items-center justify-center p-2">
-                                            <img src="{{ $fallbackLogo }}" class="w-full h-full object-contain brightness-0 opacity-20">
+                                            <img src="{{ $fallbackLogo }}" alt="" class="w-full h-full object-contain brightness-0 opacity-20">
                                         </div>
                                     </template>
 

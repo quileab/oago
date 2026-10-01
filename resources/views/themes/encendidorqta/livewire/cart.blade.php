@@ -43,7 +43,7 @@
                         @foreach ($cart as $item)
                             @php
                                 $isCibat = stripos($item['brand'] ?? '', 'CIBAT') !== false || stripos($item['name'] ?? '', 'BATERIA') !== false;
-                                $fallbackLogo = $isCibat ? asset('themes/encendidorqta/cibatlogo.png') : asset('themes/encendidorqta/erlogo.png');
+                                $fallbackLogo = $isCibat ? asset('themes/' . config('app.theme') . '/images/cibatlogo.png') : asset('themes/' . config('app.theme') . '/images/erlogo.png');
                             @endphp
                             <div class="border-b border-slate-200 hover:bg-white transition-colors p-3 md:p-2 flex flex-col md:grid md:grid-cols-[80px_1fr_100px_120px_100px_48px] gap-2 md:items-center relative">
                                 

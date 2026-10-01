@@ -65,13 +65,13 @@
 
                 <div>
                     <h1
-                        class="text-4xl md:text-5xl lg:text-6xl font-black text-white uppercase tracking-tighter leading-none">
+                        class="text-4xl md:text-5xl lg:text-6xl font-black text-white uppercase tracking-tighter leading-none drop-shadow-lg">
                         Nosotros
                     </h1>
-                    <p class="mt-4 text-lg md:text-xl text-white/85 font-medium max-w-2xl leading-relaxed">
+                    <p class="mt-4 text-lg md:text-xl text-white font-medium max-w-2xl leading-relaxed drop-shadow-md">
                         Un legado familiar que se hizo centro integral. Dos marcas, un mismo mostrador: <span
-                            class="text-white font-black">ER</span> electricidad y <span
-                            class="text-white font-black">CIBAT</span> baterías.
+                            class="text-white font-black drop-shadow-lg">ER</span> electricidad y <span
+                            class="text-white font-black drop-shadow-lg">CIBAT</span> baterías.
                     </p>
                 </div>
 
@@ -139,7 +139,9 @@
     </div>
 
     {{-- Historia — técnico y ordenado --}}
-    <div class="max-w-7xl mx-auto px-4 md:px-6 py-10 md:py-14">
+    <div class="relative">
+        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-64 bg-gradient-to-b from-gray-300/50 to-transparent blur-3xl pointer-events-none"></div>
+        <div class="max-w-7xl mx-auto px-4 md:px-6 py-10 md:py-14 relative z-10">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
 
             {{-- imagen con offset dual-ink --}}
@@ -147,9 +149,9 @@
                 <div class="absolute -inset-3 bg-[#1b365d] rounded-2xl opacity-10 rotate-1"></div>
                 <div class="absolute -inset-3 bg-[#a6282e] rounded-2xl opacity-10 -rotate-1"></div>
                 <div class="relative bg-white rounded-2xl overflow-hidden shadow-xl border border-gray-100">
-                    <img src="{{ asset('themes/encendidorqta/images/equipo_frente.jpg') }}" alt="Equipo en el frente"
+                    <img src="{{ asset('themes/encendidorqta/images/equipo_frente.png') }}" alt="Equipo en el frente"
                         class="w-full h-auto object-cover">
-                    <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/75 to-transparent p-4">
+                    <div class="absolute top-0 left-0 right-0 bg-gradient-to-b from-black/75 to-transparent p-4">
                         <p class="text-white text-xs font-black uppercase tracking-widest flex items-center gap-2">
                             <span class="w-6 h-0.5 bg-white rounded-full"></span> Segunda generación al frente
                         </p>
@@ -176,8 +178,8 @@
                         desde 1975</span>
                 </div>
 
-                <h2 class="mt-5 text-3xl md:text-4xl font-black uppercase tracking-tighter text-gray-900 leading-none">
-                    Fundada por <span class="text-[#a6282e]">Pablo</span> y <span class="text-[#1b365d]">Ángela</span>
+                <h2 class="mt-5 text-3xl md:text-4xl font-black uppercase tracking-tighter text-gray-900 leading-none drop-shadow-sm">
+                    Fundada por <span class="text-[#a6282e] drop-shadow-sm">Pablo</span> y <span class="text-[#1b365d] drop-shadow-sm">Ángela</span>
                 </h2>
                 <p class="mt-4 text-base md:text-lg text-gray-600 leading-relaxed font-medium">
                     Lo que nació como proyecto de dedicación se convirtió en el centro integral de soluciones
@@ -196,12 +198,12 @@
                                     style="clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);">
                                     <span class="w-2 h-2 bg-gray-900 rounded-full"></span>
                                 </div>
-                                <div class="flex-1 bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+                                <div class="flex-1 bg-white rounded-2xl border border-gray-100 p-4 shadow-md hover:shadow-lg transition-shadow duration-300">
                                     <div class="text-[11px] font-black uppercase tracking-widest"
                                         style="color: {{ $loop->index === 0 ? '#a6282e' : ($loop->index === 1 ? '#8c8c8c' : '#1b365d') }}">
                                         {{ $step['year'] }}
                                     </div>
-                                    <div class="text-sm font-black text-gray-900 mt-1">{{ $step['title'] }}</div>
+                                    <div class="text-sm font-black text-gray-900 mt-1 drop-shadow-sm">{{ $step['title'] }}</div>
                                     <div class="text-sm text-gray-600 leading-snug mt-1">{{ $step['text'] }}</div>
                                 </div>
                             </div>
@@ -213,17 +215,18 @@
                 <div class="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-3">
                     @foreach($benefits as $b)
                         <div
-                            class="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm hover:shadow-md transition-shadow">
-                            <div class="w-9 h-9 rounded-xl bg-gray-900 text-white flex items-center justify-center">
+                            class="bg-white rounded-2xl border border-gray-100 p-4 shadow-md hover:shadow-xl transition-shadow duration-300">
+                            <div class="w-9 h-9 rounded-xl bg-gray-900 text-white flex items-center justify-center shadow-md">
                                 <x-icon :name="$b['icon']" class="w-5 h-5" />
                             </div>
-                            <div class="mt-3 text-sm font-black text-gray-900 leading-tight">{{ $b['title'] }}</div>
+                            <div class="mt-3 text-sm font-black text-gray-900 leading-tight drop-shadow-sm">{{ $b['title'] }}</div>
                             <div class="mt-1 text-xs text-gray-500 leading-snug">{{ $b['text'] }}</div>
                         </div>
                     @endforeach
                 </div>
             </div>
         </div>
+    </div>
     </div>
 
     {{-- banner vans — ya existente pero integrado --}}
