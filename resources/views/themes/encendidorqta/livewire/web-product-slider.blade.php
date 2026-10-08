@@ -45,13 +45,20 @@ new class extends Component {
 
 <div class="max-w-7xl mx-auto px-4 mt-6 z-10 relative"
     x-data="{
+        step() {
+            const slider = $refs.slider;
+            const card = slider.querySelector(':scope > *');
+            if (!card) return slider.offsetWidth;
+            const gap = parseFloat(getComputedStyle(slider).columnGap) || 0;
+            return card.offsetWidth + gap;
+        },
         scrollNext() { 
             const slider = $refs.slider;
-            slider.scrollBy({left: slider.offsetWidth / 2, behavior: 'smooth'}); 
+            slider.scrollBy({left: this.step(), behavior: 'smooth'}); 
         },
         scrollPrev() { 
             const slider = $refs.slider;
-            slider.scrollBy({left: -slider.offsetWidth / 2, behavior: 'smooth'}); 
+            slider.scrollBy({left: -this.step(), behavior: 'smooth'}); 
         },
         init() {
             setInterval(() => {
@@ -99,8 +106,8 @@ new class extends Component {
 
         <div x-ref="slider" class="flex overflow-x-auto gap-4 pb-6 snap-x scroll-smooth" style="scrollbar-width: none;">
             @forelse ($products as $product)
-                <!-- Explicit fixed width to ensure exactly 4 cards fit in ~1200px (1200 / 4 = 300) -->
-                <div class="snap-start w-[240px] md:w-[280px] lg:w-[295px] shrink-0">
+                <!-- Mobile: 1 card a pantalla completa. md+: fixed width so ~4 cards fit in ~1200px (1200 / 4 = 300) -->
+                <div class="snap-start w-full md:w-[280px] lg:w-[295px] shrink-0">
                     @php
                         $product->description_html = str_replace('\n', '', $product->description_html);
                     @endphp

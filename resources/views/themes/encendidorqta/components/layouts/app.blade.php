@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <script>
+        // Backend follows the device color scheme (drives Tailwind `dark:` variants)
+        (() => {
+            const mq = window.matchMedia('(prefers-color-scheme: dark)');
+            const apply = () => document.documentElement.classList.toggle('dark', mq.matches);
+            if (mq.addEventListener) {
+                mq.addEventListener('change', apply);
+            }
+            apply();
+        })();
+    </script>
+    <title>{{ isset($title) ? $title . ' - ' . App\Helpers\SettingsHelper::settings('company_name', config('app.name')) : App\Helpers\SettingsHelper::settings('company_name', config('app.name')) }}</title>
+
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @php $activeThemeCss = 'resources/css/themes/' . config('app.theme', 'default') . '.css'; @endphp
+    @if(config('app.theme', 'default') !== 'default' && file_exists(base_path($activeThemeCss)))
+        @vite([$activeThemeCss])
+    @endif
+    <script src="{{ asset('js/tinymce/tinymce.min.js') }}"></script>
+    {{-- Cropper.js --}}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css" />
+    @livewireStyles
+    @include('themes.' . config('app.theme', 'default') . '.partials.favicon')
+</head>
+
+<body class="min-h-screen font-sans antialiased bg-base-200/50 dark:bg-base-200">
+
+    {{-- NAVBAR mobile only --}}
+    <x-nav sticky class="lg:hidden">
+        <x-slot:brand>
+            <x-app-brand />
+        </x-slot:brand>
+        <x-slot:actions>
+            <label for="main-drawer" class="lg:hidden me-3">
+                <x-icon name="o-bars-3" class="cursor-pointer" />
+            </label>
+        </x-slot:actions>
+    </x-nav>
+
+    {{-- MAIN --}}
+    <x-main full-width>
+        {{-- SIDEBAR --}}
+        <x-slot:sidebar drawer="main-drawer" collapsible class="bg-base-100 lg:bg-inherit">
+
+            {{-- BRAND --}}
+            <x-app-brand class="p-5 pt-3" />
+
+            {{-- MENU --}}
+            <x-menu activate-by-route>
+
+                {{-- User --}}
+                @if($user = current_user())
+                    <x-list-item :item="$user" value="name" sub-value="email" class="-mx-2 !-mt-4 rounded bg-primary/10">
+                        <x-slot:actions>
+                            <x-button icon="o-power" class="btn-circle btn-ghost btn-xs text-warning" tooltip-left="SALIR"
+                                no-wire-navigate link="/logout" />
+                        </x-slot:actions>
+                    </x-list-item>
+                @endif
+
+                @if($user && $user->role->value == 'admin')
+                    <x-menu-item title="Sitio Principal" icon="o-sparkles" link="/" no-wire-navigate />
+                    <x-menu-item title="Dashboard" icon="o-chart-pie" link="/dashboard" class="text-info" />
+                    
+                    @if(!Auth::guard('alt')->check())
+                        <x-menu-item title="Pedidos API" icon="o-clipboard-document-list" link="/orders" class="text-warning" />
+                    @endif
+                    <x-menu-item title="Pedidos [ALT]" icon="o-document-duplicate" link="/alt-orders" class="text-success" />
+
+                    <x-menu-sub title="Usuarios" icon="o-user">
+                        <x-menu-item title="Registrados" icon="s-users" link="/users" />
+                        <x-menu-item title="Alternativos" icon="o-users" link="/alts" />
+                    </x-menu-sub>
+                    <x-menu-sub title="Productos" icon="o-cube">
+                        <x-menu-item title="Gestión de Productos" icon="o-square-3-stack-3d" link="/products" />
+                        <x-menu-item title="Atrib. Extras Web" icon="s-square-3-stack-3d" link="/products/extras" />
+                        <x-menu-item title="Administrar Listas" icon="o-list-bullet" link="/products/lists" />
+                        <x-menu-item title="Tags" icon="o-tag" link="/tags" />
+                    </x-menu-sub>
+                    <x-menu-sub title="Web" icon="o-paint-brush">
+                        <x-menu-item title="Temas" icon="o-swatch" link="/manage-themes" class="text-secondary" />
+                        <x-menu-item title="Slider" icon="o-photo" link="/slider" />
+                    </x-menu-sub>
+                    <x-menu-sub title="Contenido" icon="o-document-text">
+                        <x-menu-item title="Logros" icon="o-star" link="/achievements" />
+                        <x-menu-item title="Asignar Logro" icon="o-plus-circle" link="/assign-achievement" />
+                    </x-menu-sub>
+                    <x-menu-sub title="Report/Export" icon="o-document-chart-bar">
+                        <x-menu-item title="Productos Todos" icon="o-cube" link="/export/products" external />
+                        <x-menu-item title="Productos Vista Clientes" icon="o-cube" link="/export/customers-products"
+                            external />
+                        <x-menu-item title="Usuarios ⇨ Ventas" icon="o-table-cells" link="/export/users-order-stats"
+                            external />
+                    </x-menu-sub>
+                    <x-menu-sub title="Configuración" icon="o-cog-6-tooth">
+                        <x-menu-item title="Parámetros" icon="o-adjustments-horizontal" link="/settings" />
+                        <x-menu-item title="Logs" icon="o-document-magnifying-glass" link="/logs" />
+                    </x-menu-sub>
+                @endif
+                @if($user && $user->role->value != 'guest')
+                    @if($user->role->value != 'admin')
+                        <div class="border-t border-base-content/5 my-2"></div>
+                        @if(!Auth::guard('alt')->check())
+                            <x-menu-item title="Pedidos API" icon="o-clipboard-document-list" link="/orders" class="text-warning" />
+                        @endif
+                        <x-menu-item title="Pedidos [ALT]" icon="o-document-duplicate" link="/alt-orders" class="text-success" />
+                    @endif
+
+                    @if($user->role->value === 'customer')
+                        <x-menu-item title="Mis Vendedores" icon="o-users" link="/my-sales-agents" />
+                    @endif
+                    <x-menu-item title="Mi Perfil" icon="o-user" link="/user/profile" />
+                @endif
+            </x-menu>
+        </x-slot:sidebar>
+
+        {{-- The `$slot` goes here --}}
+        <x-slot:content>
+            {{ $slot }}
+        </x-slot:content>
+    </x-main>
+
+    {{-- TOAST area --}}
+    <x-toast />
+
+    @stack('scripts')
+</body>
+
+</html>

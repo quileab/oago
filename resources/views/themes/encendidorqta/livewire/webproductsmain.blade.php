@@ -203,7 +203,7 @@ new class extends Component {
                 @endif
             @endif
 
-            <div wire:ignore.self class="grid grid-cols-2 md:grid-cols-3 {{ request('store') ? 'lg:grid-cols-3' : 'lg:grid-cols-4' }} gap-6">
+            <div wire:ignore.self class="grid grid-cols-1 md:grid-cols-3 {{ request('store') ? 'lg:grid-cols-3' : 'lg:grid-cols-4' }} gap-6">
                 @forelse ($products as $product)
                     <div>
                         @php
