@@ -44,8 +44,21 @@ class DataExport extends Command
             );
         }
 
-        $tables = DB::connection()->getSchemaBuilder()->getTableListing();
+        $dbName = DB::connection()->getDatabaseName();
+        $allTables = DB::connection()->getSchemaBuilder()->getTableListing();
 
+        $tables = [];
+        foreach ($allTables as $table) {
+            // getTableListing puede devolver "esquema.tabla". Filtramos por la base actual.
+            if (str_contains($table, '.')) {
+                [$schema, $tableName] = explode('.', $table, 2);
+                if ($schema === $dbName) {
+                    $tables[] = $tableName;
+                }
+            } else {
+                $tables[] = $table;
+            }
+        }
         if (empty($tables)) {
             $this->error('✘ No se encontraron tablas en la base de datos.');
 
@@ -112,16 +125,23 @@ class DataExport extends Command
 
     protected function exportTableSchema($handle, string $table, bool $dropTable, bool $ifNotExists, string $driver): void
     {
+        $quotedTable = implode('.', array_map(fn ($part) => "`{$part}`", explode('.', $table)));
+
         fwrite($handle, "-- --------------------------------------------------------\n");
         fwrite($handle, "-- Table structure for `{$table}`\n");
         fwrite($handle, "-- --------------------------------------------------------\n");
 
         if ($dropTable) {
-            fwrite($handle, "DROP TABLE IF EXISTS `{$table}`;\n");
+            fwrite($handle, "DROP TABLE IF EXISTS {$quotedTable};\n");
         }
 
         if ($driver === 'mysql' || $driver === 'mariadb') {
-            $row = DB::selectOne("SHOW CREATE TABLE `{$table}`");
+            try {
+                $row = DB::selectOne("SHOW CREATE TABLE {$quotedTable}");
+            } catch (\Exception $e) {
+                $row = null;
+            }
+
             if ($row) {
                 $createSql = ((array) $row)['Create Table'] ?? array_values((array) $row)[1] ?? null;
                 if ($createSql) {
@@ -136,23 +156,29 @@ class DataExport extends Command
         }
 
         if ($ifNotExists) {
-            fwrite($handle, "CREATE TABLE IF NOT EXISTS `{$table}` (\n");
+            fwrite($handle, "CREATE TABLE IF NOT EXISTS {$quotedTable} (\n");
         } else {
-            fwrite($handle, "CREATE TABLE `{$table}` (\n");
+            fwrite($handle, "CREATE TABLE {$quotedTable} (\n");
         }
         fwrite($handle, ");\n\n");
     }
 
     protected function exportTableData($handle, string $table): void
     {
-        $count = DB::table($table)->count();
-        if ($count === 0) {
+        try {
+            $count = DB::table($table)->count();
+            if ($count === 0) {
+                return;
+            }
+        } catch (\Exception $e) {
             return;
         }
 
         fwrite($handle, "-- Dumping data for table `{$table}`\n");
 
-        DB::table($table)->orderBy(DB::raw('1'))->chunk(500, function ($rows) use ($handle, $table) {
+        $quotedTable = implode('.', array_map(fn ($part) => "`{$part}`", explode('.', $table)));
+
+        DB::table($table)->orderBy(DB::raw('1'))->chunk(500, function ($rows) use ($handle, $quotedTable) {
             foreach ($rows as $row) {
                 $arrayRow = (array) $row;
                 $columns = array_keys($arrayRow);
@@ -177,8 +203,8 @@ class DataExport extends Command
                 }, array_values($arrayRow));
 
                 $sql = sprintf(
-                    "INSERT INTO `%s` (%s) VALUES (%s);\n",
-                    $table,
+                    "INSERT INTO %s (%s) VALUES (%s);\n",
+                    $quotedTable,
                     implode(', ', $escapedColumns),
                     implode(', ', $values)
                 );
