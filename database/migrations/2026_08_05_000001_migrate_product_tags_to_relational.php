@@ -38,8 +38,8 @@ return new class extends Migration
                                 $tagIds[] = $tag->id;
                             }
 
-                            // Sync to pivot table
-                            $product->tags()->sync($tagIds);
+                            // Sync to pivot table without detaching existing tags
+                            $product->tags()->syncWithoutDetaching($tagIds);
 
                             // Normalize the legacy string column (dedup, sort, uppercase)
                             $normalizedTags = Tag::whereIn('id', $tagIds)

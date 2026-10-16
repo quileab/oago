@@ -8,6 +8,7 @@ use App\Helpers\SettingsHelper;
 use App\Models\ListPrice;
 use App\Models\Product;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -57,7 +58,7 @@ class ProductSearchService
             $terms = array_filter(explode(' ', $params['search']));
             $query->where(function ($q) use ($terms) {
                 foreach ($terms as $term) {
-                    $q->where(DB::raw('concat(description, " ", ifnull(model, ""), " ", ifnull(brand, ""), " ", ifnull(product_type, ""), " ", ifnull(category, ""), " ", ifnull(tags, ""))'), 'like', "%$term%");
+                    $q->whereRaw(...self::textSearchCondition($term));
                 }
             });
         }
@@ -206,5 +207,39 @@ class ProductSearchService
     protected function addUserPriceJoin($query, $user): void
     {
         // Este método queda obsoleto con la nueva hidratación masiva
+    }
+
+    /**
+     * Condición SQL de búsqueda por texto libre:description, modelo, marca, tipo,
+     * categoría y los nombres de los tags del producto.
+     *
+     * Los tags viven en el pivote `taggables`, no en una columna, así que se
+     * agregan con un subquery correlacionado.
+     *
+     * El subquery se arma con el query builder para que el morph type viaje como
+     * binding real: interpolarlo a mano rompe en MySQL, donde `\M` dentro de un
+     * literal es una secuencia de escape y colapsa a `AppModelsProduct`.
+     *
+     * @return array{0: string, 1: array<int, mixed>}
+     */
+    public static function textSearchCondition(string $term): array
+    {
+        $tags = static::tagNamesSubquery();
+
+        $sql = sprintf(
+            'concat(products.description, " ", ifnull(products.model, ""), " ", ifnull(products.brand, ""), " ", ifnull(products.product_type, ""), " ", ifnull(products.category, ""), " ", ifnull((%s), "")) like ?',
+            $tags->toSql()
+        );
+
+        return [$sql, [...$tags->getBindings(), '%'.$term.'%']];
+    }
+
+    protected static function tagNamesSubquery(): QueryBuilder
+    {
+        return DB::table('taggables')
+            ->join('tags', 'tags.id', '=', 'taggables.tag_id')
+            ->selectRaw('group_concat(tags.name)')
+            ->whereColumn('taggables.taggable_id', 'products.id')
+            ->where('taggables.taggable_type', (new Product)->getMorphClass());
     }
 }

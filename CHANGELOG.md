@@ -4,6 +4,51 @@ Este documento resume los cambios significativos entre la rama `v1` y la rama `m
 
 ## Cambios Recientes (Actualizaciones de Seguridad y Funcionalidad)
 
+### 🏷️ Tags de Productos: el pivote `taggables` pasa a ser la única fuente de verdad
+
+**Problema:** los tags se perdían "solos" en producción. Existían dos fuentes de verdad
+(la columna legacy `products.tags` y el pivote `taggables`) con un *write-through* que
+reconstruía el pivote desde la columna en cada `save()` del producto. Como la columna
+estaba vacía en 382 de 389 productos con tags, cualquier guardado los borraba. El caso
+más grave era la API: `ProductRequest::prepareForValidation()` hacía
+`merge(['tags' => ''])` **incondicionalmente** (incluso si el cliente no mandaba el
+campo), de modo que el ERP externo —que hace ~20.000 `POST /api/products` por día y
+siempre envía `"tags": ""`— vaciaba los tags de todos los productos.
+
+**Cambios:**
+
+*   **Se eliminó la columna `products.tags`.** El pivote `taggables` es ahora la única
+    fuente de verdad. Se borraron el write-through (`HasTags::bootHasTags`), el accesor
+    de fallback y todos los usages de la columna en vistas, API y búsqueda.
+*   **`HasTags`:** nuevas APIs explícitas `syncTagsById()` y `syncTagsBySlug()`. Ningún
+    guardado de producto modifica los tags salvo que se llame explícitamente a una de ellas.
+*   **API `/api/products`:** `tags` se resuelve a IDs y se sincroniza el pivote
+    **solo si el request incluye el campo** (`sometimes|nullable|array`). Sigue
+    aceptando los mismos formatos (string separada por `|` o `,`, array de nombres,
+    array de IDs). Un campo ausente ya nunca borra los tags; un valor vacío explícito sí.
+*   **Contrato de respuesta preservado:** `Product` expone el accessor `tags_string`
+    (pipe-delimited) vía `$appends`, para no romper a los consumidores de la API. El
+    accessor está en `$guarded` para que nunca se intente escribir como columna.
+*   **Búsqueda por texto:** `ProductSearchService::textSearchCondition()` agrega los
+    nombres de los tags mediante un subquery correlacionado sobre `taggables`. El morph
+    type viaja como binding real porque en MySQL `\M` dentro de un literal de texto es
+    una secuencia de escape y colapsaba a `AppModelsProduct`.
+*   **Integridad del pivote:** índice único `(tag_id, taggable_id, taggable_type)` en
+    `taggables` (con purgado previo de duplicados) y limpieza de filas huérfanas al
+    eliminar un tag desde `/tags`.
+*   **Tema `encendido`:** se portaron los overrides de `products/crud` y
+    `products/extras`, que seguían usando el sistema legacy basado en la columna.
+*   **Setting `product_tags`:** eliminado (ya era inerte) junto a
+    `SettingsHelper::getProductTags()`.
+*   **Comando de auditoría:** `php artisan app:resync-product-tags` compara la columna
+    legacy con el pivote antes de eliminar la columna y clasifica las discrepancias como
+    *orphan* (legacy vacío, pivote poblado → seguro) o *at risk* (legacy poblado, pivot
+    distinto → pérdida real). Con `--apply` reconstruye el pivote.
+*   **Tests:** `ProductTagsResilienceTest` cubre el escenario del ERP (update sin
+    `tags` conserva los tags, incluso tras 5 syncs seguidos). `ProductTagSyncTest` y
+    `TagDataMigrationTest` reescritos contra el pivote. Se corrigió además un test
+    preexistente roto (`TagCrudTest`) que apuntaba a un componente sin `delete()`.
+
 ### 🛠️ Mejoras Técnicas y Búsqueda de Productos
 
 *   **Ordenamiento de Productos por Defecto:** Se actualizó la lógica de búsqueda (`ProductSearchService`) para que, al no haber filtros activos, se prioricen los productos destacados (`featured`) y los actualizados recientemente (`updated_at`).

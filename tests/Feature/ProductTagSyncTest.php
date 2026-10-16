@@ -7,153 +7,108 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
-it('writes through pivot when product tags string changes on create', function () {
-    $tag = Tag::fromName('NUEVO');
-
-    $product = Product::create([
-        'description' => 'Test Product',
-        'price' => 100,
-        'stock' => 10,
-        'qtty_package' => 1,
-        'published' => 1,
-        'visibility' => 'visible',
-        'tax_status' => 'taxable',
-        'tags' => 'NUEVO',
-    ]);
-
-    $this->assertDatabaseHas('taggables', [
-        'taggable_id' => $product->id,
-        'taggable_type' => Product::class,
-        'taggable_id' => $product->id,
-    ]);
-});
-
-it('writes through pivot when product tags string changes on update', function () {
-    $product = Product::create([
-        'description' => 'Test Product',
-        'price' => 100,
-        'stock' => 10,
-        'qtty_package' => 1,
-        'published' => 1,
-        'visibility' => 'visible',
-        'tax_status' => 'taxable',
-        'tags' => 'NUEVO',
-    ]);
-
-    Tag::fromName('OFERTA');
-
-    $product->update(['tags' => 'NUEVO|OFERTA']);
-
-    $this->assertDatabaseHas('taggables', [
-        'taggable_id' => $product->id,
-        'taggable_type' => Product::class,
-    ]);
-
-    $tagIds = $product->tags()->allRelatedIds()->all();
-    expect(count($tagIds))->toBe(2);
-});
-
-it('clears pivot when tags string is emptied', function () {
-    $product = Product::create([
-        'description' => 'Test Product',
-        'price' => 100,
-        'stock' => 10,
-        'qtty_package' => 1,
-        'published' => 1,
-        'visibility' => 'visible',
-        'tax_status' => 'taxable',
-        'tags' => 'NUEVO',
-    ]);
-
-    $this->assertDatabaseHas('taggables', ['taggable_id' => $product->id]);
-
-    $product->update(['tags' => '']);
-
-    $this->assertDatabaseMissing('taggables', ['taggable_id' => $product->id]);
-});
-
-it('syncs via syncTagsBySlug method', function () {
-    $product = Product::create([
-        'description' => 'Test Product',
-        'price' => 100,
-        'stock' => 10,
-        'qtty_package' => 1,
-        'published' => 1,
-        'visibility' => 'visible',
-        'tax_status' => 'taxable',
-        'tags' => '',
-    ]);
+it('attaches tags via syncTagsBySlug', function () {
+    $product = makeProduct();
 
     $product->syncTagsBySlug(['nuevo', 'oferta']);
 
     $tagIds = $product->tags()->allRelatedIds()->all();
-    expect(count($tagIds))->toBe(2);
+    expect($tagIds)->toHaveCount(2);
 });
 
-it('getTagsArrayAttribute returns tag names from relationship', function () {
-    $tag = Tag::fromName('NUEVO');
+it('attaches tags via syncTagsById and creates missing ones by name', function () {
+    $nuevo = Tag::fromName('NUEVO');
 
-    $product = Product::create([
-        'description' => 'Test Product',
-        'price' => 100,
-        'stock' => 10,
-        'qtty_package' => 1,
-        'published' => 1,
-        'visibility' => 'visible',
-        'tax_status' => 'taxable',
-        'tags' => 'NUEVO',
-    ]);
+    $product = makeProduct();
+    $product->syncTagsBySlug(['nuevo']);
+    $product->syncTagsById([$nuevo->id, Tag::fromName('REMATE')->id]);
 
-    $product = $product->fresh()->load('tags');
-    expect($product->tags_array)->toBe(['NUEVO']);
+    expect($product->tags()->allRelatedIds()->all())->toHaveCount(2);
 });
 
-it('getTagsArrayAttribute falls back to string column when relation is empty', function () {
-    $product = Product::create([
-        'description' => 'Test Product',
-        'price' => 100,
-        'stock' => 10,
-        'qtty_package' => 1,
-        'published' => 1,
-        'visibility' => 'visible',
-        'tax_status' => 'taxable',
-        'tags' => 'NUEVO|OFERTA',
-    ]);
+it('clears the pivot when syncing an empty set of ids', function () {
+    $product = makeProduct();
+    $product->syncTagsBySlug(['nuevo', 'oferta']);
 
-    $product = $product->fresh()->load('tags');
-    // Relation is loaded but empty (DataImport bypassed Eloquent events)
-    expect($product->tags_array)->toBe(['NUEVO', 'OFERTA']);
+    $product->syncTagsById([]);
+
+    expect($product->tags()->allRelatedIds()->all())->toBeEmpty();
+});
+
+it('ignores ids that do not exist when syncing by id', function () {
+    $product = makeProduct();
+
+    $product->syncTagsById([999999, 0, -3]);
+
+    expect($product->tags()->allRelatedIds()->all())->toBeEmpty();
+});
+
+it('does not touch the pivot when an unrelated product attribute is saved', function () {
+    $product = attachTags(makeProduct(), ['CANASTAS NAVIDEÑAS']);
+
+    // Regression guard: any save must leave the tags alone.
+    $product->update(['price' => 250]);
+    $product->update(['stock' => 99]);
+    $product->touch();
+    $product->refresh();
+
+    expect($product->tags_array)->toBe(['CANASTAS NAVIDEÑAS']);
+});
+
+it('does not create duplicate pivot rows when syncing the same tags twice', function () {
+    $product = makeProduct();
+
+    $product->syncTagsBySlug(['nuevo']);
+    $product->syncTagsBySlug(['nuevo']);
+
+    expect($product->tags()->allRelatedIds()->all())->toHaveCount(1);
+});
+
+it('exposes tag names through the tags_array and tags_string accessors', function () {
+    $product = makeProduct();
+    $product->syncTagsBySlug(['nuevo']);
+
+    $fresh = $product->fresh();
+
+    expect($fresh->tags_array)->toBe(['NUEVO']);
+    expect($fresh->tags_string)->toBe('NUEVO');
+});
+
+it('returns an empty tags array when the product has no tags', function () {
+    expect(makeProduct()->fresh()->tags_array)->toBe([]);
+});
+
+it('detaches tags when the product is deleted', function () {
+    $product = makeProduct();
+    $product->syncTagsBySlug(['nuevo']);
+
+    $product->delete();
+
+    $this->assertDatabaseMissing('taggables', [
+        'taggable_id' => $product->id,
+        'taggable_type' => Product::class,
+    ]);
 });
 
 it('filters products by tag slug via ProductSearchService', function () {
-    $nuevo = Tag::fromName('NUEVO');
-    $oferta = Tag::fromName('OFERTA');
+    $productA = makeProduct(['description' => 'Product A']);
+    $productA->syncTagsBySlug(['nuevo']);
 
-    $productA = Product::create([
-        'description' => 'Product A',
-        'price' => 100,
-        'stock' => 10,
-        'qtty_package' => 1,
-        'published' => 1,
-        'visibility' => 'visible',
-        'tax_status' => 'taxable',
-        'tags' => 'NUEVO',
-    ]);
+    makeProduct(['description' => 'Product B'])->syncTagsBySlug(['oferta']);
 
-    $productB = Product::create([
-        'description' => 'Product B',
-        'price' => 100,
-        'stock' => 10,
-        'qtty_package' => 1,
-        'published' => 1,
-        'visibility' => 'visible',
-        'tax_status' => 'taxable',
-        'tags' => 'OFERTA',
-    ]);
-
-    $service = new ProductSearchService;
-    $results = $service->searchProducts(['tag' => 'nuevo']);
+    $results = (new ProductSearchService)->searchProducts(['tag' => 'nuevo']);
 
     expect($results->items())->toHaveCount(1);
     expect($results->items()[0]->id)->toBe($productA->id);
+});
+
+it('matches products by tag name in the free text search', function () {
+    $canasta = attachTags(makeProduct(['description' => 'CANASTA "3" (20 articulos)']), ['CANASTAS NAVIDEÑAS']);
+
+    makeProduct(['description' => 'Producto sin etiqueta']);
+
+    $results = (new ProductSearchService)->searchProducts(['search' => 'NAVIDEÑAS']);
+
+    expect($results->items())->toHaveCount(1);
+    expect($results->items()[0]->id)->toBe($canasta->id);
 });

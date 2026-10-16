@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class Tag extends Model
@@ -20,6 +21,14 @@ class Tag extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
+
+    protected static function booted(): void
+    {
+        static::deleting(function (self $tag) {
+            // taggables has no foreign keys, so pivot rows would be orphaned.
+            DB::table('taggables')->where('tag_id', $tag->getKey())->delete();
+        });
+    }
 
     public function products(): MorphToMany
     {

@@ -25,14 +25,11 @@ class WebProductCard extends Component
 
     public $offer_price = 0;
 
-    // Escuchamos el evento solo para que el card refresque el badge de "En Carrito" de forma aislada
+    // Escuchamos el evento para que el card refresque el badge de "En Carrito"
     #[On('cart-updated')]
     public function refreshCard(): void
     {
-        $this->renderIsland('cart-badge', with: [
-            'cart' => session()->get('cart', []),
-            'product' => (object) $this->local_product,
-        ]);
+        // Calling this listener re-renders the component with the updated cart session
     }
 
     public function mount($product)
@@ -54,11 +51,6 @@ class WebProductCard extends Component
             }
         } else {
             $raw = (array) $product;
-            if (! isset($raw['tags_array'])) {
-                $raw['tags_array'] = isset($raw['tags']) && ! empty($raw['tags'])
-                    ? array_values(array_filter(explode('|', $raw['tags'])))
-                    : [];
-            }
         }
 
         // Retain only essential UI fields to reduce Livewire DOM snapshot payload

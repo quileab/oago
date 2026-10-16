@@ -4,6 +4,7 @@ use Livewire\Volt\Component;
 use Livewire\WithPagination;
 use Mary\Traits\Toast;
 use \App\Models\Product;
+use \App\Models\Tag;
 
 
 new class extends Component {
@@ -18,8 +19,8 @@ new class extends Component {
     public array $sortBy = ['column' => 'id', 'direction' => 'asc'];
     public array $selected = []; // Add selected property
     public array $tags_list = [
-        ['name' => 'Publicado', 'value' => false, 'action' => 'nothing'],
-        ['name' => 'Destacado', 'value' => false, 'action' => 'nothing'],
+        ['name' => 'Publicado', 'value' => false, 'action' => 'nothing', 'slug' => null, 'is_tag' => false],
+        ['name' => 'Destacado', 'value' => false, 'action' => 'nothing', 'slug' => null, 'is_tag' => false],
     ];
 
     public array $actions = [
@@ -35,11 +36,17 @@ new class extends Component {
     public function mount()
     {
         $this->tags_list = [
-            ['name' => 'Publicado', 'value' => false, 'action' => 'nothing'],
-            ['name' => 'Destacado', 'value' => false, 'action' => 'nothing'],
+            ['name' => 'Publicado', 'value' => false, 'action' => 'nothing', 'slug' => null, 'is_tag' => false],
+            ['name' => 'Destacado', 'value' => false, 'action' => 'nothing', 'slug' => null, 'is_tag' => false],
         ];
-        foreach (\App\Helpers\SettingsHelper::getProductTags() as $key => $value) {
-            $this->tags_list[] = ['name' => $value, 'value' => false, 'action' => 'nothing'];
+        foreach (Tag::allCached() as $tag) {
+            $this->tags_list[] = [
+                'name' => $tag->name,
+                'slug' => $tag->slug,
+                'value' => false,
+                'action' => 'nothing',
+                'is_tag' => true,
+            ];
         }
     }
 
@@ -53,7 +60,7 @@ new class extends Component {
             ['key' => 'published', 'label' => 'Publicado'],
             ['key' => 'visibility', 'label' => 'Visibilidad'],
             ['key' => 'featured', 'label' => 'Destacado'],
-            ['key' => 'tags', 'label' => 'Etiquetas'],
+            ['key' => 'tags', 'label' => 'Etiquetas', 'sortable' => false],
         ];
     }
 
@@ -75,7 +82,7 @@ new class extends Component {
 
     public function products()//: LengthAwarePaginator //Collection
     {
-        $query = Product::query();
+        $query = Product::query()->with('tags');
         // split search string into words
         $search_multiple = explode(' ', $this->search);
 
@@ -115,44 +122,87 @@ new class extends Component {
 
     public function applyPromotions()
     {
-        // dd($this->tags_list);
         $this->drawer = false;
-        // Apply promotions to selected products
-        foreach ($this->selected as $productId) {
-            $product = Product::find($productId);
-            if ($product) {
-                $tags = explode('|', $product->tags);
-                foreach ($this->tags_list as $tag) {
-                    if ($tag['action'] != 'nothing' && $tag['name'] == 'Destacado') {
-                        $product->featured = $tag['action'] == 'apply' ? true : false;
-                    }
-                    if ($tag['action'] != 'nothing' && $tag['name'] == 'Publicado') {
-                        $product->published = $tag['action'] == 'apply' ? true : false;
-                    }
-                    
-                    if ($tag['action'] == 'apply' && !in_array($tag['name'], $tags)) {
-                        $tags[] = $tag['name'];
-                    }
-                    if ($tag['action'] == 'remove' && in_array($tag['name'], $tags)) {
-                        $key = array_search($tag['name'], $tags);
-                        unset($tags[$key]);
-                    }
-                }
-                $product->tags = implode('|', $tags);
-                $product->description_html = $this->htmldescription;
 
-                // Apply bonus threshold and amount
-                if (!is_null($this->bonus_threshold)) {
-                    $product->bonus_threshold = $this->bonus_threshold;
+        // Collect tag operations from tags_list
+        $tagsToApply = [];
+        $tagsToRemove = [];
+        $publishedAction = 'nothing';
+        $featuredAction = 'nothing';
+
+        foreach ($this->tags_list as $tag) {
+            if (! $tag['is_tag']) {
+                if ($tag['name'] === 'Publicado') {
+                    $publishedAction = $tag['action'];
+                } elseif ($tag['name'] === 'Destacado') {
+                    $featuredAction = $tag['action'];
                 }
-                if (!is_null($this->bonus_amount)) {
-                    $product->bonus_amount = $this->bonus_amount;
+            } else {
+                if ($tag['action'] === 'apply') {
+                    $tagsToApply[] = $tag['slug'];
+                } elseif ($tag['action'] === 'remove') {
+                    $tagsToRemove[] = $tag['slug'];
                 }
-                
-                $product->save();
-                $product->touch();
             }
         }
+
+        $htmldescription = $this->htmldescription;
+        $bonusThreshold = $this->bonus_threshold;
+        $bonusAmount = $this->bonus_amount;
+
+        Product::withoutEvents(function () use ($tagsToApply, $tagsToRemove, $publishedAction, $featuredAction, $htmldescription, $bonusThreshold, $bonusAmount) {
+            foreach ($this->selected as $productId) {
+                $product = Product::find($productId);
+                if (! $product) {
+                    continue;
+                }
+
+                // Handle Published/Featured boolean actions
+                if ($publishedAction === 'apply') {
+                    $product->published = true;
+                } elseif ($publishedAction === 'remove') {
+                    $product->published = false;
+                }
+
+                if ($featuredAction === 'apply') {
+                    $product->featured = true;
+                } elseif ($featuredAction === 'remove') {
+                    $product->featured = false;
+                }
+
+                // Handle tags via pivot
+                if (! empty($tagsToApply) || ! empty($tagsToRemove)) {
+                    $currentTagIds = $product->tags()->allRelatedIds()->all();
+
+                    if (! empty($tagsToRemove)) {
+                        $removeIds = Tag::whereIn('slug', $tagsToRemove)->pluck('id')->all();
+                        $currentTagIds = array_values(array_diff($currentTagIds, $removeIds));
+                    }
+
+                    if (! empty($tagsToApply)) {
+                        $applyIds = Tag::whereIn('slug', $tagsToApply)->pluck('id')->all();
+                        $currentTagIds = array_values(array_unique(array_merge($currentTagIds, $applyIds)));
+                    }
+
+                    $product->tags()->sync($currentTagIds);
+                }
+
+                $product->description_html = $htmldescription;
+
+                if (! is_null($bonusThreshold)) {
+                    $product->bonus_threshold = $bonusThreshold;
+                }
+
+                if (! is_null($bonusAmount)) {
+                    $product->bonus_amount = $bonusAmount;
+                }
+
+                $product->updated_at = now();
+                $product->save();
+            }
+        });
+
+        Tag::clearCache();
 
         $this->success(
             'Atributos aplicados',
@@ -233,7 +283,7 @@ new class extends Component {
         {{ $product->featured ? 'Si' : 'No' }}
         @endscope
         @scope('cell_tags', $product)
-        {{ $product->tags ? str_replace('|', ' ', $product->tags) : 'N/A' }}
+        {{ collect($product->tags_array)->join(' ') ?: 'N/A' }}
         @endscope
     </x-table>
 

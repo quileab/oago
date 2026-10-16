@@ -10,7 +10,8 @@ class TagSeeder extends Seeder
 {
     /**
      * Default product tags, ordered by sort_order.
-     * Mirrors the product_tags setting from SettingsSeeder for transition.
+     * These are only seeded on a fresh install; afterwards tags are managed
+     * from /tags and live exclusively in the `taggables` pivot.
      */
     protected static array $defaultTags = [
         'NUEVO',
@@ -34,13 +35,5 @@ class TagSeeder extends Seeder
                 ]
             );
         }
-    }
-
-    /**
-     * Get the default tag names (for backward compat with SettingsHelper).
-     */
-    public static function getDefaultTags(): array
-    {
-        return self::$defaultTags;
     }
 }

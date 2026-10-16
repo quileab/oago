@@ -5,20 +5,16 @@ namespace App\Traits;
 use App\Models\Tag;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
+use Illuminate\Support\Str;
 
 trait HasTags
 {
     /**
-     * Boot the trait: register write-through sync on saved event.
+     * Boot the trait: the pivot table is the single source of truth.
+     * Tags are only ever written explicitly, never derived from other columns.
      */
     public static function bootHasTags(): void
     {
-        static::saved(function (self $model) {
-            if ($model->wasRecentlyCreated || $model->wasChanged('tags')) {
-                $model->syncTagsFromStringColumn();
-            }
-        });
-
         static::deleted(function (self $model) {
             $model->tags()->detach();
         });
@@ -56,7 +52,7 @@ trait HasTags
     {
         $tagIds = collect($slugs)
             ->filter()
-            ->map(fn ($s) => Tag::fromName($s)->id)
+            ->map(fn ($s) => $this->resolveSlugToTagId($s))
             ->all();
 
         $this->tags()->sync($tagIds);
@@ -70,64 +66,62 @@ trait HasTags
     }
 
     /**
-     * Sync the pivot from the legacy pipe-delimited string column.
-     * Called automatically on save when the "tags" column changes.
+     * Resolve a slug to an existing tag id, creating it only when missing.
      */
-    /**
-     * Public entry point for syncing tags from the string column.
-     * Used by DataImport and data migrations that bypass Eloquent events.
-     */
-    public function syncTagsFromStringColumnPublic(): void
+    protected function resolveSlugToTagId(string $slug): int
     {
-        $this->syncTagsFromStringColumn();
+        $slug = Str::slug($slug);
 
-        if ($this->exists) {
-            $this->touch();
+        $tag = Tag::query()->where('slug', $slug)->first();
+
+        if ($tag) {
+            return $tag->id;
         }
+
+        // Derive a human readable name from the slug so the tag is not shown
+        // to customers as a hyphenated identifier.
+        return Tag::fromName(ucwords(str_replace('-', ' ', $slug)))->id;
     }
 
-    protected function syncTagsFromStringColumn(): void
+    /**
+     * Sync tags from an array of tag IDs.
+     * Ignores IDs that no longer exist in the tags table.
+     */
+    public function syncTagsById(array $tagIds): self
     {
-        $tagString = $this->getAttributeValue('tags');
+        $tagIds = array_values(array_filter(
+            array_map('intval', $tagIds),
+            fn ($id) => $id > 0
+        ));
 
-        if (! $tagString || $tagString === '') {
-            $this->tags()->sync([]);
-
-            // Normalize the string column to empty (dedup, sort)
-            return;
+        if ($tagIds) {
+            $tagIds = Tag::whereIn('id', $tagIds)->pluck('id')->all();
         }
 
-        $tagNames = array_values(array_filter(explode('|', $tagString)));
-        if (empty($tagNames)) {
-            $this->tags()->sync([]);
-
-            return;
-        }
-
-        $normalizedNames = array_map('strtoupper', $tagNames);
-        $normalizedNames = array_values(array_unique($normalizedNames));
-        sort($normalizedNames);
-
-        $tagIds = array_map(fn ($name) => Tag::fromName($name)->id, $normalizedNames);
         $this->tags()->sync($tagIds);
         Tag::clearCache();
+
+        return $this;
     }
 
     /**
      * Accessor: get tag names as array.
-     * Uses the loaded relationship if available, falls back to parsing the string column.
      */
     public function getTagsArrayAttribute(): array
     {
-        if ($this->relationLoaded('tags')) {
-            $names = $this->getRelation('tags')->pluck('name')->all();
-            if (! empty($names)) {
-                return $names;
-            }
-            // Fallback: relation loaded but empty — check string column (transition period)
+        if (! $this->relationLoaded('tags')) {
+            $this->load('tags');
         }
 
-        return array_values(array_filter(explode('|', $this->attributes['tags'] ?? '')));
+        return $this->getRelation('tags')->pluck('name')->all();
+    }
+
+    /**
+     * Accessor: pipe-delimited tag names, kept for API backward compatibility.
+     */
+    public function getTagsStringAttribute(): string
+    {
+        return implode('|', $this->tags_array);
     }
 
     /**

@@ -35,7 +35,8 @@ use Illuminate\Support\Facades\Log;
  * @property-read float|null $height
  * @property-read float|null $price
  * @property-read float|null $offer_price
- * @property-read string|null $tags
+ * @property-read array<int>|string|null $tags Accepted shapes: "|"- or ","-delimited
+ *        string, array of tag names, array of tag IDs. Normalized to tag IDs.
  * @property-read string|null $image_url
  */
 class ProductRequest extends FormRequest
@@ -56,15 +57,24 @@ class ProductRequest extends FormRequest
             $this->merge(['price' => 0]);
         }
 
-        $tags = $this->input('tags');
+        if ($this->has('tags')) {
+            $tags = $this->input('tags');
 
-        if ($tags === null || $tags === '') {
-            $this->merge(['tags' => '']);
-        } elseif (is_array($tags)) {
-            $this->merge(['tags' => $this->normalizeTagArray($tags)]);
-        } elseif (is_string($tags)) {
-            $this->merge(['tags' => $this->normalizeTagString($tags)]);
+            if ($tags === null) {
+                $this->merge(['tags' => []]);
+            } else {
+                $this->merge(['tags' => $this->normalizeTags($tags)]);
+            }
         }
+    }
+
+    /**
+     * Whether the caller sent the tags field at all.
+     * A missing field must never wipe the pivot; an explicit empty value must.
+     */
+    public function hasTagsInput(): bool
+    {
+        return $this->has('tags');
     }
 
     public function rules(): array
@@ -97,7 +107,7 @@ class ProductRequest extends FormRequest
             'height' => 'nullable|numeric|min:0',
             'price' => 'nullable|numeric|min:0',
             'offer_price' => 'nullable|numeric|min:0',
-            'tags' => 'nullable|string',
+            'tags' => 'sometimes|nullable|array',
             'image_url' => 'nullable|string|max:250',
         ];
     }
@@ -118,38 +128,55 @@ class ProductRequest extends FormRequest
         ];
     }
 
-    private function normalizeTagArray(array $tags): string
+    /**
+     * Normalize the accepted tag shapes into a list of numeric Tag IDs.
+     *
+     * Accepts, in order of precedence per value:
+     *   - numeric value  -> treated as an existing Tag ID
+     *   - anything else  -> treated as a tag name, created on demand
+     *
+     * @param  array<int|string>|string  $tags
+     * @return array<int>
+     */
+    private function normalizeTags(array|string $tags): array
     {
-        $names = [];
-        foreach ($tags as $value) {
-            if (is_numeric($value)) {
-                $tag = Tag::find($value);
-                if ($tag) {
-                    $names[] = $tag->name;
-                }
-            } else {
-                $names[] = (string) $value;
+        $values = is_array($tags) ? $tags : $this->splitTagString($tags);
+
+        $ids = [];
+        foreach ($values as $value) {
+            if (! is_scalar($value)) {
+                continue;
             }
+
+            $value = trim((string) $value);
+            if ($value === '') {
+                continue;
+            }
+
+            if (ctype_digit($value) && ($tag = Tag::find((int) $value))) {
+                $ids[] = $tag->id;
+
+                continue;
+            }
+
+            $ids[] = Tag::fromName($value)->id;
         }
 
-        return $this->buildTagsString($names);
+        return array_values(array_unique($ids));
     }
 
-    private function normalizeTagString(string $tags): string
+    /**
+     * @return array<int, string>
+     */
+    private function splitTagString(string $tags): array
     {
+        if (trim($tags) === '') {
+            return [];
+        }
+
         $delimiter = str_contains($tags, '|') ? '|' : ',';
-        $tagNames = array_values(array_filter(array_map('trim', explode($delimiter, $tags))));
 
-        return $this->buildTagsString($tagNames);
-    }
-
-    private function buildTagsString(array $names): string
-    {
-        $names = array_map('strtoupper', $names);
-        $names = array_values(array_unique($names));
-        sort($names);
-
-        return implode('|', $names);
+        return array_values(array_filter(array_map('trim', explode($delimiter, $tags))));
     }
 
     public static function getTagSlugs(): array

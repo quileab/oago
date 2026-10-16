@@ -50,7 +50,7 @@ new class extends Component
             $this->offer_price = $this->product->promo_price ?? 0;
             $this->qtty = $this->product->qtty_package;
             $this->media = $this->product->media ?? [];
-            $this->tags = array_values(array_filter(explode('|', $this->product->tags)));
+            $this->tags = $this->product->tags_array ?? [];
         }
     }
 
@@ -327,40 +327,20 @@ new class extends Component
         </div>
     @endif
 
-    {{-- Productos Relacionados cargados perezosamente mediante Isla --}}
-    @island('related-products', lazy: true)
-        @placeholder
-            <div class="mt-16">
-                <h2 class="text-2xl font-black text-neutral-100 mb-8 px-2 flex items-center gap-3">
-                    <span class="w-2 h-8 bg-primary rounded-full"></span>
-                    PRODUCTOS RELACIONADOS
-                </h2>
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    @for ($i = 0; $i < 4; $i++)
-                        <div class="glass-panel h-64 p-4 rounded-lg animate-pulse border border-white/5 flex flex-col justify-between">
-                            <div class="w-full h-36 bg-white/5 rounded"></div>
-                            <div class="h-4 bg-white/5 rounded w-3/4"></div>
-                            <div class="h-4 bg-white/5 rounded w-1/2"></div>
-                        </div>
-                    @endfor
-                </div>
+    {{-- Productos Relacionados --}}
+    @php($relatedItems = $this->getRelatedProducts())
+    @if(count($relatedItems) > 0)
+        <div class="mt-16">
+            <h2 class="text-2xl font-black text-neutral-100 mb-8 px-2 flex items-center gap-3">
+                <span class="w-2 h-8 bg-primary rounded-full"></span>
+                PRODUCTOS RELACIONADOS
+            </h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                @foreach ($relatedItems as $rel_product)
+                    <livewire:web-product-card :product="$rel_product" :key="'rel-'.$rel_product->id" />
+                @endforeach
             </div>
-        @endplaceholder
-
-        @php($relatedItems = $this->getRelatedProducts())
-        @if(count($relatedItems) > 0)
-            <div class="mt-16">
-                <h2 class="text-2xl font-black text-neutral-100 mb-8 px-2 flex items-center gap-3">
-                    <span class="w-2 h-8 bg-primary rounded-full"></span>
-                    PRODUCTOS RELACIONADOS
-                </h2>
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    @foreach ($relatedItems as $rel_product)
-                        <livewire:web-product-card :product="$rel_product" :key="'rel-'.$rel_product->id" />
-                    @endforeach
-                </div>
-            </div>
-        @endif
-    @endisland
+        </div>
+    @endif
 </div>
 

@@ -138,20 +138,36 @@ Route::middleware(['auth', 'check_guest'])->group(function () {
             $logs['Composer Install for PROD'] = Artisan::call('composer install --optimize-autoloader --no-dev');
         }
 
+        if ($option !== 'cache') {
+            $compiledViews = glob(storage_path('framework/views/*.php')) ?: [];
+            foreach ($compiledViews as $viewFile) {
+                @unlink($viewFile);
+            }
+            $logs['Compiled Views Files'] = '✔️ ('.count($compiledViews).' archivos eliminados)';
+
+            $bootstrapCaches = glob(base_path('bootstrap/cache/*.php')) ?: [];
+            foreach ($bootstrapCaches as $cacheFile) {
+                if (basename($cacheFile) !== '.gitignore') {
+                    @unlink($cacheFile);
+                }
+            }
+            $logs['Bootstrap Cache Files'] = '✔️';
+
+            if (function_exists('opcache_reset')) {
+                @opcache_reset();
+                $logs['OPcache Reset'] = '✔️';
+            }
+        }
+
         $maintenance = ($option == 'cache') ? [
             'Flush' => 'cache:flush',
         ] : [
-            // 'DebugBar'=>'debugbar:clear',
             'Storage Link' => 'storage:link',
-            'Config' => 'config:clear',
+            'Config Clear' => 'config:clear',
             'Optimize Clear' => 'optimize:clear',
-            'Optimize' => 'optimize',
             'Route Clear' => 'route:clear',
-            'Route Cache' => 'route:cache',
             'View Clear' => 'view:clear',
-            'View Cache' => 'view:cache',
             'Cache Clear' => 'cache:clear',
-            'Cache Config' => 'config:cache',
         ];
 
         foreach ($maintenance as $key => $value) {

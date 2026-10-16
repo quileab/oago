@@ -1,5 +1,8 @@
 <?php
 
+use App\Models\Product;
+use App\Models\Tag;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /*
@@ -46,4 +49,41 @@ expect()->extend('toBeOne', function () {
 function something()
 {
     // ..
+}
+
+/**
+ * Build a valid product, since most product fields are required by the schema.
+ *
+ * @param  array<string, mixed>  $overrides
+ */
+function makeProduct(array $overrides = []): Product
+{
+    return Product::create(array_merge([
+        'description' => 'Test Product',
+        'price' => 100,
+        'stock' => 10,
+        'qtty_package' => 1,
+        'published' => 1,
+        'visibility' => 'visible',
+        'tax_status' => 'taxable',
+    ], $overrides));
+}
+
+/**
+ * Attach tags by their display name, the way the admin and the API do.
+ *
+ * @param  array<int, string>  $names
+ */
+function attachTags(Product $product, array $names): Product
+{
+    foreach ($names as $name) {
+        Tag::fromName($name);
+    }
+
+    $product->syncTagsBySlug(array_map(
+        fn (string $name) => Str::slug($name),
+        $names
+    ));
+
+    return $product;
 }

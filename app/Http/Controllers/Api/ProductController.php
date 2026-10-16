@@ -7,6 +7,7 @@ use App\Http\Requests\Api\ProductRequest;
 use App\Models\Product;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Storage;
 
 class ProductController extends Controller
@@ -29,9 +30,9 @@ class ProductController extends Controller
     {
         if ($request->has('page') || $request->has('per_page')) {
             $perPage = $request->input('per_page', 50);
-            $products = Product::paginate($perPage);
+            $products = Product::with('tags')->paginate($perPage);
         } else {
-            $products = Product::all();
+            $products = Product::with('tags')->get();
         }
 
         return response()->json($products, 200);
@@ -58,7 +59,13 @@ class ProductController extends Controller
             ], 422);
         }
 
-        $product = Product::create($request->validated());
+        $attributes = Arr::except($request->validated(), 'tags');
+
+        $product = Product::create($attributes);
+
+        if ($request->hasTagsInput()) {
+            $product->syncTagsById($request->validated()['tags'] ?? []);
+        }
 
         if ($request->has('image_url') && $request->image_url) {
             $this->deleteImageCache($request->image_url);
@@ -96,7 +103,18 @@ class ProductController extends Controller
             $this->deleteImageCache($product->image_url);
         }
 
-        $product->update($request->validated());
+        $attributes = Arr::except($request->validated(), 'tags');
+
+        if ($attributes) {
+            $product->update($attributes);
+        }
+
+        // Only sync when the caller actually sent the field, so an omitted
+        // `tags` never wipes the product's existing tags.
+        if ($request->hasTagsInput()) {
+            $product->syncTagsById($request->validated()['tags'] ?? []);
+        }
+
         $product->touch();
 
         $responseData = ['message' => 'OK'];

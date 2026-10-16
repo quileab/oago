@@ -14,7 +14,16 @@ class Product extends Model
     use HasFactory;
     use HasTags;
 
-    protected $guarded = [];
+    protected $guarded = ['tags_string'];
+
+    /**
+     * `tags_string` is appended to keep the API response shape stable
+     * after the legacy `tags` column was dropped in favour of the pivot table.
+     * It is also guarded so mass assignment cannot try to write it as a column.
+     *
+     * @var array<int, string>
+     */
+    protected $appends = ['tags_string'];
 
     protected static function booted(): void
     {

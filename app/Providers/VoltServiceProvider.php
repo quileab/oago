@@ -79,9 +79,15 @@ class VoltServiceProvider extends ServiceProvider
      */
     protected function registerThemeComponentOverrides(): void
     {
-        $finder = app('livewire.finder');
+        $directories = $this->themeComponentDirectories();
 
-        foreach ($this->themeComponentDirectories() as $directory) {
+        if ($directories === [] || ! $this->app->bound('livewire.finder')) {
+            return;
+        }
+
+        $finder = $this->app->make('livewire.finder');
+
+        foreach ($directories as $directory) {
             foreach (File::allFiles($directory) as $file) {
                 if (! str_ends_with($file->getFilename(), '.blade.php')) {
                     continue;

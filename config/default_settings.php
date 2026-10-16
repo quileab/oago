@@ -76,13 +76,6 @@ return [
         'description' => 'El caracter para separar columnas en archivos CSV.',
     ],
 
-    'product_tags' => [
-        'value' => json_encode(['NUEVO', 'OFERTA', 'REMATE', 'IMPORTADOS', 'DESTACADO', 'LIQUIDACION', 'ULTIMAS_UNIDADES']),
-        'type' => 'json',
-        'text' => 'Tags de Productos',
-        'description' => 'Lista de tags de productos separados por comas (ej. NUEVO,OFERTA,REMATE).',
-    ],
-
     'image_proxy_allowed_hosts' => [
         'value' => json_encode([]),
         'type' => 'json',

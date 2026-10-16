@@ -136,6 +136,8 @@ class DataImport extends Command
                             $buffer = $this->transformAltUsers($buffer);
                         } elseif ($currentTable === 'products') {
                             $buffer = $this->transformProducts($buffer);
+                        } elseif ($currentTable === 'taggables') {
+                            $buffer = preg_replace('/^(\s*)INSERT\s+INTO/i', '$1INSERT IGNORE INTO', $buffer, 1);
                         } elseif ($currentTable === 'personal_access_tokens') {
                             $buffer = $this->filterAdminTokens($buffer);
                         }
@@ -166,6 +168,10 @@ class DataImport extends Command
         $this->info('⚙️  Verificando e insertando configuraciones del sistema faltantes...');
         $this->callSilent('app:sync-settings');
 
+        if (Schema::hasTable('settings')) {
+            DB::table('settings')->where('key', 'product_tags')->delete();
+        }
+
         $this->newLine();
         $this->info('🔄 Sincronizando tags de productos a tabla relacional...');
 
@@ -184,7 +190,7 @@ class DataImport extends Command
 
                 $product = Product::find($productId);
                 if ($product) {
-                    $product->tags()->sync($tagIds);
+                    $product->tags()->syncWithoutDetaching($tagIds);
                 }
             }
         }
@@ -320,7 +326,8 @@ class DataImport extends Command
             $valuesSection = $matches[2];
             preg_match_all('/\((.*?)\)(?:,|$)/s', $valuesSection, $rows);
             $isOldFormat = false;
-            $tagsIdx = 29; // default legacy index
+            $tagsIdx = null;
+            $productsTableHasTagsColumn = Schema::hasColumn('products', 'tags');
 
             if ($hasCols) {
                 $cols = array_map(function ($c) {
@@ -328,7 +335,7 @@ class DataImport extends Command
                 }, explode(',', $matches[1]));
                 $isOldFormat = ! in_array('bonus_threshold', $cols);
 
-                $tIdx = array_search('tags', $cols);
+                $tIdx = array_search('tags', $cols, true);
                 if ($tIdx !== false) {
                     $tagsIdx = $tIdx;
                 }
@@ -337,13 +344,9 @@ class DataImport extends Command
                 $isOldFormat = count($firstParts) === 31;
                 if ($isOldFormat) {
                     $tagsIdx = 27;
+                } elseif (count($firstParts) === 33) {
+                    $tagsIdx = 29;
                 }
-            }
-
-            // Determine dynamic indices based on cols, if available
-            $idxMap = [];
-            if ($hasCols) {
-                $idxMap = array_flip($cols);
             }
 
             $newRows = [];
@@ -351,7 +354,7 @@ class DataImport extends Command
                 $parts = str_getcsv($row, ',', "'");
 
                 $productId = trim($parts[0] ?? '', " '\"\t\n\r");
-                $tagsString = $parts[$tagsIdx] ?? '';
+                $tagsString = $tagsIdx !== null ? ($parts[$tagsIdx] ?? '') : '';
 
                 if ($productId && $tagsString && strtoupper($tagsString) !== 'NULL' && $tagsString !== "''") {
                     $this->pendingTags[$productId] = trim($tagsString, " '\"\t\n\r");
@@ -381,7 +384,6 @@ class DataImport extends Command
                 } else {
                     // Fallback to defaults
                     $notNullStringCols = [1, 2, 4, 5, 6, 8, 29];
-                    // Si era formato viejo y sin columnas (31), tags original estaba en 27 pero ahora spliced a 29
                 }
 
                 foreach ($notNullStringCols as $idx) {
@@ -393,6 +395,23 @@ class DataImport extends Command
                     }
                 }
 
+                if (! $productsTableHasTagsColumn) {
+                    if ($hasCols) {
+                        $currentCols = $cols;
+                        if ($isOldFormat) {
+                            array_splice($currentCols, 14, 0, ['bonus_threshold', 'bonus_amount']);
+                        }
+                        $dropIdx = array_search('tags', $currentCols, true);
+                        if ($dropIdx !== false && array_key_exists($dropIdx, $parts)) {
+                            unset($parts[$dropIdx]);
+                            $parts = array_values($parts);
+                        }
+                    } elseif ($tagsIdx !== null && count($parts) === 33) {
+                        unset($parts[29]);
+                        $parts = array_values($parts);
+                    }
+                }
+
                 $newRows[] = $this->rebuildRow($parts, true);
             }
 
@@ -400,6 +419,9 @@ class DataImport extends Command
             if ($hasCols) {
                 if ($isOldFormat) {
                     array_splice($cols, 14, 0, ['bonus_threshold', 'bonus_amount']);
+                }
+                if (! $productsTableHasTagsColumn) {
+                    $cols = array_values(array_filter($cols, fn ($c) => $c !== 'tags'));
                 }
                 $header = "$verb INTO `products` (`".implode('`, `', $cols).'`) VALUES';
             }

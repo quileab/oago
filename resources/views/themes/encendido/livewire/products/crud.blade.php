@@ -1,12 +1,14 @@
 <?php
 
-use App\Helpers\SettingsHelper;
 use App\Models\ListName;
 use App\Models\ListPrice;
 use App\Models\Product;
+use App\Models\Tag;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Livewire\Features\SupportFileUploads\FileUploadConfiguration;
 use Livewire\Volt\Component;
@@ -44,7 +46,7 @@ new class extends Component
         if ($id && $id->exists) {
             $this->product = $id;
             $this->formData = $id->toArray();
-            $this->selectedTags = array_filter(explode('|', $this->formData['tags'] ?? ''));
+            $this->selectedTags = $id->tags()->allRelatedIds()->all();
             foreach ($this->listNames() as $list) {
                 $listPrice = ListPrice::where('product_id', $id->id)
                     ->where('list_id', $list->id)
@@ -64,7 +66,6 @@ new class extends Component
                 'published' => true,
                 'featured' => false,
                 'visibility' => 'visible',
-                'tags' => '',
                 'in_stock' => true,
                 'allow_reservation' => false,
                 'by_bulk' => false,
@@ -128,9 +129,18 @@ new class extends Component
 
     public function availableTags()
     {
-        $tags = SettingsHelper::getProductTags();
+        $options = Tag::allCached()
+            ->map(fn ($tag) => ['id' => $tag->id, 'name' => $tag->name])
+            ->keyBy('id');
 
-        return array_map(fn ($tag) => ['id' => $tag, 'name' => $tag], $tags);
+        // Guarantee that the product's current tags are always offered as options.
+        // If they are missing (stale cache), the x-choices widget would drop them
+        // on "select all" and the save would wipe the pivot.
+        foreach ($this->selectedTags as $tagId) {
+            $options->put($tagId, ['id' => $tagId, 'name' => Tag::find($tagId)?->name ?? "Tag #{$tagId}"]);
+        }
+
+        return $options->values()->all();
     }
 
     public function updatedPhoto()
@@ -220,6 +230,7 @@ new class extends Component
             'formData.bonus_amount' => 'nullable|integer',
             'formData.tax_status' => 'nullable|string|max:10',
             'formData.visibility' => 'required|string|max:10',
+            'selectedTags.*' => ['integer', Rule::exists('tags', 'id')],
             'photo' => 'nullable|image|max:10240',
             'extraPhotos.*' => 'image|max:10240',
             'extraVideos.*' => 'nullable|url',
@@ -236,16 +247,15 @@ new class extends Component
             return;
         }
 
-        // Sync tags back to string
-        $this->formData['tags'] = implode('|', $this->selectedTags);
-        
         // Ensure price is set
         $this->formData['price'] = $this->formData['price'] ?? 0;
 
         $product = Product::updateOrCreate(
             ['id' => $this->product->id ?? null],
-            $this->formData
+            Arr::except($this->formData, ['tags', 'id'])
         );
+
+        $product->syncTagsById($this->selectedTags);
 
         $this->product = $product;
 

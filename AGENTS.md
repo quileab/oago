@@ -379,6 +379,38 @@ alt_users ─ same structure as users ─── alt_orders ── alt_order_item
 
 ---
 
+### Tags de Productos (CRÍTICO)
+
+**`taggables` es la ÚNICA fuente de verdad.** La columna legacy `products.tags` fue
+eliminada (migración `2026_10_15_085059`). No hay write-through: guardar un producto
+**nunca** modifica sus tags.
+
+```php
+$product->syncTagsById([1, 5, 8]);          // por ID
+$product->syncTagsBySlug(['nuevo']);        // por slug (crea el tag si falta)
+$product->tags_array;                       // nombres (lazy-loads si hace falta)
+$product->tags_string;                      // "NUEVO|CANASTAS NAVIDEÑAS" (contrato API)
+```
+
+Reglas al tocar tags:
+
+- **Nunca** llamar `sync()` en un `saved`/`updating` hook. Esa fue la causa raíz de que
+  los tags desaparecieran solos.
+- En la API, `tags` se sincroniza **solo si el request trae el campo**
+  (`ProductRequest::hasTagsInput()`). Ausente ≠ vacío: ausente conserva, vacío borra.
+- Al borrar un tag desde `/tags`, las filas de `taggables` se purgan vía `Tag::booted()`
+  (no hay foreign keys que lo hagan solo).
+- `Tag::allCached()` cachea 1 hora. En el `<x-choices>` del admin, `products.crud`
+  fusiona los tags ya asignados al producto con el listado, para que un caché desactualizado
+  no los pierda al usar "Seleccionar todo".
+- Búsqueda por texto: `ProductSearchService::textSearchCondition()` agrega los nombres de
+  los tags vía subquery sobre `taggables`. **No interpolar el morph type a mano** — en
+  MySQL `\M` dentro de un literal es una secuencia de escape.
+
+Auditoría: `php artisan app:resync-product-tags` (solo lectura) o `--apply`.
+
+---
+
 ### Helpers
 
 **`app/Helpers/helpers.php`** (auto-loaded):
@@ -399,10 +431,11 @@ SettingsHelper::settings(string $key, mixed $default = null): mixed
 
 SettingsHelper::update_setting(string $key, mixed $value): void
 // UpdateOrCreate + flushes cache for that key.
-
-SettingsHelper::getProductTags(): array
-// Shortcut for settings('product_tags', []).
 ```
+
+> **Tags de productos:** ya NO son un setting. Viven únicamente en las tablas `tags` +
+> `taggables`. Se eliminó la columna legacy `products.tags` y el setting `product_tags`.
+> Ver la sección *Tags de Productos* más abajo.
 
 **Known settings keys:**
 Defined in `config/default_settings.php` and provisioned via `php artisan app:sync-settings`:
@@ -417,7 +450,6 @@ Defined in `config/default_settings.php` and provisioned via `php artisan app:sy
 | `catalog_items_per_page` | number | 30 | Items per page / initial scroll chunk |
 | `number_format_separator` | string | , | Decimal separator for formatting |
 | `csv_separator` | string | , | Column separator for CSV files |
-| `product_tags` | json | [...] | Available product tags |
 | `image_proxy_allowed_hosts` | json | [] | SSRF whitelist for image proxy |
 | `company_name` | string | 'Distribuidora Agostini' | Company title |
 | `company_phone` | string | '+54 9 342 463-8925' | Main company phone |
@@ -701,5 +733,16 @@ Existing tests (do **not** delete without approval):
 3. **Navbar `encendido` sin link "Nosotros"**: el base y `encendidorqta` sí lo tienen (`/about`); sincronizar si se usa ese tema.
 4. **`WebProductsMainTest` falla preexistente** (no relacionado con cambios recientes): `no such table: settings` — el test no usa `RefreshDatabase` y consulta `catalog_display_mode` vía `SettingsHelper`.
 5. **Commits sin push**: `72f90ef`, `2de18c3`, `0c23353`, `b2772f5` en `dev` (usuario hace el push).
+6. **Deploy de la migración de tags.** Correr en producción **antes** de desplegar el código:
+   `php artisan app:resync-product-tags` (solo lectura). Debe imprimir
+   *"Ningún producto tiene tags en la columna legacy que falten en el pivote"*.
+   Si aparece algún producto *at risk*, usar `--apply`. Después, `php artisan migrate`
+   (aplica `dedupe_and_unique_taggables`, `drop_products_tags_column` y
+   `remove_legacy_product_tags_setting`).
+7. **18 tests preexistentes rotos**, todos por `no such table` porque no usan
+   `RefreshDatabase` (`ExampleTest`, `CustomerSellersApiTest`, `CartPersistenceTest`,
+   `CheckoutTest`, `AuthSecurityTest`, `WebProductsMainTest`, `DataExportTest`,
+   `ListPriceNormalizationTest`, `LegacyIngestionTest`, `PriceListServiceTest`).
+   No relacionados con tags.
 
 

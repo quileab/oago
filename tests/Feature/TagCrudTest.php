@@ -68,11 +68,13 @@ it('tags crud page validates required name', function () {
         ->assertHasErrors(['formData.name' => 'required']);
 });
 
-it('tags index page can delete a tag', function () {
+it('tags crud page can delete a tag', function () {
     $tag = Tag::fromName('BORRAR');
+    attachTags(makeProduct(), ['BORRAR']);
 
-    $test = Volt::test('tags.index');
-    $test->call('delete', $tag);
+    $test = Volt::test('tags.crud', ['tag' => $tag->id]);
+    $test->call('delete');
 
     $this->assertDatabaseMissing('tags', ['slug' => 'borrar']);
+    $this->assertDatabaseMissing('taggables', ['tag_id' => $tag->id]);
 });

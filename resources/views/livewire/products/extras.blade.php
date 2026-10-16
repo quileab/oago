@@ -60,7 +60,7 @@ new class extends Component {
             ['key' => 'published', 'label' => 'Publicado'],
             ['key' => 'visibility', 'label' => 'Visibilidad'],
             ['key' => 'featured', 'label' => 'Destacado'],
-            ['key' => 'tags', 'label' => 'Etiquetas'],
+            ['key' => 'tags', 'label' => 'Etiquetas', 'sortable' => false],
         ];
     }
 
@@ -181,10 +181,6 @@ new class extends Component {
                     }
 
                     $product->tags()->sync($currentTagIds);
-
-                    // Update legacy string column
-                    $tagNames = Tag::whereIn('id', $currentTagIds)->pluck('name')->all();
-                    $product->tags = implode('|', $tagNames);
                 }
 
                 $product->description_html = $htmldescription;

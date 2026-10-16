@@ -15,6 +15,7 @@ use App\Models\ShippingDetail;
 use App\Models\Tag;
 use App\Models\User;
 use App\Services\PriceListService;
+use App\Services\ProductSearchService;
 use App\Services\SliderService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -42,7 +43,7 @@ class CustomerApiController extends Controller
             $terms = array_filter(explode(' ', $request->input('search')));
             $query->where(function ($q) use ($terms) {
                 foreach ($terms as $term) {
-                    $q->where(DB::raw('concat(description, " ", ifnull(model, ""), " ", ifnull(brand, ""), " ", ifnull(product_type, ""), " ", ifnull(category, ""), " ", ifnull(tags, ""))'), 'like', "%$term%");
+                    $q->whereRaw(...ProductSearchService::textSearchCondition($term));
                 }
             });
         }

@@ -4,6 +4,7 @@ use App\Models\ListName;
 use App\Models\ListPrice;
 use App\Models\Product;
 use App\Models\Tag;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -61,7 +62,6 @@ new class extends Component
                 'published' => true,
                 'featured' => false,
                 'visibility' => 'visible',
-                'tags' => '',
                 'in_stock' => true,
                 'allow_reservation' => false,
                 'by_bulk' => false,
@@ -125,10 +125,18 @@ new class extends Component
 
     public function availableTags()
     {
-        return Tag::allCached()
+        $options = Tag::allCached()
             ->map(fn ($tag) => ['id' => $tag->id, 'name' => $tag->name])
-            ->values()
-            ->all();
+            ->keyBy('id');
+
+        // Guarantee that the product's current tags are always offered as options.
+        // If they are missing (stale cache), the x-choices widget would drop them
+        // on "select all" and the save would wipe the pivot.
+        foreach ($this->selectedTags as $tagId) {
+            $options->put($tagId, ['id' => $tagId, 'name' => Tag::find($tagId)?->name ?? "Tag #{$tagId}"]);
+        }
+
+        return $options->values()->all();
     }
 
     public function updatedPhoto()
@@ -191,21 +199,17 @@ new class extends Component
 
         $this->validate($rules);
 
-        // Build legacy pipe-delimited string from selected tag IDs (write-through compatibility)
-        $tagNames = Tag::whereIn('id', $this->selectedTags)->pluck('name')->all();
-        $this->formData['tags'] = implode('|', $tagNames);
-
         // Ensure price is set
         $this->formData['price'] = $this->formData['price'] ?? 0;
 
+        $attributes = Arr::except($this->formData, ['tags', 'id']);
+
         $product = Product::updateOrCreate(
             ['id' => $this->product->id ?? null],
-            $this->formData
+            $attributes
         );
 
-        // Explicitly sync pivot (the model's saved event also does this via write-through)
-        $product->tags()->sync($this->selectedTags);
-        Tag::clearCache();
+        $product->syncTagsById($this->selectedTags);
 
         $this->product = $product;
 
