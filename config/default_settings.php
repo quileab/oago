@@ -87,7 +87,7 @@ return [
         'value' => 3,
         'type' => 'number',
         'text' => 'Días Máximos de Antigüedad del Pedido (Mail)',
-        'description' => 'Si un mail de confirmación se procesa cuando el pedido ya supera esta antigüedad, se omite el envío (protege contra drenados atrasados de la cola de trabajos). 0 desactiva el guard.',
+        'description' => 'No se envía la confirmación de pedidos más viejos que este límite (días). 0 desactiva.',
     ],
 
     'trusted_rate_limit_ips' => [
