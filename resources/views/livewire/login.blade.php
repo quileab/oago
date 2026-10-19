@@ -24,6 +24,12 @@ new #[Layout('components.layouts.empty')]
 
     public function login()
     {
+        $rateLimiter = app(\App\Services\RateLimitService::class);
+        if (! $rateLimiter->attemptThrough('web-login', request(), 5)) {
+            $this->addError('email', 'Demasiados intentos. Probá de nuevo en un minuto.');
+            return;
+        }
+
         $credentials = $this->validate(
             [
                 'email' => ['required', 'email'],
@@ -33,7 +39,7 @@ new #[Layout('components.layouts.empty')]
 
         // Try normal user login
         if (Auth::attempt($credentials)) {
-            $user = Auth::user();
+            $user = real_user();
             if ($user->role->value == 'none') {
                 Auth::logout();
                 $this->addError('email', 'La cuenta está en revisión');
@@ -45,14 +51,17 @@ new #[Layout('components.layouts.empty')]
 
             if (file_exists($cartFile = storage_path("app/private/" . current_user_cart_id() . "_cart.json"))) {
                 $cart = json_decode(file_get_contents($cartFile), true);
+                $productIds = array_column($cart, 'product_id');
+                $prices = \App\Models\ListPrice::whereIn('product_id', $productIds)
+                    ->where('list_id', $user->list_id)
+                    ->pluck('price', 'product_id');
                 foreach ($cart as $item) {
-                    $prod = \App\Models\ListPrice::where('product_id', $item['product_id'])
-                        ->where('list_id', $user->list_id)
-                        ->first();
-                    $cart[$item['product_id']]['price'] = $prod->price ?? $item['price'];
+                    $cart[$item['product_id']]['price'] = $prices[$item['product_id']] ?? $item['price'];
                 }
                 session()->put('cart', $cart);
             }
+
+            $rateLimiter->clearFor('web-login', request());
 
             return redirect()->intended('/');
         }
@@ -73,14 +82,17 @@ new #[Layout('components.layouts.empty')]
 
             if (file_exists($cartFile = storage_path("app/private/" . current_user_cart_id() . "_cart.json"))) {
                 $cart = json_decode(file_get_contents($cartFile), true);
+                $productIds = array_column($cart, 'product_id');
+                $prices = \App\Models\ListPrice::whereIn('product_id', $productIds)
+                    ->where('list_id', $guest->list_id)
+                    ->pluck('price', 'product_id');
                 foreach ($cart as $item) {
-                    $prod = \App\Models\ListPrice::where('product_id', $item['product_id'])
-                        ->where('list_id', $guest->list_id)
-                        ->first();
-                    $cart[$item['product_id']]['price'] = $prod->price ?? $item['price'];
+                    $cart[$item['product_id']]['price'] = $prices[$item['product_id']] ?? $item['price'];
                 }
                 session()->put('cart', $cart);
             }
+
+            $rateLimiter->clearFor('web-login', request());
 
             return redirect()->intended('/');
         }

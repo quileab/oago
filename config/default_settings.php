@@ -83,6 +83,13 @@ return [
         'description' => 'Lista blanca de hosts permitidos para el proxy de imágenes.',
     ],
 
+    'trusted_rate_limit_ips' => [
+        'value' => json_encode([]),
+        'type' => 'json',
+        'text' => 'IPs de Confianza (Rate Limit)',
+        'description' => 'IPs o rangos CIDR de servidores de confianza. Reciben un límite muy alto (no bypass total) en login/registro, y solo de ellos se respeta el encabezado X-Forwarded-For.',
+    ],
+
     'copyright' => [
         'value' => '© InnoDesign - 2025',
         'type' => 'string',

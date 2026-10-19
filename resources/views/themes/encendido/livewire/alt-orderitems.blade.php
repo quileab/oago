@@ -14,7 +14,7 @@ new class extends Component {
     public function mount($orderId)
     {
         $this->order = AltOrder::with(['items.product', 'shipping'])->findOrFail($orderId);
-        abort_if($this->order->alt_user_id !== Auth::guard('alt')->id() && Auth::id() !== $this->order->alt_user_id && Auth::user()->role->value !== 'admin', 403, 'Unauthorized');
+        abort_if($this->order->alt_user_id !== Auth::guard('alt')->id() && $this->order->alt_user_id !== current_user()?->id && real_user()?->role?->value !== 'admin', 403, 'Unauthorized');
         $this->items = $this->order->items->toArray();
     }
 
@@ -159,7 +159,7 @@ new class extends Component {
             <div class="flex flex-col gap-2">
                 <x-badge :value="\App\Models\Order::orderStates($order->status)" class="w-full py-3 text-sm font-bold" />
                 
-                @if($order->status != 'completed' && Auth::user()->role->value == 'admin')
+                @if($order->status != 'completed' && real_user()?->role?->value == 'admin')
                     <x-dropdown label="Cambiar Estado" icon="o-arrow-path-rounded-square" class="btn-primary btn-sm w-full">
                         @foreach(['pending', 'on-hold', 'cancelled', 'completed'] as $statusOption)
                             @if($statusOption != $order->status)

@@ -10,16 +10,16 @@ The Laravel Boost guidelines are specifically curated by Laravel maintainers for
 This application is a Laravel application and its main Laravel ecosystems package & versions are below. You are an expert with them all. Ensure you abide by these specific packages & versions.
 
 - php - 8.4.20
-- laravel/framework (LARAVEL) - v12
+- laravel/framework (LARAVEL) - v13
 - laravel/prompts (PROMPTS) - v0
 - laravel/sanctum (SANCTUM) - v4
-- livewire/livewire (LIVEWIRE) - v3
+- livewire/livewire (LIVEWIRE) - v4
 - livewire/volt (VOLT) - v1
 - laravel/mcp (MCP) - v0
 - laravel/pint (PINT) - v1
 - laravel/sail (SAIL) - v1
-- pestphp/pest (PEST) - v3
-- phpunit/phpunit (PHPUNIT) - v11
+- pestphp/pest (PEST) - v4
+- phpunit/phpunit (PHPUNIT) - v12
 - tailwindcss (TAILWINDCSS) - v4
 
 ## Skills Activation
@@ -419,6 +419,10 @@ Auditoría: `php artisan app:resync-product-tags` (solo lectura) o `--apply`.
 // Always use instead of Auth::user(). Handles guards + sales impersonation.
 function current_user(): User|AltUser|null
 
+// The actually authenticated user (all guards) BEFORE sales impersonation.
+// Use for role checks (e.g. admin) so an impersonated sales agent does not inherit the customer view.
+function real_user(): User|AltUser|null
+
 // Returns "web_{userId}" or "alt_{userId}" — cart JSON file key.
 function current_user_cart_id(): string|null
 ```
@@ -450,6 +454,7 @@ Defined in `config/default_settings.php` and provisioned via `php artisan app:sy
 | `catalog_items_per_page` | number | 30 | Items per page / initial scroll chunk |
 | `number_format_separator` | string | , | Decimal separator for formatting |
 | `csv_separator` | string | , | Column separator for CSV files |
+| `trusted_rate_limit_ips` | json | [] | Trusted IPs/CIDRs for auth rate limiting (high limit, not full bypass); X-Forwarded-For only honored for them |
 | `image_proxy_allowed_hosts` | json | [] | SSRF whitelist for image proxy |
 | `company_name` | string | 'Distribuidora Agostini' | Company title |
 | `company_phone` | string | '+54 9 342 463-8925' | Main company phone |
@@ -512,6 +517,12 @@ Registered in `bootstrap/app.php`:
 | `check_guest` | `CheckGuestExpiration` | Logs out expired guest AltUser accounts |
 | `ApiLoggerMiddleware` | (prepended to api) | Logs all API requests; masks secrets on 4xx/5xx |
 | `StartSession` | (prepended to api) | Session available in API routes (needed for impersonation) |
+
+**Rate limiting** (`RateLimiter::for('auth')` defined in `AppServiceProvider`):
+- Applied as `throttle:auth` on `POST /api/register` and `POST /api/login`.
+- Web login (`/login`) and web registration (`/registrate`) throttle inside their Volt actions via `RateLimitService::attemptThrough()` (5 attempts/min per IP; counter cleared on success).
+- **Trusted IPs** come from the `trusted_rate_limit_ips` setting (IP or CIDR): they get a very high but existing limit (600/min) — NOT a full bypass. `X-Forwarded-For` is honored only when the connection peer IP is trusted (anti-spoofing). Service: `app/Services/RateLimitService.php`.
+- Role checks must use `real_user()` (pre-impersonation), never `Auth::user()`; ownership checks use `current_user()`.
 
 ---
 
@@ -652,13 +663,15 @@ new #[Layout('components.layouts.clean')] #[Title('Mi Página')] class extends C
 | `ProductSearchService` | `hydratePrices()` (N+1 prevention for catalog) |
 | `SliderService` | `getSlides()` (unifica `slider_public` + fallback `storage/slider`) |
 | `ThemePageService` | `getAvailablePages()` (navbar links), `resolvePageView(string $slug)` (route resolution) |
+| `RateLimitService` | `attemptThrough()`, `clientIp()`, `isTrustedIp()` — auth rate limiting with trusted-IP CIDR list (setting `trusted_rate_limit_ips`) |
+| `SecurityService` | static `isPrivateIp()`, `isAllowedHost()` — SSRF checks used by `ImageProxyController` |
 
 ---
 
 ### Mail & Jobs
 
 - `OrderMail` — order confirmation; queued; user + admin CC.
-- `AltUserWelcomeMail` — welcome + activation link for new AltUser.
+- `AltUserWelcomeMail` — welcome + activation link for new AltUser; **queued** (`ShouldQueue` + `Mail::queue()`). Deployment must run a queue worker (`QUEUE_CONNECTION=database`) or these mails stay in the `jobs` table.
 
 ---
 
@@ -668,9 +681,13 @@ new #[Layout('components.layouts.clean')] #[Title('Mi Página')] class extends C
 |---------|---------|
 | `CreateAdminUser` | Creates admin user interactively |
 | `DataImport` | Legacy v1 migration |
+| `DataExport` | Exports database schema + data for deployment/debugging |
 | `MakeDeployZip` | Builds optimized deployment ZIP |
 | `NormalizePriceListsCommand` | Normalizes price list data |
 | `ResetCustomerPasswords` | Bulk password reset |
+| `SyncSettingsCommand` | `app:sync-settings` — provisions missing settings from `config/default_settings.php` (also `--overwrite`) |
+| `ThemeExport` | Exports the active theme as a ZIP |
+| `ResyncProductTagsCommand` | `app:resync-product-tags` — audits/syncs legacy `products.tags` column into the `taggables` pivot (pre-deploy check) |
 
 ---
 
@@ -678,8 +695,8 @@ new #[Layout('components.layouts.clean')] #[Title('Mi Página')] class extends C
 
 | Package | Purpose |
 |---------|---------|
-| `robsontenorio/mary` ^2.0 | MaryUI components — use for all UI elements |
-| `dedoc/scramble` ^0.12 | Auto OpenAPI docs → `/api/documentation` |
+| `robsontenorio/mary` ^2.8 | MaryUI components — use for all UI elements |
+| `dedoc/scramble` ^0.13 | Auto OpenAPI docs → `/api/documentation` |
 | `laravel/pail` ^1.2 | Log tailing in dev |
 | `daisyui` ^5.0 | Tailwind component themes |
 | `apexcharts` ^5.3 | Dashboard charts |
@@ -690,7 +707,7 @@ new #[Layout('components.layouts.clean')] #[Title('Mi Página')] class extends C
 ### Test Coverage (`tests/Feature/`)
 
 Existing tests (do **not** delete without approval):
-`ApiOrderUpdateTest`, `AuthSecurityTest`, `CartDeepTest`, `CartPersistenceTest`, `CheckoutTest`, `ComponentTest`, `CustomerSalesAgentTest`, `ImageProxySecurityTest`, `OrderStatusValidationTest`, `OrderTotalConsistencyTest`, `OrderValidationTest`, `PermissionsTest`, `ProductSearchServiceTest`, `UserControllerEscalationTest`, `WebProductsMainTest` + `tests/Feature/Api/`
+`ApiOrderUpdateTest`, `AuthSecurityTest`, `CartDeepTest`, `CartPersistenceTest`, `CheckoutTest`, `ComponentTest`, `CustomerSalesAgentTest`, `ImageProxySecurityTest`, `OrderStatusValidationTest`, `OrderTotalConsistencyTest`, `OrderValidationTest`, `PermissionsTest`, `ProductSearchServiceTest`, `RateLimitingTest`, `UserControllerEscalationTest`, `WebProductsMainTest` + `tests/Feature/Api/`
 
 ---
 
@@ -724,25 +741,16 @@ Existing tests (do **not** delete without approval):
 
 ---
 
-## Pendientes (próxima sesión — 2026-09-29)
+## Pendientes (próxima sesión — 2026-10-19)
 
 > Borrar esta sección al cerrar cada tarea.
 
-1. **Probar importación de ZIP de tema >2 MB en Theme Manager.** El error "El importFile no se pudo subir" se causó por `upload_max_filesize=2M` en el PHP de Herd. Se editó `C:\Users\quile\.config\herd\bin\php84\php.ini` (64M/64M) y se reiniciaron los `php-cgi` 8.4 a mano (`-b 127.0.0.1:9084`). Verificar que Herd no revirtió los procesos/ini y que un ZIP de ~7 MB sube bien. Nota: `.user.ini` en `public/` NO funciona con Herd (nginx manda todo a `server.php` de Valet, no a `public/index.php`).
-2. **Arreglar ruta `GET /page/{slug}`** (routes/web.php:176): hace `return view($view)`, lo que renderiza los componentes Volt **sin su `#[Layout]`** → la página sale sin estilos/`<head>`. Afecta a `themes/encendidorqta/pages/nosotros.blade.php` cuando ese tema está activo. Solución probable: montar los `pages/` de tema en `VoltServiceProvider` y resolver vía componente Volt (o envolver con el layout manualmente).
-3. **Navbar `encendido` sin link "Nosotros"**: el base y `encendidorqta` sí lo tienen (`/about`); sincronizar si se usa ese tema.
-4. **`WebProductsMainTest` falla preexistente** (no relacionado con cambios recientes): `no such table: settings` — el test no usa `RefreshDatabase` y consulta `catalog_display_mode` vía `SettingsHelper`.
-5. **Commits sin push**: `72f90ef`, `2de18c3`, `0c23353`, `b2772f5` en `dev` (usuario hace el push).
-6. **Deploy de la migración de tags.** Correr en producción **antes** de desplegar el código:
-   `php artisan app:resync-product-tags` (solo lectura). Debe imprimir
-   *"Ningún producto tiene tags en la columna legacy que falten en el pivote"*.
-   Si aparece algún producto *at risk*, usar `--apply`. Después, `php artisan migrate`
-   (aplica `dedupe_and_unique_taggables`, `drop_products_tags_column` y
-   `remove_legacy_product_tags_setting`).
-7. **18 tests preexistentes rotos**, todos por `no such table` porque no usan
-   `RefreshDatabase` (`ExampleTest`, `CustomerSellersApiTest`, `CartPersistenceTest`,
-   `CheckoutTest`, `AuthSecurityTest`, `WebProductsMainTest`, `DataExportTest`,
-   `ListPriceNormalizationTest`, `LegacyIngestionTest`, `PriceListServiceTest`).
-   No relacionados con tags.
+1. **Probar importación de ZIP de tema >2 MB en Theme Manager.** El error "El importFile no se pudo subir" se causó por `upload_max_filesize=2M` en el PHP de Herd. Se editó `C:\Users\quile\.config\herd\bin\php84\php.ini` (64M/64M). Verificar que Herd no revirtió los procesos/ini y que un ZIP de ~7 MB sube bien. Nota: `.user.ini` en `public/` NO funciona con Herd (nginx manda todo a `server.php` de Valet, no a `public/index.php`).
+2. **Arreglar ruta `GET /page/{slug}`** (final de routes/web.php): hace `return view($view)`, lo que renderiza los componentes Volt **sin su `#[Layout]`** → la página sale sin estilos/`<head>`. Afecta a `themes/encendidorqta/pages/nosotros.blade.php` cuando ese tema está activo. Solución probable: montar los `pages/` de tema en `VoltServiceProvider` y resolver vía componente Volt.
+3. **Commits sin push** (usuario hace el push) — verificar estado actual de `dev`.
+4. **Deploy de la migración de tags**: correr `php artisan app:resync-product-tags` (solo lectura) en producción antes de desplegar; luego `php artisan migrate`.
+5. **Deploy necesita queue worker**: `AltUserWelcomeMail` ahora es queued (`ShouldQueue` + `Mail::queue()`). Sin worker corriendo (`QUEUE_CONNECTION=database`), los mails de bienvenida quedan en la tabla `jobs`. Combinar con la CC admin pendiente de configurar `order_placed_mail`.
+6. **18 tests preexistentes rotos** por `no such table` (sin `RefreshDatabase`: `ExampleTest`, `CustomerSellersApiTest`, `CartPersistenceTest`, `CheckoutTest`, `AuthSecurityTest`, `WebProductsMainTest`, `DataExportTest`, `ListPriceNormalizationTest`, `LegacyIngestionTest`, `PriceListServiceTest`, `MakeDeployZipEngineTest`). Arreglar en un PR propio y obtener la suite verde.
+7. **Mejoras de performance diferidas** (P2 del análisis): deduplicar la doble carga de Productos/precios en `Cart.php` (`calculateTotal()` + `render()`), y unificar el cálculo de bonus (duplicado en Cart×2 + OrderService) para evitar desync de precios.
 
 

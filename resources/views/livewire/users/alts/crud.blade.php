@@ -155,7 +155,7 @@ new class extends Component {
         // set password (will be hashed automatically by the model cast)
         $user->password = $password;
         $user->save();
-        Mail::to($user->email)->send(new AltUserWelcomeMail($user, $password));
+        Mail::to($user->email)->queue(new AltUserWelcomeMail($user, $password));
         $this->success('Correo de bienvenida enviado.', position: 'toast-bottom');
     }
 }; ?>

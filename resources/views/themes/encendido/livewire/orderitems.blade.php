@@ -13,7 +13,9 @@ new class extends Component {
     public function mount($orderId)
     {
         $this->order = \App\Models\Order::with('items.product')->findOrFail($orderId);
-        abort_if($this->order->user_id !== \Illuminate\Support\Facades\Auth::id() && \Illuminate\Support\Facades\Auth::user()->role->value !== 'admin', 403, 'Unauthorized');
+        $real = real_user();
+        $acting = current_user();
+        abort_if($this->order->user_id !== $acting?->id && $this->order->user_id !== $real?->id && $real?->role?->value !== 'admin', 403, 'Unauthorized');
         $this->items = $this->order->items->toArray();
     }
 
@@ -111,7 +113,7 @@ new class extends Component {
             <h3 class="text-2xl"><small class="text-primary">Estado:</small>
                 {{ \App\Models\Order::orderStates($order->status) }}</h3>
             {{-- Si el estado no es completado poder cambiar el estado --}}
-            @if($order->status != 'completed' && Auth::user()->role->value == 'admin')
+            @if($order->status != 'completed' && real_user()?->role?->value == 'admin')
                 <x-dropdown label="Cambiar Estado" icon="o-arrow-path-rounded-square" class="btn-primary w-full mt-2">
                     @foreach(['pending', 'on-hold', 'cancelled'] as $statusOption)
                         @if($statusOption != $order->status)

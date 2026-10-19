@@ -79,6 +79,13 @@ new #[Layout('components.layouts.clean')] #[Title('Registrarse - Encendido Recon
 
     public function submit()
     {
+        $rateLimiter = app(\App\Services\RateLimitService::class);
+        if (! $rateLimiter->attemptThrough('web-register', request(), 5)) {
+            $this->addError('email', 'Demasiados intentos. Probá de nuevo en un minuto.');
+            $this->generateCaptcha();
+            return;
+        }
+
         $this->validate([
             'name' => 'required|string|max:255',
             'lastname' => 'required|string|max:255',
@@ -121,11 +128,12 @@ new #[Layout('components.layouts.clean')] #[Title('Registrarse - Encendido Recon
 
         if ($user) {
             try {
-                Mail::to($user->email)->send(new AltUserWelcomeMail($user, $tempPassword, $activationToken));
+                Mail::to($user->email)->queue(new AltUserWelcomeMail($user, $tempPassword, $activationToken));
             } catch (\Exception $e) {
                 logger()->error("Error Mail: " . $e->getMessage());
             }
             $this->submitted = true;
+            $rateLimiter->clearFor('web-register', request());
             $this->success('¡Registro exitoso!', position: 'toast-bottom toast-end');
         }
     }
