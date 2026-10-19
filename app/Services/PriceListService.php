@@ -68,6 +68,23 @@ class PriceListService
     }
 
     /**
+     * Cantidad a facturar tras aplicar la oferta por cantidad (bonus).
+     * p. ej. "4 + 1 off" con 5 pedidos => 4 facturables.
+     * Acepta null (producto borrado del catálogo) => se factura todo.
+     */
+    public function calculateBillableQuantity(?Product $product, int $orderedQuantity): int
+    {
+        if (! $product || ! $product->hasBonus()) {
+            return $orderedQuantity;
+        }
+
+        $bonusGroup = $product->bonus_threshold + $product->bonus_amount;
+        $freeUnits = intdiv($orderedQuantity, $bonusGroup) * $product->bonus_amount;
+
+        return $orderedQuantity - $freeUnits;
+    }
+
+    /**
      * Calcula el precio total de un ítem aplicando la lógica de cobro mixto (bulto + unidades sueltas).
      */
     public function calculateItemPrice(int $listId, Product $product, int $quantity): float

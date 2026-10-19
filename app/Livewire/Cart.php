@@ -7,6 +7,7 @@ use App\Models\AltUser;
 use App\Models\Order;
 use App\Models\Product;
 use App\Services\PriceListService;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Session;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -20,9 +21,15 @@ class Cart extends Component
 
     public $total = 0;
 
+    /**
+     * Cache de productos hidratados para el ciclo de vida del request.
+     * Evita relanzar la misma consulta de productos/precios en cada fase.
+     */
+    protected ?Collection $hydratedProducts = null;
+
     public function mount()
     {
-        $this->calculateTotal();
+        $this->refreshCartData();
     }
 
     #[On('addToCart')]
@@ -93,7 +100,7 @@ class Cart extends Component
         }
 
         Session::put('cart', $cart);
-        $this->calculateTotal();
+        $this->refreshCartData();
 
         // Notificar cambios para que la UI reaccione
         $this->dispatch('cart-updated');
@@ -102,83 +109,83 @@ class Cart extends Component
         $this->jsonCartUpdate();
     }
 
-    public function calculateTotal()
+    /**
+     * Obtiene los productos del carrito hidratados una sola vez por request.
+     * Si aparecen IDs nuevos (ej. tras addToCart), los completa sin rehacer todo.
+     */
+    protected function getHydratedProducts(array $productIds): Collection
+    {
+        $ids = array_map('intval', array_filter($productIds));
+
+        if ($this->hydratedProducts === null) {
+            $this->hydratedProducts = Product::whereIn('id', $ids)->get()->keyBy('id');
+
+            return $this->hydratedProducts;
+        }
+
+        $missing = collect($ids)->diff($this->hydratedProducts->keys());
+        if ($missing->isNotEmpty()) {
+            $extra = Product::whereIn('id', $missing->all())->get()->keyBy('id');
+            $this->hydratedProducts = $this->hydratedProducts->merge($extra);
+        }
+
+        return $this->hydratedProducts;
+    }
+
+    /**
+     * Calcula el total y los datos de vista del carrito en una sola pasada.
+     * calculateTotal() y render() comparten esto; ya no duplican queries ni precios.
+     *
+     * @return array{items: array, total: float}
+     */
+    protected function refreshCartData(): array
     {
         $cart = Session::get('cart', []);
-        $this->total = 0;
-
-        $productIds = array_column($cart, 'product_id');
-        $products = Product::whereIn('id', $productIds)->get()->keyBy('id');
+        $products = $this->getHydratedProducts(array_column(array_values($cart), 'product_id'));
         $user = current_user();
+        $priceListService = app(PriceListService::class);
 
-        foreach ($cart as $item) {
-            $product = $products->get($item['product_id']);
+        $enrichedCart = [];
+        $total = 0;
+
+        foreach ($cart as $productId => $item) {
+            $product = $products->get($productId);
             $orderedQuantity = (int) $item['quantity'];
-            $billableQuantity = $orderedQuantity;
-
-            if ($product && $product->hasBonus() && $product->bonus_threshold > 0) {
-                $bonusThreshold = $product->bonus_threshold + $product->bonus_amount;
-                $timesBonusApplies = floor($orderedQuantity / $bonusThreshold);
-                $freeUnits = $timesBonusApplies * $product->bonus_amount;
-                $billableQuantity = $orderedQuantity - $freeUnits;
-            }
+            $billableQuantity = $priceListService->calculateBillableQuantity($product, $orderedQuantity);
 
             if ($product && $user) {
-                $this->total += app(PriceListService::class)
+                $item['product_model'] = $product;
+                $item['current_price'] = $user->getProductPrice($product);
+                $item['is_price_changed'] = abs((float) $item['price'] - (float) $item['current_price']) > 0.01;
+                $item['total_price'] = $priceListService
                     ->calculateItemPrice($user->list_id ?? 1, $product, $billableQuantity);
+                $item['is_stock_insufficient'] = $product->stock < $item['quantity'];
+                $item['available_stock'] = $product->stock;
             } else {
-                $this->total += (float) $item['price'] * $billableQuantity;
+                $item['total_price'] = (float) $item['price'] * $billableQuantity;
             }
+
+            $total += $item['total_price'];
+            $enrichedCart[$productId] = $item;
         }
+
+        $this->total = $total;
+
+        return ['items' => $enrichedCart, 'total' => $total];
+    }
+
+    public function calculateTotal()
+    {
+        $this->refreshCartData();
     }
 
     public function render()
     {
-        $this->calculateTotal();
-
-        $cart = Session::get('cart', []);
-
-        $productIds = array_keys($cart);
-        $products = Product::whereIn('id', $productIds)->get()->keyBy('id');
-
-        $enrichedCart = [];
-        $user = current_user();
-
-        foreach ($cart as $productId => $item) {
-            if ($products->has($productId)) {
-                $product = $products->get($productId);
-                $item['product_model'] = $product;
-
-                if ($user) {
-                    $item['current_price'] = $user->getProductPrice($product);
-                    $item['is_price_changed'] = abs((float) $item['price'] - (float) $item['current_price']) > 0.01;
-
-                    // Calcular total mixto del item para la vista Blade
-                    $quantity = (int) $item['quantity'];
-                    $billableQuantity = $quantity;
-                    if ($product->hasBonus() && $product->bonus_threshold > 0) {
-                        $bonusThreshold = $product->bonus_threshold + $product->bonus_amount;
-                        $timesBonusApplies = floor($quantity / $bonusThreshold);
-                        $freeUnits = $timesBonusApplies * $product->bonus_amount;
-                        $billableQuantity = $quantity - $freeUnits;
-                    }
-                    $item['total_price'] = app(PriceListService::class)
-                        ->calculateItemPrice($user->list_id ?? 1, $product, $billableQuantity);
-                } else {
-                    $item['total_price'] = (float) $item['price'] * (int) $item['quantity'];
-                }
-
-                $item['is_stock_insufficient'] = $product->stock < $item['quantity'];
-                $item['available_stock'] = $product->stock;
-            } else {
-                $item['total_price'] = (float) $item['price'] * (int) $item['quantity'];
-            }
-            $enrichedCart[$productId] = $item;
-        }
+        $data = $this->refreshCartData();
 
         return view('livewire.cart', [
-            'cart' => $enrichedCart,
-            'total' => $this->total,
+            'cart' => $data['items'],
+            'total' => $data['total'],
         ]);
     }
 

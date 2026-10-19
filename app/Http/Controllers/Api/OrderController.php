@@ -108,14 +108,7 @@ class OrderController extends Controller
 
                     $product = $products->get($item['product_id']);
                     $orderedQuantity = (int) $item['quantity'];
-                    $billableQuantity = $orderedQuantity;
-
-                    if ($product && $product->hasBonus() && $product->bonus_threshold > 0) {
-                        $bonusThreshold = $product->bonus_threshold + $product->bonus_amount;
-                        $timesBonusApplies = floor($orderedQuantity / $bonusThreshold);
-                        $freeUnits = $timesBonusApplies * $product->bonus_amount;
-                        $billableQuantity = $orderedQuantity - $freeUnits;
-                    }
+                    $billableQuantity = app(PriceListService::class)->calculateBillableQuantity($product, $orderedQuantity);
 
                     $orderUser = $order->user;
                     if ($product && $orderUser) {

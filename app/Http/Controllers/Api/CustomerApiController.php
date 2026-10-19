@@ -174,14 +174,7 @@ class CustomerApiController extends Controller
 
                     $currentPrice = $user->getProductPrice($product);
                     $orderedQuantity = (int) $item['quantity'];
-                    $billableQuantity = $orderedQuantity;
-
-                    if ($product->hasBonus()) {
-                        $bonusThreshold = $product->bonus_threshold + $product->bonus_amount;
-                        $timesBonusApplies = floor($orderedQuantity / $bonusThreshold);
-                        $freeUnits = $timesBonusApplies * $product->bonus_amount;
-                        $billableQuantity = $orderedQuantity - $freeUnits;
-                    }
+                    $billableQuantity = app(PriceListService::class)->calculateBillableQuantity($product, $orderedQuantity);
 
                     $itemPrice = app(PriceListService::class)
                         ->calculateItemPrice($user->list_id ?? 1, $product, $billableQuantity);
