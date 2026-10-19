@@ -94,7 +94,7 @@ return [
         'value' => json_encode([]),
         'type' => 'json',
         'text' => 'IPs de Confianza (Rate Limit)',
-        'description' => 'IPs o rangos CIDR de servidores de confianza. Reciben un límite muy alto (no bypass total) en login/registro, y solo de ellos se respeta el encabezado X-Forwarded-For.',
+        'description' => 'IPs/CIDR confiables: límite alto en login/registro (no bypass). Solo de ellas se usa X-Forwarded-For.',
     ],
 
     'copyright' => [
