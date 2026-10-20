@@ -126,3 +126,24 @@ it('hydrates products only once per Livewire render request', function () {
 
     DB::disableQueryLog();
 });
+
+it('applies the same billable quantity in the checkout summary', function () {
+    $user = User::factory()->create(['role' => Role::CUSTOMER]);
+    $product = makeBonusProduct();
+    $this->actingAs($user);
+
+    Session::put('cart', [
+        $product->id => [
+            'product_id' => $product->id,
+            'name' => $product->description,
+            'price' => 100.0,
+            'bulkQuantity' => 1,
+            'quantity' => 5,
+        ],
+    ]);
+
+    Volt::test('checkout')
+        ->assertSet('total', 400.0)
+        ->assertSet('cart_content.'.$product->id.'.billable_quantity', 4)
+        ->assertSet('cart_content.'.$product->id.'.is_bonus_applied', true);
+});

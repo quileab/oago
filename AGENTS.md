@@ -741,16 +741,29 @@ Existing tests (do **not** delete without approval):
 
 ---
 
-## Pendientes (próxima sesión — 2026-10-19)
+## Deuda técnica (actualizado 2026-10-20)
 
-> Borrar esta sección al cerrar cada tarea.
+> Borrar de acá lo que se vaya cerrando.
 
-1. **Probar importación de ZIP de tema >2 MB en Theme Manager.** El error "El importFile no se pudo subir" se causó por `upload_max_filesize=2M` en el PHP de Herd. Se editó `C:\Users\quile\.config\herd\bin\php84\php.ini` (64M/64M). Verificar que Herd no revirtió los procesos/ini y que un ZIP de ~7 MB sube bien. Nota: `.user.ini` en `public/` NO funciona con Herd (nginx manda todo a `server.php` de Valet, no a `public/index.php`).
-2. **Arreglar ruta `GET /page/{slug}`** (final de routes/web.php): hace `return view($view)`, lo que renderiza los componentes Volt **sin su `#[Layout]`** → la página sale sin estilos/`<head>`. Afecta a `themes/encendidorqta/pages/nosotros.blade.php` cuando ese tema está activo. Solución probable: montar los `pages/` de tema en `VoltServiceProvider` y resolver vía componente Volt.
-3. **Commits sin push** (usuario hace el push) — verificar estado actual de `dev`.
-4. **Deploy de la migración de tags**: correr `php artisan app:resync-product-tags` (solo lectura) en producción antes de desplegar; luego `php artisan migrate`.
-5. **Deploy necesita queue worker**: `AltUserWelcomeMail` ahora es queued (`ShouldQueue` + `Mail::queue()`). Sin worker corriendo (`QUEUE_CONNECTION=database`), los mails de bienvenida quedan en la tabla `jobs`. Combinar con la CC admin pendiente de configurar `order_placed_mail`.
-6. **18 tests preexistentes rotos** por `no such table` (sin `RefreshDatabase`: `ExampleTest`, `CustomerSellersApiTest`, `CartPersistenceTest`, `CheckoutTest`, `AuthSecurityTest`, `WebProductsMainTest`, `DataExportTest`, `ListPriceNormalizationTest`, `LegacyIngestionTest`, `PriceListServiceTest`, `MakeDeployZipEngineTest`). Arreglar en un PR propio y obtener la suite verde.
-7. **Mejoras de performance diferidas** (P2 del análisis): deduplicar la doble carga de Productos/precios en `Cart.php` (`calculateTotal()` + `render()`), y unificar el cálculo de bonus (duplicado en Cart×2 + OrderService) para evitar desync de precios.
+### Cerrado recientemente (no reabrir)
+- Rate limiting con excepción de IPs de confianza (web + API) — deployado y verificado.
+- Guard anti-backlog de mails (`order_mail_stale_days`) + worker supervisor con `stopwaitsecs`/`--timeout`.
+- Vendor alineado a Laravel 13 / Livewire 4 / Pest 4 en producción.
+- Migraciones de tags aplicadas en prod (relacional-puro, índice único, columna legacy eliminada).
+- P2: hidratación única en `Cart` + bonus centralizado en `PriceListService::calculateBillableQuantity()` (incluye `checkout`).
+- `AuthController` sincronizado (401 genérico, sin enumeración de emails).
+- Assets de Livewire republicados (`livewire:publish --assets`) — causa del "carrito no recibe productos".
+- Payload guards de Livewire elevados (`max_components=1000`, `max_size=4MB`) para el catálogo por tarjeta.
+
+### Abierto
+1. **Probar importación de ZIP de tema >2 MB en Theme Manager.** El error "El importFile no se pudo subir" se causó por `upload_max_filesize=2M` en el PHP de Herd. Se editó `C:\Users\quile\.config\herd\bin\php84\php.ini` (64M/64M). Verificar que Herd no revirtió los procesos/ini y que un ZIP de ~7 MB sube bien. Nota: `.user.ini` en `public/` NO funciona con Herd.
+2. **`GET /page/{slug}` no respeta el `#[Layout]` Volt.** `routes/web.php` hace `return view($view)` y la página sale sin estilos/`<head>`. Solución: montar los `pages/` del tema vía componente Volt (`VoltServiceProvider`).
+3. **~18 tests preexistentes rotos** por falta de `RefreshDatabase` (`CheckoutTest`, `AuthSecurityTest`, `CartPersistenceTest`, `WebProductsMainTest`, `DataExportTest`, `ListPriceNormalizationTest`, `LegacyIngestionTest`, `PriceListServiceTest`, `MakeDeployZipEngineTest`, etc.). PR propio para dejar la suite verde.
+4. **Deuda estructural del catálogo (Opción B):** una tarjeta = un componente Livewire. Los payload guards altos son un parche; la cura es una sola grilla Livewire con tarjetas Blade.
+5. **Trampa de estados en `OrderService`:** `if (status !== 'pending') → 'on-hold'` convierte silenciosamente cualquier estado en "En espera". El botón "Guardar para después" del carrito crea órdenes `on-hold` reales que el cliente puede confundir con un pedido confirmado. Definir UX/semántica antes de tocar.
+6. **Editar un pedido pisa el estado:** `updateOrCreate` del checkout reescribe `status` a `pending`, borrando un `processing`/`completed` que haya puesto el admin.
+7. **Índice compuesto `(featured, updated_at)`** para el orden por defecto del catálogo (no crítico con 3.286 productos).
+8. **`APP_URL=localhost` en el `.env` de prod** — afecta URLs absolutas, mails y links de activación de AltUser.
+9. **Deploys manuales por scp** no ejecutan `livewire:publish --assets`; `MakeDeployZip` sí lo hace. Usar siempre el ZIP o agregar el paso al checklist manual.
 
 

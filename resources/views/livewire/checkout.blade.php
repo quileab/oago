@@ -67,18 +67,12 @@ new class extends Component {
 
         $productIds = array_column($this->cart_content, 'product_id');
         $products = \App\Models\Product::whereIn('id', $productIds)->get()->keyBy('id');
+        $priceListService = app(\App\Services\PriceListService::class);
 
         foreach ($this->cart_content as $productId => $item) {
             $product = $products->get($item['product_id']);
             $orderedQuantity = (int) $item['quantity'];
-            $billableQuantity = $orderedQuantity;
-
-            if ($product && $product->hasBonus() && $product->bonus_threshold > 0) {
-                $bonusThreshold = $product->bonus_threshold + $product->bonus_amount;
-                $timesBonusApplies = floor($orderedQuantity / $bonusThreshold);
-                $freeUnits = $timesBonusApplies * $product->bonus_amount;
-                $billableQuantity = $orderedQuantity - $freeUnits;
-            }
+            $billableQuantity = $priceListService->calculateBillableQuantity($product, $orderedQuantity);
 
             $itemSubtotal = (float) $item['price'] * $billableQuantity;
             
