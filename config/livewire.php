@@ -274,9 +274,9 @@ return [
     */
 
     'payload' => [
-        'max_size' => 1024 * 1024,   // 1MB - maximum request payload size in bytes
+        'max_size' => 4 * 1024 * 1024, // 4MB - catálogo con cientos de tarjetas Livewire
         'max_nesting_depth' => 10,   // Maximum depth of dot-notation property paths
         'max_calls' => 50,           // Maximum method calls per request
-        'max_components' => 200,     // Maximum components per batch request
+        'max_components' => 1000,    // catálogo: 30 iniciales + 15 por scroll (infinite scroll)
     ],
 ];
