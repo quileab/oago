@@ -23,6 +23,11 @@
         <p class="mt-2">⚠️ El precio puede sufrir actualizaciones al retomar el pedido.</p>
         <p>ℹ️ Pasado el lapso de espera, el pedido se cancelará.</p>
         @break
+        @case('saved')
+        <h1 class="text-2xl font-bold">Su pedido quedó GUARDADO</h1>
+        El número de su pedido es: <strong>#{{ ($isAlt ?? false) ? 'ALT-' : '' }}{{ $orderId ?? 'N/A' }}</strong>
+        <p class="mt-2">ℹ️ Podés retomarlo cuando quieras desde Mis pedidos. Al confirmarlo, los precios se actualizan.</p>
+        @break
       
         @default
           <h1 class="text-2xl font-bold">⚠️ VERIFIQUE EL ESTADO DE SU PEDIDO!!</h1>

@@ -49,7 +49,6 @@ new class extends Component {
         'payment_method' => null,
         'payment_detail' => null,
         'information' => null,
-        'status' => 'pending',
     ];
 
     public $cart_content = null;

@@ -66,8 +66,8 @@ class AltOrder extends Model
         return OrderStatus::from($state)->label();
     }
 
-    public static function placeOrder(array $shipping = [])
+    public static function placeOrder(array $shipping = [], bool $redirect = true)
     {
-        return app(OrderService::class)->placeOrder($shipping);
+        return app(OrderService::class)->placeOrder($shipping, $redirect);
     }
 }

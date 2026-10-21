@@ -113,10 +113,10 @@ new class extends Component {
             <h3 class="text-2xl"><small class="text-primary">Estado:</small>
                 {{ \App\Models\Order::orderStates($order->status) }}</h3>
             {{-- Si el estado no es completado poder cambiar el estado --}}
-            @if($order->status != 'completed' && real_user()?->role?->value == 'admin')
+            @if($order->status->value !== 'completed' && real_user()?->role?->value == 'admin')
                 <x-dropdown label="Cambiar Estado" icon="o-arrow-path-rounded-square" class="btn-primary w-full mt-2">
                     @foreach(['pending', 'on-hold', 'cancelled'] as $statusOption)
-                        @if($statusOption != $order->status)
+                        @if($statusOption !== $order->status->value)
                             <x-menu-item title="{{ \App\Models\Order::orderStates($statusOption) }}"
                                 wire:click="changeStatus('{{ $statusOption }}')"
                                 wire:confirm="¿Está seguro de cambiar el estado a {{ \App\Models\Order::orderStates($statusOption) }}?"
@@ -127,7 +127,7 @@ new class extends Component {
             @endif
         </div>
         <div>
-            @if($order->status == 'on-hold')
+            @if(in_array($order->status->value, ['on-hold', 'saved'], true))
                 <x-button wire:click="loadCart(true)" icon="o-shopping-cart" class="btn-primary w-full mt-2"
                     label="Retomar Pedido" />
                 <div class="flex gap-1">
@@ -140,7 +140,7 @@ new class extends Component {
                     </x-dropdown>
                 </div>
             @endif
-            @if($order->status == 'pending')
+            @if($order->status->value === 'pending')
                 <x-button wire:click="loadCart(false)" icon="o-shopping-cart" class="mt-2 btn-primary w-full"
                     label="Copiar Pedido" />
             @endif

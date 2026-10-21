@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\OrderStatus;
 use App\Helpers\SettingsHelper;
 use App\Mail\OrderMail;
 use App\Models\AltOrder;
@@ -10,6 +11,8 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\ShippingDetail;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -21,8 +24,15 @@ class OrderService
 {
     /**
      * Procesa la creación o actualización de un pedido.
+     *
+     * El estado se resuelve explícitamente: al crear se usa el pedido; al
+     * actualizar se conserva el del pedido existente (salvo que sea un
+     * borrador `saved`, que pasa a `pending` al confirmarse).
+     *
+     * @param  array<string, mixed>  $shippingData
+     * @return RedirectResponse|Order|AltOrder
      */
-    public function placeOrder(array $shippingData)
+    public function placeOrder(array $shippingData, bool $redirect = true)
     {
         $cart = Session::get('cart', []);
         if (empty($cart)) {
@@ -39,21 +49,26 @@ class OrderService
             $isAlt = Auth::guard('alt')->check();
             $user = current_user();
 
-            // Determinar si es actualización
             $updateOrderId = Session::get('updateOrder');
+            $orderModel = $isAlt ? AltOrder::class : Order::class;
+            $existingOrder = $updateOrderId ? $orderModel::find($updateOrderId) : null;
 
-            // Validar stock, precios y calcular total
-            $validatedData = $this->validateCart($cart, $user);
+            if ($existingOrder) {
+                $this->ensureOrderBelongsToUser($existingOrder, $isAlt);
+            }
+
+            $requestedStatus = $this->resolveStatus($shippingData['status'] ?? null);
+            $isDraft = $requestedStatus === OrderStatus::SAVED;
+
+            // Un borrador no exige stock: es solo un carrito aparcado.
+            $validatedData = $this->validateCart($cart, $user, enforceStock: ! $isDraft);
             $total = $validatedData['total'];
-            $products = $validatedData['products'];
+
+            $status = $this->resolveStatusForPersistence($existingOrder, $requestedStatus);
 
             $shippingData['total_price'] = $total;
             $shippingData['user_id'] = $user->id;
-
-            // Normalizar estado
-            if (isset($shippingData['status']) && $shippingData['status'] !== 'pending') {
-                $shippingData['status'] = 'on-hold';
-            }
+            $shippingData['status'] = $status->value;
 
             $orderCreated = DB::transaction(function () use ($isAlt, $updateOrderId, $shippingData, $cart) {
                 // 1. Crear/Actualizar la Orden
@@ -70,7 +85,7 @@ class OrderService
                         'payment_method' => $shippingData['payment_method'] ?? null,
                         'payment_detail' => $shippingData['payment_detail'] ?? null,
                         'information' => $shippingData['information'] ?? null,
-                        'status' => $shippingData['status'] ?? 'pending',
+                        'status' => $shippingData['status'],
                     ]
                 );
 
@@ -104,17 +119,21 @@ class OrderService
                 return $order;
             });
 
-            // 4. Notificaciones
-            $this->sendOrderNotification($orderCreated, $isAlt);
+            // 4. Notificaciones: nunca para borradores ni para ediciones que conservan estado.
+            if ($this->shouldNotify($existingOrder, $status)) {
+                $this->sendOrderNotification($orderCreated, $isAlt);
+            }
 
-            // 5. Cleanup
+            // 5. Cleanup: el carrito se vacía también al guardar para después.
             $this->cleanupSessionAndStorage();
 
-            return redirect()->route('ordersuccess', [
+            $response = redirect()->route('ordersuccess', [
                 'order' => $orderCreated->id,
                 'status' => $orderCreated->status,
                 'is_alt' => $isAlt,
             ]);
+
+            return $redirect ? $response : $orderCreated;
 
         } finally {
             Session::forget('processing_order');
@@ -122,9 +141,83 @@ class OrderService
     }
 
     /**
-     * Valida el stock y los precios de los productos en el carrito.
+     * Normaliza el estado pedido. Ya no convierte silenciosamente a "on-hold".
      */
-    protected function validateCart(array $cart, $user): array
+    protected function resolveStatus(OrderStatus|string|null $status): OrderStatus
+    {
+        if ($status instanceof OrderStatus) {
+            return $status;
+        }
+
+        if ($status === null || $status === '') {
+            return OrderStatus::PENDING;
+        }
+
+        $resolved = OrderStatus::tryFrom($status);
+
+        if ($resolved === null) {
+            throw ValidationException::withMessages([
+                'status' => "Estado de pedido inválido: {$status}.",
+            ]);
+        }
+
+        return $resolved;
+    }
+
+    /**
+     * Determina el estado que se persiste al crear o actualizar.
+     */
+    protected function resolveStatusForPersistence(Order|AltOrder|null $existingOrder, OrderStatus $requested): OrderStatus
+    {
+        if ($existingOrder === null) {
+            return $requested;
+        }
+
+        // Un borrador confirmado desde el checkout pasa a pendiente.
+        if ($existingOrder->status === OrderStatus::SAVED) {
+            return $requested === OrderStatus::SAVED ? OrderStatus::SAVED : OrderStatus::PENDING;
+        }
+
+        // Cualquier otro pedido conserva su estado (no se pisa el del admin).
+        return $existingOrder->status;
+    }
+
+    /**
+     * Solo se notifica al crear un pedido real o al confirmar un borrador.
+     */
+    protected function shouldNotify(Order|AltOrder|null $existingOrder, OrderStatus $status): bool
+    {
+        if ($status === OrderStatus::SAVED) {
+            return false;
+        }
+
+        if ($existingOrder === null) {
+            return true;
+        }
+
+        return $existingOrder->status === OrderStatus::SAVED;
+    }
+
+    /**
+     * Evita que un usuario modifique el pedido de otro vía el id en sesión.
+     */
+    protected function ensureOrderBelongsToUser(Order|AltOrder $order, bool $isAlt): void
+    {
+        $isAdmin = real_user()?->role?->value === 'admin';
+        $ownerId = $isAlt ? $order->alt_user_id : $order->user_id;
+
+        if (! $isAdmin && (int) $ownerId !== (int) current_user()?->id) {
+            throw ValidationException::withMessages(['cart' => 'No tiene permiso para modificar este pedido.']);
+        }
+    }
+
+    /**
+     * Valida el stock y los precios de los productos del carrito.
+     *
+     * @param  array<int, array<string, mixed>>  $cart
+     * @return array{total: float, products: Collection}
+     */
+    protected function validateCart(array $cart, $user, bool $enforceStock = true): array
     {
         $total = 0;
         $productIds = array_column($cart, 'product_id');
@@ -137,7 +230,7 @@ class OrderService
                 throw ValidationException::withMessages(['cart' => "El producto {$item['name']} ya no está disponible."]);
             }
 
-            if ($product->stock < $item['quantity']) {
+            if ($enforceStock && $product->stock < $item['quantity']) {
                 throw ValidationException::withMessages(['cart' => "Stock insuficiente para {$item['name']}. Disponible: {$product->stock}."]);
             }
 

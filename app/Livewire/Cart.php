@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Enums\OrderStatus;
 use App\Models\AltOrder;
 use App\Models\AltUser;
 use App\Models\Order;
@@ -9,6 +10,7 @@ use App\Models\Product;
 use App\Services\PriceListService;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Mary\Traits\Toast;
@@ -218,10 +220,30 @@ class Cart extends Component
     public function saveCart()
     {
         $user = current_user();
-        if ($user instanceof AltUser) {
-            AltOrder::placeOrder(['status' => 'on-hold']);
-        } else {
-            Order::placeOrder(['status' => 'on-hold']);
+
+        if (! $user) {
+            return;
         }
+
+        $orderModel = $user instanceof AltUser ? AltOrder::class : Order::class;
+
+        try {
+            $order = $orderModel::placeOrder(
+                ['status' => OrderStatus::SAVED->value],
+                redirect: false
+            );
+        } catch (ValidationException $e) {
+            $this->error($e->getMessage(), position: 'toast-bottom');
+
+            return;
+        }
+
+        $this->refreshCartData();
+        $this->dispatch('cart-updated');
+
+        $this->success(
+            "Carrito guardado como pedido #{$order->id}. Lo encontrás en Mis pedidos.",
+            position: 'toast-bottom'
+        );
     }
 }

@@ -22,6 +22,7 @@ new class extends Component {
 
     public array $orderStates = [
         'pending' => 'Pendiente',
+        'saved' => 'Guardado',
         'on-hold' => 'En espera',
         'processing' => 'Procesando',
         'completed' => 'Completado',
@@ -108,7 +109,8 @@ new class extends Component {
             'headers' => $this->headers(),
             'orderStates' => [
                 'pending' => 'Pendiente',
-                'on-hold' => 'En espera',
+                'saved' => 'Guardado',
+        'on-hold' => 'En espera',
                 'processing' => 'Procesando',
                 'completed' => 'Completado',
                 'cancelled' => 'Cancelado',
@@ -136,6 +138,7 @@ new class extends Component {
             'bg-yellow-500/20 font-bold' => fn(AltOrder $order) => $order->status->value === 'on-hold',
             'bg-blue-500/20 font-bold' => fn(AltOrder $order) => $order->status->value === 'pending',
             'bg-purple-500/20 font-bold' => fn(AltOrder $order) => $order->status->value === 'processing',
+            'bg-slate-500/20 font-bold' => fn(AltOrder $order) => $order->status->value === 'saved',
         ]]">
         
         @scope('cell_user.fullName', $order)

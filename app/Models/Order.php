@@ -64,9 +64,9 @@ class Order extends Model
         ];
     }
 
-    public static function placeOrder(array $shipping = [])
+    public static function placeOrder(array $shipping = [], bool $redirect = true)
     {
-        return app(OrderService::class)->placeOrder($shipping);
+        return app(OrderService::class)->placeOrder($shipping, $redirect);
     }
 
     public static function orderStates($state = null)

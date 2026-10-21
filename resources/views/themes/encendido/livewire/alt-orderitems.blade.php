@@ -159,10 +159,10 @@ new class extends Component {
             <div class="flex flex-col gap-2">
                 <x-badge :value="\App\Models\Order::orderStates($order->status)" class="w-full py-3 text-sm font-bold" />
                 
-                @if($order->status != 'completed' && real_user()?->role?->value == 'admin')
+                @if($order->status->value !== 'completed' && real_user()?->role?->value == 'admin')
                     <x-dropdown label="Cambiar Estado" icon="o-arrow-path-rounded-square" class="btn-primary btn-sm w-full">
                         @foreach(['pending', 'on-hold', 'cancelled', 'completed'] as $statusOption)
-                            @if($statusOption != $order->status)
+                            @if($statusOption !== $order->status->value)
                                 <x-menu-item title="{{ \App\Models\Order::orderStates($statusOption) }}"
                                     wire:click="changeStatus('{{ $statusOption }}')"
                                     wire:confirm="¿Está seguro de cambiar el estado?"
@@ -187,12 +187,12 @@ new class extends Component {
         </div>
 
         <div class="flex flex-col gap-2">
-            @if($order->status == 'on-hold')
+            @if(in_array($order->status->value, ['on-hold', 'saved'], true))
                 <x-button wire:click="loadCart(true)" icon="o-shopping-cart" class="btn-primary w-full" label="Retomar Pedido" />
                 <x-button wire:click="delete" icon="o-trash" class="btn-error btn-outline btn-sm w-full" label="Eliminar Pedido" wire:confirm="¿Borrar este pedido permanente?" />
             @endif
             
-            @if($order->status == 'pending' || $order->status == 'completed')
+            @if(in_array($order->status->value, ['pending', 'completed'], true))
                 <x-button wire:click="loadCart(false)" icon="o-document-duplicate" class="btn-outline w-full" label="Copiar a Carrito" />
             @endif
             

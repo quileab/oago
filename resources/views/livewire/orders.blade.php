@@ -115,6 +115,7 @@ new class extends Component {
             'bg-yellow-500/20 font-bold' => fn(Order $order) => $order->status->value === 'on-hold',
             'bg-blue-500/20 font-bold' => fn(Order $order) => $order->status->value === 'pending',
             'bg-purple-500/20 font-bold' => fn(Order $order) => $order->status->value === 'processing',
+            'bg-slate-500/20 font-bold' => fn(Order $order) => $order->status->value === 'saved',
         ]]">
         @scope('cell_order_date', $order)
         {{ $order->created_at->format('d-m-Y H:i') }}
@@ -151,6 +152,7 @@ new class extends Component {
             <x-button label="Completados" wire:click="filter('completed')" class="btn-success" />
             <x-button label="Cancelados" wire:click="filter('cancelled')" class="btn-error" />
             <x-button label="En Espera" wire:click="filter('on-hold')" class="btn-warning" />
+            <x-button label="Guardados" wire:click="filter('saved')" class="btn-ghost" />
         </div>
         <x-slot:actions>
             <x-button label="Limpiar" icon="o-x-mark" class="btn-warning" wire:click="clear" spinner />
