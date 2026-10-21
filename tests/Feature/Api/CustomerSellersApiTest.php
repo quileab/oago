@@ -3,6 +3,9 @@
 use App\Enums\Role;
 use App\Models\AltUser;
 use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+
+uses(RefreshDatabase::class);
 
 test('sellers endpoint requires authentication', function () {
     $response = $this->getJson('/api/customer/sellers');

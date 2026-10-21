@@ -1,6 +1,10 @@
 <?php
 
+use Illuminate\Foundation\Testing\RefreshDatabase;
+
 use function Pest\Laravel\postJson;
+
+uses(RefreshDatabase::class);
 
 it('does not leak email existence during login', function () {
     // Attempt login with non-existent email

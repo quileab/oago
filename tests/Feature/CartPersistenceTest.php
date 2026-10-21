@@ -3,8 +3,11 @@
 use App\Enums\Role;
 use App\Models\AltUser;
 use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
+
+uses(RefreshDatabase::class);
 
 it('generates unique cart IDs for different user types', function () {
     // 1. Regular User

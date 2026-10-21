@@ -1,6 +1,9 @@
 <?php
 
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
+
+uses(RefreshDatabase::class);
 
 afterEach(function () {
     if (File::exists(base_path('test_dump.sql'))) {

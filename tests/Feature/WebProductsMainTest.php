@@ -2,10 +2,13 @@
 
 use App\Models\Product;
 use App\Services\ProductSearchService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Livewire\Volt\Volt;
 
 use function Pest\Laravel\mock;
+
+uses(RefreshDatabase::class);
 
 it('renders products with a stable wire:key', function () {
     // Mock ProductSearchService

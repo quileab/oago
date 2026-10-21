@@ -55,7 +55,7 @@ test('legacy ingestion flow: products and prices are correctly handled', functio
     ]);
 
     // 5. Update Price - UNIT (Lista A $ U)
-    // Legacy sends unit price in 'price' field to the unit list ID
+    // Se guarda en su propia lista: ya no hay normalización legacy hacia la base.
     $response = $this->actingAs($admin, 'sanctum')
         ->postJson('/api/list-prices', [
             'product_id' => 10059,
@@ -65,16 +65,19 @@ test('legacy ingestion flow: products and prices are correctly handled', functio
 
     $response->assertSuccessful();
 
-    // Verify both prices are merged in the base list ID
+    $this->assertDatabaseHas('list_prices', [
+        'product_id' => 10059,
+        'list_id' => 2,
+        'price' => 1150.00,
+    ]);
+
+    // La lista base conserva el precio de bulto
     $this->assertDatabaseHas('list_prices', [
         'product_id' => 10059,
         'list_id' => 1,
         'price' => 12000.00,
-        'unit_price' => 1150.00,
+        'unit_price' => 0.00,
     ]);
-
-    // Verify no record was created for list_id 2
-    $this->assertDatabaseMissing('list_prices', ['list_id' => 2]);
 
     // 6. Update Product again (ensure update works)
     $productData['description'] = 'Producto Actualizado';
@@ -84,14 +87,13 @@ test('legacy ingestion flow: products and prices are correctly handled', functio
     $response->assertStatus(200); // Controller returns 200 on update via store()
     $this->assertDatabaseHas('products', ['id' => 10059, 'description' => 'Producto Actualizado']);
 
-    // 7. Verify GET show still returns the correct merged price even if asking for unit list
+    // 7. Verify GET show returns the price of the requested list
     $response = $this->actingAs($admin, 'sanctum')
         ->getJson('/api/list-prices/10059/2'); // Asking for unit list
 
     $response->assertStatus(200)
         ->assertJson([
             'list_id' => 2,
-            'price' => 12000.00,
-            'unit_price' => 1150.00,
+            'price' => 1150.00,
         ]);
 });

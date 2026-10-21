@@ -2,8 +2,11 @@
 
 use App\Enums\Role;
 use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Session;
 use Livewire\Volt\Volt;
+
+uses(RefreshDatabase::class);
 
 it('requires shipping and payment methods', function () {
     $user = User::factory()->create(['role' => Role::CUSTOMER]);

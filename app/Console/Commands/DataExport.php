@@ -45,6 +45,7 @@ class DataExport extends Command
         }
 
         $dbName = DB::connection()->getDatabaseName();
+        $driver = DB::getDriverName();
         $allTables = DB::connection()->getSchemaBuilder()->getTableListing();
 
         $tables = [];
@@ -52,7 +53,7 @@ class DataExport extends Command
             // getTableListing puede devolver "esquema.tabla". Filtramos por la base actual.
             if (str_contains($table, '.')) {
                 [$schema, $tableName] = explode('.', $table, 2);
-                if ($schema === $dbName) {
+                if ($driver === 'sqlite' || $schema === $dbName) {
                     $tables[] = $tableName;
                 }
             } else {
@@ -74,7 +75,6 @@ class DataExport extends Command
             return 1;
         }
 
-        $driver = DB::getDriverName();
         $this->writeHeader($handle, $driver);
 
         info("🚀 Iniciando exportación de la base de datos hacia {$filename}...");
@@ -82,7 +82,11 @@ class DataExport extends Command
         $progress = progress(label: 'Exportando tablas...', steps: count($tables));
         $progress->start();
 
-        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        $isMySql = in_array($driver, ['mysql', 'mariadb'], true);
+
+        if ($isMySql) {
+            DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        }
 
         foreach ($tables as $table) {
             $this->exportTableSchema($handle, $table, $dropTable, $ifNotExists, $driver);
@@ -96,7 +100,10 @@ class DataExport extends Command
 
         $progress->finish();
 
-        fwrite($handle, "\nSET FOREIGN_KEY_CHECKS=1;\n");
+        if ($isMySql) {
+            fwrite($handle, "\nSET FOREIGN_KEY_CHECKS=1;\n");
+        }
+
         fclose($handle);
 
         $this->newLine();

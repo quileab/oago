@@ -9,7 +9,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
-test('it normalizes prices from lists ending in "U" into base list unit_price', function () {
+test('prices are stored per list without legacy "U" normalization', function () {
     // 0. Setup: Create admin, product and lists
     $admin = User::factory()->create(['role' => Role::ADMIN]);
     $product = Product::create([
@@ -38,27 +38,28 @@ test('it normalizes prices from lists ending in "U" into base list unit_price', 
         'unit_price' => 0.00,
     ]);
 
-    // 2. Post to "$ U" list (UNIT PRICE)
+    // 2. Post to "$ U" list: se guarda en su propia lista, sin tocar la base
     $response2 = $this->actingAs($admin, 'sanctum')
         ->postJson('/api/list-prices', [
             'product_id' => $product->id,
             'list_id' => $unitList->id,
-            'price' => 12.50, // The legacy sends unit price in 'price' field
+            'price' => 12.50,
         ]);
 
     $response2->assertSuccessful();
 
-    // The base list price should now have the unit_price updated
+    $this->assertDatabaseHas('list_prices', [
+        'product_id' => $product->id,
+        'list_id' => $unitList->id,
+        'price' => 12.50,
+    ]);
+
+    // La lista base conserva sus valores originales
     $this->assertDatabaseHas('list_prices', [
         'product_id' => $product->id,
         'list_id' => $baseList->id,
         'price' => 100.00,
-        'unit_price' => 12.50,
-    ]);
-
-    // Ensure no price was created for the "$ U" list
-    $this->assertDatabaseMissing('list_prices', [
-        'list_id' => $unitList->id,
+        'unit_price' => 0.00,
     ]);
 });
 
