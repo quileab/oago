@@ -154,8 +154,11 @@ new class extends Component {
         $password = \Illuminate\Support\Str::random(8);
         // set password (will be hashed automatically by the model cast)
         $user->password = $password;
+        // generar un token nuevo para que el link de activación del mail sea válido
+        $activationToken = \Illuminate\Support\Str::random(60);
+        $user->activation_token = $activationToken;
         $user->save();
-        Mail::to($user->email)->queue(new AltUserWelcomeMail($user, $password));
+        Mail::to($user->email)->queue(new AltUserWelcomeMail($user, $password, $activationToken));
         $this->success('Correo de bienvenida enviado.', position: 'toast-bottom');
     }
 }; ?>
