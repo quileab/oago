@@ -35,7 +35,6 @@ new class extends Component
                 'brand' => 'Producto no encontrado',
                 'description' => 'El producto que busca no está disponible o no existe.',
                 'image_url' => asset('imgs/Logos/logo_er50.jpg'),
-                'tags' => '',
                 'featured' => false,
                 'description_html' => '',
                 'user_price' => 0,

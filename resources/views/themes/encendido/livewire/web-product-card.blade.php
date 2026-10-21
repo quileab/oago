@@ -113,9 +113,9 @@
                     @endphp
                     @if($canBuy)
                         <div class="flex items-stretch h-8 rounded-md overflow-hidden border border-gray-300 bg-gray-50 mb-1.5">
-                            <button wire:click="decrementUnit" class="w-8 bg-gray-200 hover:bg-gray-300 text-gray-600 font-bold transition-colors shrink-0">-</button>
-                            <input type="number" wire:model="qtty" class="flex-grow min-w-0 text-center text-xs font-bold bg-transparent text-black focus:outline-none" min="1">
-                            <button wire:click="incrementUnit" class="w-8 bg-gray-200 hover:bg-gray-300 text-gray-600 font-bold transition-colors shrink-0">+</button>
+                            <button type="button" @click="$wire.qtty = Math.max(1, (parseInt($wire.qtty) || 1) - 1)" class="w-8 bg-gray-200 hover:bg-gray-300 text-gray-600 font-bold transition-colors shrink-0">-</button>
+                            <input type="number" x-model.number="$wire.qtty" class="flex-grow min-w-0 text-center text-xs font-bold bg-transparent text-black focus:outline-none" min="1">
+                            <button type="button" @click="$wire.qtty = (parseInt($wire.qtty) || 0) + 1" class="w-8 bg-gray-200 hover:bg-gray-300 text-gray-600 font-bold transition-colors shrink-0">+</button>
                         </div>
                         
                         <button wire:click="buy" onclick="flyToCart('prod-img-{{ $product->id }}')"

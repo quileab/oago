@@ -122,21 +122,50 @@
                 $canBuy = $product->stock > 0 && $currUser && !in_array($currUser->role->value, ['none', 'guest']) && ($display_offer > 0 ? $display_offer : $display_price) > 0;
             @endphp
             @if($canBuy)
-                <div class="space-y-2">
+                <div x-data="{
+                    pkg: {{ (int) ($product->qtty_package ?? 1) }},
+                    get mode() { return $wire.buyMode },
+                    setMode(m) {
+                        $wire.buyMode = m;
+                        $wire.qtty = m === 'bulk' ? this.pkg : 1;
+                    },
+                    dec() {
+                        const step = this.mode === 'bulk' ? this.pkg : 1;
+                        const current = parseInt($wire.qtty) || step;
+                        $wire.qtty = current > step ? current - step : step;
+                    },
+                    inc() {
+                        const step = this.mode === 'bulk' ? this.pkg : 1;
+                        const current = parseInt($wire.qtty) || 0;
+                        $wire.qtty = current + step;
+                    },
+                    get subtitle() {
+                        const q = parseInt($wire.qtty) || 1;
+                        if (this.mode === 'bulk') {
+                            const b = +(q / this.pkg).toFixed(2);
+                            return `${b} bulto${b !== 1 ? 's' : ''} · ${q} un.`;
+                        }
+                        return `${q} unidad${q !== 1 ? 'es' : ''}`;
+                    }
+                }" class="space-y-2">
 
                     {{-- Toggle Bulto / Unidad (solo si hay paquete) --}}
                     @if($product->qtty_package > 1)
                         <div class="flex items-center bg-slate-100 rounded-full p-0.5 gap-0.5">
                             <button
-                                wire:click="setBuyMode('bulk')"
-                                class="flex-1 flex items-center justify-center gap-1 rounded-full py-1 text-[10px] font-black transition-all duration-200 {{ $buyMode === 'bulk' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700' }}"
+                                type="button"
+                                @click="setMode('bulk')"
+                                :class="mode === 'bulk' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'"
+                                class="flex-1 flex items-center justify-center gap-1 rounded-full py-1 text-[10px] font-black transition-all duration-200"
                             >
                                 <x-icon name="o-cube" class="w-3 h-3 inline shrink-0" />
                                 BULTO (x{{ $product->qtty_package }})
                             </button>
                             <button
-                                wire:click="setBuyMode('unit')"
-                                class="flex-1 flex items-center justify-center gap-1 rounded-full py-1 text-[10px] font-black transition-all duration-200 {{ $buyMode === 'unit' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700' }}"
+                                type="button"
+                                @click="setMode('unit')"
+                                :class="mode === 'unit' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'"
+                                class="flex-1 flex items-center justify-center gap-1 rounded-full py-1 text-[10px] font-black transition-all duration-200"
                             >
                                 <x-icon name="o-tag" class="w-3 h-3 inline shrink-0" />
                                 UNIDAD
@@ -145,33 +174,31 @@
                     @endif
 
                     {{-- Selector de cantidad --}}
-                    <div class="flex items-stretch h-11 shadow-sm rounded-lg overflow-hidden border {{ $buyMode === 'bulk' ? 'border-blue-300' : 'border-slate-300' }}">
-                        <button wire:click="decrement"
-                            class="w-10 shrink-0 flex items-center justify-center text-xl font-black transition-colors border-r
-                                {{ $buyMode === 'bulk'
-                                    ? 'bg-blue-100 hover:bg-blue-200 text-blue-700 border-blue-200'
-                                    : 'bg-slate-200 hover:bg-slate-300 text-slate-700 border-slate-300' }}"
+                    <div class="flex items-stretch h-11 shadow-sm rounded-lg overflow-hidden border"
+                        :class="mode === 'bulk' ? 'border-blue-300' : 'border-slate-300'">
+                        <button type="button" @click="dec()"
+                            class="w-10 shrink-0 flex items-center justify-center text-xl font-black transition-colors border-r"
+                            :class="mode === 'bulk'
+                                ? 'bg-blue-100 hover:bg-blue-200 text-blue-700 border-blue-200'
+                                : 'bg-slate-200 hover:bg-slate-300 text-slate-700 border-slate-300'"
                         >−</button>
 
                         <div class="flex-1 flex flex-col items-center justify-center bg-white">
-                            <input type="number" wire:model="qtty"
+                            <input type="number" x-model.number="$wire.qtty"
                                 class="w-full text-center text-xl font-black bg-transparent focus:outline-none leading-none"
                                 min="1"
                             >
-                            <span class="text-[9px] leading-none font-semibold {{ $buyMode === 'bulk' ? 'text-blue-500' : 'text-slate-400' }}">
-                                @if($buyMode === 'bulk')
-                                    {{ $qtty / $product->qtty_package }} bulto{{ ($qtty / $product->qtty_package) != 1 ? 's' : '' }} · {{ $qtty }} un.
-                                @else
-                                    {{ $qtty }} unidad{{ $qtty != 1 ? 'es' : '' }}
-                                @endif
+                            <span class="text-[9px] leading-none font-semibold"
+                                :class="mode === 'bulk' ? 'text-blue-500' : 'text-slate-400'"
+                                x-text="subtitle">
                             </span>
                         </div>
 
-                        <button wire:click="increment"
-                            class="w-10 shrink-0 flex items-center justify-center text-xl font-black transition-colors border-l
-                                {{ $buyMode === 'bulk'
-                                    ? 'bg-blue-100 hover:bg-blue-200 text-blue-700 border-blue-200'
-                                    : 'bg-slate-200 hover:bg-slate-300 text-slate-700 border-slate-300' }}"
+                        <button type="button" @click="inc()"
+                            class="w-10 shrink-0 flex items-center justify-center text-xl font-black transition-colors border-l"
+                            :class="mode === 'bulk'
+                                ? 'bg-blue-100 hover:bg-blue-200 text-blue-700 border-blue-200'
+                                : 'bg-slate-200 hover:bg-slate-300 text-slate-700 border-slate-300'"
                         >+</button>
                     </div>
 
