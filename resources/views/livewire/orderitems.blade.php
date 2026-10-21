@@ -24,6 +24,7 @@ new class extends Component {
     {
         // Rearmar el carrito con los items del pedido
         $cartItems = [];
+        $priceService = app(\App\Services\PriceListService::class);
         foreach ($this->items as $item) {
             // obtener el precio actualizado del producto según el usuario
             $prodModel = \App\Models\Product::find($item['product_id']);
@@ -32,6 +33,10 @@ new class extends Component {
                 $item['name'] = $item['product']['description'] ?? $prodModel->description;
             }
 
+            // Precio 0 = producto sin precio: no se vende, se excluye del carrito.
+            if (! $prodModel || ! $priceService->isSellable($priceService->resolveListId(current_user()), $prodModel)) {
+                continue;
+            }
 
             $cartItems[$item['product_id']] = [
                 'product_id' => $item['product_id'],

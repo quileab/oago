@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Helpers\SettingsHelper;
 use App\Models\ListName;
 use App\Models\ListPrice;
 use App\Models\Product;
@@ -93,5 +94,75 @@ class PriceListServiceTest extends TestCase
         $price = $this->service->getEffectivePrice($list->id, 9999);
 
         $this->assertNull($price);
+    }
+
+    private function makeProduct(float $price): Product
+    {
+        return Product::create([
+            'description' => 'Sellable Product',
+            'price' => $price,
+            'qtty_package' => 1,
+            'visibility' => 'visible',
+            'tax_status' => 'taxable',
+            'published' => true,
+            'model' => 'M1',
+            'brand' => 'B1',
+        ]);
+    }
+
+    public function test_it_marks_a_product_without_any_price_as_not_sellable()
+    {
+        $product = $this->makeProduct(0);
+
+        $this->assertFalse($this->service->isSellable(null, $product));
+    }
+
+    public function test_it_marks_a_product_with_base_price_but_without_list_price_as_sellable()
+    {
+        $product = $this->makeProduct(100);
+
+        $this->assertTrue($this->service->isSellable(null, $product));
+    }
+
+    public function test_it_marks_a_product_with_list_price_but_zero_base_price_as_sellable()
+    {
+        $list = ListName::create(['name' => 'General List']);
+        $product = $this->makeProduct(0);
+
+        ListPrice::create([
+            'list_id' => $list->id,
+            'product_id' => $product->id,
+            'price' => 85.50,
+            'unit_price' => 9.25,
+        ]);
+
+        $this->assertTrue($this->service->isSellable($list->id, $product));
+    }
+
+    public function test_a_zero_promo_price_means_no_offer_and_does_not_block_sales()
+    {
+        $list = ListName::create(['name' => 'General List']);
+        $product = $this->makeProduct(100);
+
+        ListPrice::create([
+            'list_id' => $list->id,
+            'product_id' => $product->id,
+            'price' => 90,
+            'unit_price' => 9,
+        ]);
+
+        $promoList = ListName::create(['name' => 'Promo List']);
+        SettingsHelper::update_setting('promo_list_id', $promoList->id);
+
+        // Promo en 0 = sin oferta: se usa el precio de la lista (90).
+        ListPrice::create([
+            'list_id' => $promoList->id,
+            'product_id' => $product->id,
+            'price' => 0,
+            'unit_price' => 0,
+        ]);
+
+        $this->assertTrue($this->service->isSellable($list->id, $product));
+        $this->assertEquals(90.0, $this->service->getEffectivePrice($list->id, $product->id));
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Helpers\SettingsHelper;
+use App\Models\Product;
 use App\Services\PriceListService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
@@ -146,6 +147,13 @@ class WebProductCard extends Component
 
     public function buy(): void
     {
+        // Defensa server-side: la UI ya oculta el botón si el precio es 0.
+        $productModel = Product::find($this->local_product['id'] ?? 0);
+        $priceService = app(PriceListService::class);
+        if (! $productModel || ! $priceService->isSellable($priceService->resolveListId(current_user()), $productModel)) {
+            return;
+        }
+
         $package = (int) ($this->local_product['qtty_package'] ?? 1);
 
         $this->dispatch('addToCart', product: [

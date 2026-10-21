@@ -22,11 +22,17 @@ new class extends Component {
     {
         $cartItems = [];
         $user = current_user();
-        
+        $priceService = app(\App\Services\PriceListService::class);
+
         foreach ($this->items as $item) {
             $prodModel = \App\Models\Product::find($item['product_id']);
             if ($prodModel) {
                 $item['price'] = current_user()?->getProductPrice($prodModel) ?? $item['price'];
+            }
+
+            // Precio 0 = producto sin precio: no se vende, se excluye del carrito.
+            if (! $prodModel || ! $priceService->isSellable($priceService->resolveListId($user), $prodModel)) {
+                continue;
             }
 
             $cartItems[$item['product_id']] = [

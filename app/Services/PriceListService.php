@@ -77,6 +77,15 @@ class PriceListService
     }
 
     /**
+     * Regla de venta: el precio efectivo (lista si es > 0, sino product->price)
+     * debe ser > 0. Un precio 0 significa "sin precio" y el producto no se vende.
+     */
+    public function isSellable(?int $listId, Product $product): bool
+    {
+        return $this->getBasePrice($listId, $product) > 0;
+    }
+
+    /**
      * Precio promocional solo si es > 0 y menor que el base.
      */
     public function getPromoPrice(?int $listId, Product $product, float $basePrice): ?float

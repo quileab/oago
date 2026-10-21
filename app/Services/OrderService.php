@@ -191,7 +191,7 @@ class OrderService
             return OrderStatus::PENDING;
         }
 
-        // Bloquear edici�n de pedidos ya finalizados.
+        // Bloquear edici�n de pedidos ya finalizados.
         if (in_array($existingOrder->status, [OrderStatus::COMPLETED, OrderStatus::CANCELLED], true)) {
             throw ValidationException::withMessages(['cart' => 'No se puede modificar un pedido ya finalizado.']);
         }
@@ -246,6 +246,11 @@ class OrderService
 
             if (! $product) {
                 throw ValidationException::withMessages(['cart' => "El producto {$item['name']} ya no está disponible."]);
+            }
+
+            // Precio 0 = producto sin precio: no se vende.
+            if (! app(PriceListService::class)->isSellable(app(PriceListService::class)->resolveListId($user), $product)) {
+                throw ValidationException::withMessages(['cart' => "El producto {$item['name']} no está disponible para la venta."]);
             }
 
             if ($enforceStock && $product->stock < $item['quantity']) {

@@ -100,22 +100,34 @@ class OrderController extends Controller
                 $products = Product::whereIn('id', $productIds)->get()->keyBy('id');
 
                 foreach ($request->items as $item) {
-                    $order->items()->create([
-                        'product_id' => $item['product_id'],
-                        'quantity' => $item['quantity'],
-                        'price' => $item['price'],
-                    ]);
-
                     $product = $products->get($item['product_id']);
-                    $orderedQuantity = (int) $item['quantity'];
-                    $billableQuantity = app(PriceListService::class)->calculateBillableQuantity($product, $orderedQuantity);
-
                     $orderUser = $order->user;
+                    $orderedQuantity = (int) $item['quantity'];
+
+                    // Precio 0 = producto sin precio: no se vende.
+                    if ($product && $orderUser && ! app(PriceListService::class)->isSellable(app(PriceListService::class)->resolveListId($orderUser), $product)) {
+                        throw new \Exception("El producto {$product->description} no está disponible para la venta.");
+                    }
+
                     if ($product && $orderUser) {
-                        $total += app(PriceListService::class)
-                            ->calculateItemPrice(app(PriceListService::class)->resolveListId($orderUser) ?? 0, $product, $billableQuantity);
+                        $line = app(PriceListService::class)->calculateLine(
+                            app(PriceListService::class)->resolveListId($orderUser),
+                            $product,
+                            $orderedQuantity
+                        );
+                        $order->items()->create([
+                            'product_id' => $item['product_id'],
+                            'quantity' => $orderedQuantity,
+                            'price' => $line['unit_price'],
+                        ]);
+                        $total += $line['subtotal'];
                     } else {
-                        $total += (float) $item['price'] * $billableQuantity;
+                        $order->items()->create([
+                            'product_id' => $item['product_id'],
+                            'quantity' => $orderedQuantity,
+                            'price' => $item['price'],
+                        ]);
+                        $total += (float) $item['price'] * $orderedQuantity;
                     }
                 }
 

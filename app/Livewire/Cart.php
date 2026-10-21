@@ -65,6 +65,14 @@ class Cart extends Component
             $product['qtty_package'] = $productModel->qtty_package;
             $product['description'] = $product['description'] ?? $productModel->description;
         }
+
+        // Precio 0 = producto sin precio: no se vende.
+        if (! $productModel || ! app(PriceListService::class)->isSellable(app(PriceListService::class)->resolveListId($user), $productModel)) {
+            $this->error('Este producto no está disponible para la venta.');
+
+            return;
+        }
+
         $cart = Session::get('cart', []);
         $qttyPackage = max(1, $product['qtty_package'] ?? 1);
 

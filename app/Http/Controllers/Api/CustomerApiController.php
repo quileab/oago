@@ -168,25 +168,31 @@ class CustomerApiController extends Controller
                         throw new \Exception("El producto ID {$item['product_id']} ya no está disponible.");
                     }
 
+                    // Precio 0 = producto sin precio: no se vende.
+                    if (! app(PriceListService::class)->isSellable(app(PriceListService::class)->resolveListId($user), $product)) {
+                        throw new \Exception("El producto {$product->description} no está disponible para la venta.");
+                    }
+
                     if ($product->stock < $item['quantity']) {
                         throw new \Exception("Stock insuficiente para {$product->description}. Disponible: {$product->stock}.");
                     }
 
                     $currentPrice = $user->getProductPrice($product);
                     $orderedQuantity = (int) $item['quantity'];
-                    $billableQuantity = app(PriceListService::class)->calculateBillableQuantity($product, $orderedQuantity);
-
-                    $itemPrice = app(PriceListService::class)
-                        ->calculateItemPrice(app(PriceListService::class)->resolveListId($user) ?? 0, $product, $billableQuantity);
+                    $line = app(PriceListService::class)->calculateLine(
+                        app(PriceListService::class)->resolveListId($user),
+                        $product,
+                        $orderedQuantity
+                    );
 
                     // Add item data
                     $itemsData[] = [
                         'product_id' => $product->id,
                         'quantity' => $orderedQuantity,
-                        'price' => $currentPrice,
+                        'price' => $line['unit_price'],
                     ];
 
-                    $total += $itemPrice;
+                    $total += $line['subtotal'];
                 }
 
                 if ($total == 0) {
