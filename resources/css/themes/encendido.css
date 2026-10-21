@@ -8,18 +8,24 @@
     default: true;
 }
 
-:root,
 [data-theme="light"] {
     --color-primary: #002b6b;
+    --color-primary-content: #ffffff;
     --color-secondary: #8a053c;
+    --color-secondary-content: #ffffff;
     --color-success: #3c8e26;
-}
-[data-theme="light"] {
-    color-scheme: light;
+    --color-success-content: #ffffff;
 }
 @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
         color-scheme: dark;
+        /* Tonos claros de la paleta de marca para mantener contraste AA sobre fondo oscuro */
+        --color-primary: #9fc1ff;
+        --color-primary-content: #041d47;
+        --color-secondary: #ffb3ce;
+        --color-secondary-content: #4a001c;
+        --color-success: #9be08a;
+        --color-success-content: #103009;
     }
 }
 
