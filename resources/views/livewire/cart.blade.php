@@ -60,9 +60,9 @@
                                         @endif
                                     </td>
                                     <td class="text-right {{ ($item['is_price_changed'] ?? false) ? 'text-red-600 font-bold' : 'text-slate-700' }}">
-                                        ${{ number_format($item['price'], 2) }}
+                                        ${{ number_format($item['current_price'] ?? $item['price'], 2) }}
                                         @if($item['is_price_changed'] ?? false)
-                                            <div class="text-[10px] text-red-500">Actual: ${{ number_format($item['current_price'], 2) }}</div>
+                                            <div class="text-[10px] text-slate-500 line-through">Anterior: ${{ number_format($item['price'], 2) }}</div>
                                         @endif
                                     </td>
                                     <td class="px-2 w-32 text-slate-700">

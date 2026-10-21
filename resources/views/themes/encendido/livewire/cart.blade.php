@@ -84,9 +84,9 @@
                                 <div class="grid grid-cols-3 gap-2 md:contents items-center text-center">
                                     <div class="text-left md:text-right flex flex-col justify-center h-full {{ ($item['is_price_changed'] ?? false) ? 'text-error font-bold' : 'text-base-content/80 font-medium' }}">
                                         <span class="md:hidden text-[10px] uppercase text-base-content/50">Precio</span>
-                                        ${{ number_format($item['price'], 2) }}
+                                        ${{ number_format($item['current_price'] ?? $item['price'], 2) }}
                                         @if($item['is_price_changed'] ?? false)
-                                            <div class="text-[10px] text-error font-bold bg-error/10 px-1 rounded inline-block mt-0.5">Act: ${{ number_format($item['current_price'], 2) }}</div>
+                                            <div class="text-[10px] text-base-content/60 line-through mt-0.5">Anterior: ${{ number_format($item['price'], 2) }}</div>
                                         @endif
                                     </div>
                                     <div class="flex flex-col items-center">
