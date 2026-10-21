@@ -151,7 +151,7 @@ class WebProductCard extends Component
         $this->dispatch('addToCart', product: [
             'id' => $this->local_product['id'],
             'description' => $this->local_product['description'],
-            'user_price' => $this->user_price,
+            'user_price' => $this->offer_price > 0 ? $this->offer_price : $this->user_price,
             'qtty_package' => $package,
         ], quantity: (int) $this->qtty);
 

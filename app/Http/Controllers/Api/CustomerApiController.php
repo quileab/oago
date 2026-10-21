@@ -177,7 +177,7 @@ class CustomerApiController extends Controller
                     $billableQuantity = app(PriceListService::class)->calculateBillableQuantity($product, $orderedQuantity);
 
                     $itemPrice = app(PriceListService::class)
-                        ->calculateItemPrice($user->list_id ?? 1, $product, $billableQuantity);
+                        ->calculateItemPrice(app(PriceListService::class)->resolveListId($user) ?? 0, $product, $billableQuantity);
 
                     // Add item data
                     $itemsData[] = [

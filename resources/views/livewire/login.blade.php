@@ -52,11 +52,11 @@ new #[Layout('components.layouts.empty')]
             if (file_exists($cartFile = storage_path("app/private/" . current_user_cart_id() . "_cart.json"))) {
                 $cart = json_decode(file_get_contents($cartFile), true);
                 $productIds = array_column($cart, 'product_id');
-                $prices = \App\Models\ListPrice::whereIn('product_id', $productIds)
-                    ->where('list_id', $user->list_id)
-                    ->pluck('price', 'product_id');
                 foreach ($cart as $item) {
-                    $cart[$item['product_id']]['price'] = $prices[$item['product_id']] ?? $item['price'];
+                    $p = \App\Models\Product::find($item['product_id']);
+                    if ($p) {
+                        $cart[$item['product_id']]['price'] = $user->getProductPrice($p);
+                    }
                 }
                 session()->put('cart', $cart);
             }
@@ -83,11 +83,11 @@ new #[Layout('components.layouts.empty')]
             if (file_exists($cartFile = storage_path("app/private/" . current_user_cart_id() . "_cart.json"))) {
                 $cart = json_decode(file_get_contents($cartFile), true);
                 $productIds = array_column($cart, 'product_id');
-                $prices = \App\Models\ListPrice::whereIn('product_id', $productIds)
-                    ->where('list_id', $guest->list_id)
-                    ->pluck('price', 'product_id');
                 foreach ($cart as $item) {
-                    $cart[$item['product_id']]['price'] = $prices[$item['product_id']] ?? $item['price'];
+                    $p = \App\Models\Product::find($item['product_id']);
+                    if ($p) {
+                        $cart[$item['product_id']]['price'] = $guest->getProductPrice($p);
+                    }
                 }
                 session()->put('cart', $cart);
             }

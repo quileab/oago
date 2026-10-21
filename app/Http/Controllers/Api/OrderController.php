@@ -113,7 +113,7 @@ class OrderController extends Controller
                     $orderUser = $order->user;
                     if ($product && $orderUser) {
                         $total += app(PriceListService::class)
-                            ->calculateItemPrice($orderUser->list_id ?? 1, $product, $billableQuantity);
+                            ->calculateItemPrice(app(PriceListService::class)->resolveListId($orderUser) ?? 0, $product, $billableQuantity);
                     } else {
                         $total += (float) $item['price'] * $billableQuantity;
                     }

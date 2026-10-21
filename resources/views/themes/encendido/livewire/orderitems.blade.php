@@ -26,11 +26,11 @@ new class extends Component {
         $cartItems = [];
         foreach ($this->items as $item) {
             // obtener el precio actualizado del producto según el usuario
-            $prod = \App\Models\ListPrice::where('product_id', $item['product_id'])
-                ->where('list_id', auth()->user()->list_id)
-                ->first();
-            // si el producto no tiene precio de lista, usar el precio del pedido
-            $item['price'] = $prod->price ?? $item['price'];
+            $prodModel = \App\Models\Product::find($item['product_id']);
+            if ($prodModel) {
+                $item['price'] = current_user()?->getProductPrice($prodModel) ?? $item['price'];
+                $item['name'] = $item['product']['description'] ?? $prodModel->description;
+            }
 
 
             $cartItems[$item['product_id']] = [
@@ -58,16 +58,26 @@ new class extends Component {
     // delete order
     public function delete()
     {
+        $real = real_user();
+        $isOwner = $this->order->user_id === current_user()?->id;
+        $isAdmin = $real?->role?->value === 'admin';
+        abort_unless($isAdmin || ($isOwner && in_array($this->order->status->value, ['saved', 'on-hold'], true)), 403);
         $this->order->delete();
         return redirect('/orders');
     }
 
     public function changeStatus(string $status): void
     {
-        $this->order->status = $status;
+        abort_unless(real_user()?->role?->value === 'admin', 403);
+        $resolved = \App\Enums\OrderStatus::tryFrom($status);
+        if (! $resolved) {
+            $this->error('Estado inválido.', position: 'toast-bottom');
+            return;
+        }
+        $this->order->status = $resolved;
         $this->order->save();
 
-        $this->success('Estado del pedido actualizado a ' . $status, position: 'toast-bottom');
+        $this->success('Estado del pedido actualizado a ' . $resolved->label(), position: 'toast-bottom');
     }
 
 }; ?>
@@ -115,7 +125,7 @@ new class extends Component {
             {{-- Si el estado no es completado poder cambiar el estado --}}
             @if($order->status->value !== 'completed' && real_user()?->role?->value == 'admin')
                 <x-dropdown label="Cambiar Estado" icon="o-arrow-path-rounded-square" class="btn-primary w-full mt-2">
-                    @foreach(['pending', 'on-hold', 'cancelled'] as $statusOption)
+                    @foreach(['pending', 'processing', 'on-hold', 'completed', 'cancelled'] as $statusOption)
                         @if($statusOption !== $order->status->value)
                             <x-menu-item title="{{ \App\Models\Order::orderStates($statusOption) }}"
                                 wire:click="changeStatus('{{ $statusOption }}')"

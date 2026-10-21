@@ -15,7 +15,7 @@ class IsRoleMiddleware
      */
     public function handle(Request $request, Closure $next, ...$roles): Response
     {
-        $user = current_user();
+        $user = real_user();
         if (! $user || ! in_array($user->role->value, $roles)) {
             abort(404);
         }

@@ -113,7 +113,7 @@ it('keeps the admin status when a customer edits a processing order', function (
     Mail::assertNothingSent();
 });
 
-it('keeps the completed status when an order is edited', function () {
+it('blocks editing an already completed order', function () {
     Mail::fake();
 
     $user = User::factory()->create(['role' => Role::CUSTOMER]);
@@ -129,10 +129,10 @@ it('keeps the completed status when an order is edited', function () {
     Session::put('cart', [$product->id => draftCartItem($product, 1)]);
     $this->actingAs($user);
 
-    app(OrderService::class)->placeOrder(draftShipping(), redirect: false);
+    expect(fn () => app(OrderService::class)->placeOrder(draftShipping(), redirect: false))
+        ->toThrow(ValidationException::class);
 
     expect($order->fresh()->status)->toBe(OrderStatus::COMPLETED);
-    Mail::assertNothingSent();
 });
 
 it('rejects an unknown status instead of silently converting it', function () {

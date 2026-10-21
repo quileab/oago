@@ -86,14 +86,18 @@ Route::middleware(['auth', 'check_guest'])->group(function () {
     // Print Routes
     Route::get('/order/{id}/print', function ($id) {
         $order = Order::with(['user', 'items.product'])->findOrFail($id);
-        abort_if($order->user_id !== Auth::id() && Auth::user()->role->value !== 'admin', 403, 'Unauthorized');
+        $real = real_user();
+        $acting = current_user();
+        abort_if($order->user_id !== $acting?->id && $order->user_id !== $real?->id && $real?->role?->value !== 'admin', 403, 'Unauthorized');
 
         return view('order-print', ['order' => $order, 'isAlt' => false]);
     })->name('order.print');
 
     Route::get('/alt-order/{id}/print', function ($id) {
         $order = AltOrder::with(['user', 'items.product'])->findOrFail($id);
-        abort_if($order->alt_user_id !== Auth::guard('alt')->id() && Auth::id() !== $order->alt_user_id && Auth::user()->role->value !== 'admin', 403, 'Unauthorized');
+        $real = real_user();
+        $acting = current_user();
+        abort_if($order->alt_user_id !== $acting?->id && $order->alt_user_id !== $real?->id && $real?->role?->value !== 'admin', 403, 'Unauthorized');
 
         return view('order-print', ['order' => $order, 'isAlt' => true]);
     })->name('alt-order.print');

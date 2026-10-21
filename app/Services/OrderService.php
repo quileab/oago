@@ -70,7 +70,7 @@ class OrderService
             $shippingData['user_id'] = $user->id;
             $shippingData['status'] = $status->value;
 
-            $orderCreated = DB::transaction(function () use ($isAlt, $updateOrderId, $shippingData, $cart) {
+            $orderCreated = DB::transaction(function () use ($isAlt, $updateOrderId, $shippingData, $cart, $user) {
                 // 1. Crear/Actualizar la Orden
                 $orderModel = $isAlt ? AltOrder::class : Order::class;
                 $userIdField = $isAlt ? 'alt_user_id' : 'user_id';
@@ -100,12 +100,21 @@ class OrderService
 
                 $itemsToInsert = [];
                 foreach ($cart as $item) {
-                    if (($item['price'] * $item['quantity']) > 0) {
+                    $product = Product::find($item['product_id']);
+                    $line = $product
+                        ? app(PriceListService::class)->calculateLine(
+                            app(PriceListService::class)->resolveListId($user),
+                            $product,
+                            (int) $item['quantity']
+                        )
+                        : null;
+                    $unitPrice = $line ? $line['unit_price'] : (float) $item['price'];
+                    if (($unitPrice * $item['quantity']) > 0) {
                         $itemsToInsert[] = [
                             $orderIdField => $order->id,
                             'product_id' => $item['product_id'],
                             'quantity' => $item['quantity'],
-                            'price' => $item['price'],
+                            'price' => $unitPrice,
                             'created_at' => now(),
                             'updated_at' => now(),
                         ];
@@ -174,8 +183,17 @@ class OrderService
         }
 
         // Un borrador confirmado desde el checkout pasa a pendiente.
-        if ($existingOrder->status === OrderStatus::SAVED) {
-            return $requested === OrderStatus::SAVED ? OrderStatus::SAVED : OrderStatus::PENDING;
+        if (in_array($existingOrder->status, [OrderStatus::SAVED, OrderStatus::ON_HOLD], true)) {
+            if ($requested === OrderStatus::SAVED) {
+                return OrderStatus::SAVED;
+            }
+
+            return OrderStatus::PENDING;
+        }
+
+        // Bloquear edición de pedidos ya finalizados.
+        if (in_array($existingOrder->status, [OrderStatus::COMPLETED, OrderStatus::CANCELLED], true)) {
+            throw ValidationException::withMessages(['cart' => 'No se puede modificar un pedido ya finalizado.']);
         }
 
         // Cualquier otro pedido conserva su estado (no se pisa el del admin).
@@ -195,7 +213,7 @@ class OrderService
             return true;
         }
 
-        return $existingOrder->status === OrderStatus::SAVED;
+        return in_array($existingOrder->status, [OrderStatus::SAVED, OrderStatus::ON_HOLD], true);
     }
 
     /**
@@ -242,8 +260,12 @@ class OrderService
             $orderedQuantity = (int) $item['quantity'];
             $billableQuantity = app(PriceListService::class)->calculateBillableQuantity($product, $orderedQuantity);
 
-            $total += app(PriceListService::class)
-                ->calculateItemPrice($user->list_id ?? 1, $product, $billableQuantity);
+            $line = app(PriceListService::class)->calculateLine(
+                app(PriceListService::class)->resolveListId($user),
+                $product,
+                $orderedQuantity
+            );
+            $total += $line['subtotal'];
         }
 
         if ($total == 0) {

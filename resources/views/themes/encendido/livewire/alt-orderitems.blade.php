@@ -24,18 +24,17 @@ new class extends Component {
         $user = current_user();
         
         foreach ($this->items as $item) {
-            $prod = \App\Models\ListPrice::where('product_id', $item['product_id'])
-                ->where('list_id', $user->list_id)
-                ->first();
-                
-            $item['price'] = $prod->price ?? $item['price'];
+            $prodModel = \App\Models\Product::find($item['product_id']);
+            if ($prodModel) {
+                $item['price'] = current_user()?->getProductPrice($prodModel) ?? $item['price'];
+            }
 
             $cartItems[$item['product_id']] = [
                 'product_id' => $item['product_id'],
-                'name' => $item['product']['description'],
+                'name' => $item['product']['description'] ?? ($prodModel->description ?? 'Producto'),
                 'quantity' => $item['quantity'],
                 'price' => $item['price'],
-                'bulkQuantity' => $item['product']['qtty_package'],
+                'bulkQuantity' => $item['product']['qtty_package'] ?? ($prodModel->qtty_package ?? 1),
                 'byBulk' => ($item['quantity'] % ($item['product']['qtty_package'] ?? 1)) == 0,
             ];
         }
@@ -50,17 +49,28 @@ new class extends Component {
 
     public function delete()
     {
+        $real = real_user();
+        $isOwner = $this->order->alt_user_id === current_user()?->id;
+        $isAdmin = $real?->role?->value === 'admin';
+        abort_unless($isAdmin || ($isOwner && in_array($this->order->status->value, ['saved', 'on-hold'], true)), 403);
         $this->order->delete();
         return redirect('/alt-orders');
     }
 
     public function changeStatus(string $status): void
     {
-        $this->order->update(['status' => $status]);
-        $this->success('Estado del pedido actualizado a ' . AltOrder::orderStates($status), position: 'toast-bottom');
+        abort_unless(real_user()?->role?->value === 'admin', 403);
+        $resolved = \App\Enums\OrderStatus::tryFrom($status);
+        if (! $resolved) {
+            $this->error('Estado inválido.', position: 'toast-bottom');
+            return;
+        }
+        $this->order->update(['status' => $resolved->value]);
+        $this->success('Estado del pedido actualizado a ' . $resolved->label(), position: 'toast-bottom');
     }
     public function transferToNormalAccount()
     {
+        abort_unless(real_user()?->role?->value === 'admin', 403);
         $normalUser = \App\Models\User::where('email', $this->order->user->email)->first();
         if (!$normalUser) {
             $this->error('No se encontró una cuenta normal con el mismo email.', position: 'toast-bottom');

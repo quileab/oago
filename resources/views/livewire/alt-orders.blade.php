@@ -56,10 +56,11 @@ new class extends Component {
     {
         $query = AltOrder::with('user');
 
+        $real = real_user();
         $user = current_user();
         $isAltUser = Auth::guard('alt')->check();
-        $isAdmin = $user->role->value == 'admin';
-        $isSales = $user->role->value == 'sales';
+        $isAdmin = $real?->role?->value === 'admin';
+        $isSales = $real?->role?->value === 'sales';
 
         if ($isAltUser) {
             $query->where('alt_user_id', $user->id);

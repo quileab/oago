@@ -80,7 +80,7 @@ class PriceListServiceTest extends TestCase
             'unit_price' => 9.25,
         ]);
 
-        // El precio de una lista no se resuelve contra otra: sin fila propia, es null.
+        // El precio de una lista no se resuelve contra otra: sin fila propia, cae al precio base del producto.
         $price = $this->service->getEffectivePrice($unitList->id, $product->id);
 
         $this->assertNull($price);

@@ -29,7 +29,7 @@ new class extends Component {
                 'email' => '',
                 'password' => '',
                 'role' => 'customer',
-                'list_id' => 0,
+                'list_id' => null,
                 'is_internal' => false,
             ];
         }
@@ -39,6 +39,12 @@ new class extends Component {
     public function roles(): array
     {
         return array_map(fn($role) => ['id' => $role->value, 'name' => $role->value], Role::cases());
+    }
+
+    #[Computed]
+    public function priceLists(): array
+    {
+        return \App\Models\ListName::all()->map(fn($l) => ['id' => $l->id, 'name' => $l->name])->toArray();
     }
 
     public function save(): void
@@ -121,7 +127,7 @@ new class extends Component {
                     <x-select label="Rol" icon="o-queue-list" :options="$this->roles" option-value="id" option-label="name" wire:model="formData.role" />
                 </div>
                 <div class="lg:col-span-2">
-                    <x-input label="Lista de Precios" wire:model="formData.list_id" type="number" icon="o-numbered-list" />
+                    <x-select label="Lista de Precios" wire:model="formData.list_id" :options="$this->priceLists" option-value="id" option-label="name" placeholder="Sin lista (precio base)" />
                 </div>
                 <div class="lg:col-span-2 flex items-center pt-4">
                      <x-toggle label="Personal Interno" wire:model="formData.is_internal" hint="Acceso a todos los clientes" class="toggle-primary" />

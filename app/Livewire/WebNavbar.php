@@ -38,6 +38,8 @@ class WebNavbar extends Component
                 $firstCustomer = $loggedInUser->getManagedCustomersQuery()->first();
                 if ($firstCustomer) {
                     session(['sales_acting_as_customer_id' => $firstCustomer->id]);
+                    session()->forget('cart');
+                    session()->forget('updateOrder');
                 }
             }
 
@@ -113,6 +115,7 @@ class WebNavbar extends Component
             session()->forget('sales_acting_as_customer_id');
         }
         session()->forget('cart'); // Clear cart on switch to avoid price conflicts
+        session()->forget('updateOrder');
         $this->redirect(request()->header('Referer'));
     }
 

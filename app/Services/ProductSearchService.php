@@ -5,6 +5,7 @@
 namespace App\Services;
 
 use App\Helpers\SettingsHelper;
+use App\Models\AltUser;
 use App\Models\ListPrice;
 use App\Models\Product;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -129,7 +130,11 @@ class ProductSearchService
         $showPricesToGuests = (bool) SettingsHelper::settings('show_prices_to_guests', false);
         $defaultGuestListId = $showPricesToGuests ? (int) SettingsHelper::settings('alt_user_default_price', 0) : 0;
 
-        $targetListId = $user?->list_id ?: $defaultGuestListId;
+        if ($user instanceof AltUser && ! $user->list_id) {
+            $targetListId = (int) SettingsHelper::settings('alt_user_default_price', 0) ?: $defaultGuestListId;
+        } else {
+            $targetListId = $user?->list_id ?: $defaultGuestListId;
+        }
 
         if (! $targetListId) {
             foreach ($products as $product) {
@@ -191,8 +196,8 @@ class ProductSearchService
                 }
             }
 
-            // Calcular precio de promo (si existe)
-            if ($promoLp) {
+            // Calcular precio de promo (si existe y es valido)
+            if ($promoLp && (float) $promoLp->price > 0 && (float) $promoLp->price < $basePrice) {
                 $promoPrice = (float) $promoLp->price;
             } else {
                 $promoPrice = null;

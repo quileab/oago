@@ -59,6 +59,12 @@ class Cart extends Component
         }
 
         $productId = $product['id'];
+        $productModel = Product::find($productId);
+        if ($productModel) {
+            $product['user_price'] = current_user()?->getProductPrice($productModel) ?? $product['user_price'];
+            $product['qtty_package'] = $productModel->qtty_package;
+            $product['description'] = $product['description'] ?? $productModel->description;
+        }
         $cart = Session::get('cart', []);
         $qttyPackage = max(1, $product['qtty_package'] ?? 1);
 
@@ -157,10 +163,14 @@ class Cart extends Component
 
             if ($product && $user) {
                 $item['product_model'] = $product;
-                $item['current_price'] = $user->getProductPrice($product);
-                $item['is_price_changed'] = abs((float) $item['price'] - (float) $item['current_price']) > 0.01;
-                $item['total_price'] = $priceListService
-                    ->calculateItemPrice($user->list_id ?? 1, $product, $billableQuantity);
+                $item['current_price'] = $user?->getProductPrice($product);
+                $item['is_price_changed'] = abs((float) $item['price'] - (float) ($item['current_price'] ?? 0)) > 0.01;
+                $line = $priceListService->calculateLine(
+                    $priceListService->resolveListId($user),
+                    $product,
+                    $orderedQuantity
+                );
+                $item['total_price'] = $line['subtotal'];
                 $item['is_stock_insufficient'] = $product->stock < $item['quantity'];
                 $item['available_stock'] = $product->stock;
             } else {

@@ -15,7 +15,7 @@ class IsAdminMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $user = current_user();
+        $user = real_user();
         if (! $user || $user->role->value != 'admin') {
             abort(404);
         }

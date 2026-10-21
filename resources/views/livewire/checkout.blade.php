@@ -73,7 +73,12 @@ new class extends Component {
             $orderedQuantity = (int) $item['quantity'];
             $billableQuantity = $priceListService->calculateBillableQuantity($product, $orderedQuantity);
 
-            $itemSubtotal = (float) $item['price'] * $billableQuantity;
+            $line = $priceListService->calculateLine(
+                $priceListService->resolveListId(current_user()),
+                $product,
+                $orderedQuantity
+            );
+            $itemSubtotal = (float) $line['subtotal'];
             
             // Enrich item
             $this->cart_content[$productId]['billable_quantity'] = $billableQuantity;

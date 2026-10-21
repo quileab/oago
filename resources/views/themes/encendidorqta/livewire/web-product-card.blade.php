@@ -66,7 +66,7 @@
             <!-- Separador -->
             <hr class="border-gray-200 w-full mb-3">
 
-            @if(!Auth::guest() && $showPrices)
+            @if(!Auth::guest() || $showPrices)
                 <div class="flex flex-col mt-auto">
                     @if(($display_offer > 0 ? $display_offer : $display_price) <= 0)
                         <span class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Muy pronto</span>

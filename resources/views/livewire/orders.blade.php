@@ -51,10 +51,16 @@ new class extends Component {
         $query = Order::with('user');
 
         // Apply admin/customer filter
+        $real = real_user();
         $user = current_user();
-        $isAdmin = $user->role->value == 'admin';
+        $isAdmin = $real?->role?->value === 'admin';
         if (!$isAdmin) {
-            $query->where('user_id', $user->id);
+            if ($real?->role?->value === 'sales') {
+                $ids = $real->getManagedCustomersQuery()->pluck('id');
+                $query->whereIn('user_id', $ids->isEmpty() ? [0] : $ids);
+            } else {
+                $query->where('user_id', $user->id);
+            }
         }
 
         // Apply search filter (moved to DB query)
@@ -149,6 +155,7 @@ new class extends Component {
             <p>Filtrar por estado:</p>
             <x-button label="TODOS" wire:click="filter('all')" class="btn-outline" />
             <x-button label="Pendientes" wire:click="filter('pending')" class="btn-primary" />
+            <x-button label="Procesando" wire:click="filter('processing')" class="btn-info" />
             <x-button label="Completados" wire:click="filter('completed')" class="btn-success" />
             <x-button label="Cancelados" wire:click="filter('cancelled')" class="btn-error" />
             <x-button label="En Espera" wire:click="filter('on-hold')" class="btn-warning" />
