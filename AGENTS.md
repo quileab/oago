@@ -757,7 +757,8 @@ Existing tests (do **not** delete without approval):
 - Bonus también centralizado en `checkout.blade.php` (ya no queda copia de la fórmula).
 - **Suite de tests en verde**: 120 tests / 338 assertions (se agregó `RefreshDatabase` donde faltaba, se actualizaron los tests de listas "U" —comportamiento legacy eliminado— y `db:export` ahora es driver-safe para sqlite).
 - `/page/{slug}` verificado: las páginas de tema ya envuelven su contenido en `<x-layouts.clean>`; se agregó `ThemePageTest` como regresión (200 con `<html>` y 404 para slug inexistente).
-- Índice compuesto `products (featured, updated_at)` para el orden por defecto del catálogo (migración 2026_10_20_210653).
+- Índice compuesto `products (featured, updated_at)` para el orden por defecto del catálogo (migración 2026_10_20_210653, **aplicada en prod**; EXPLAIN la usa sin filesort).
+- **Historial de migraciones de prod consistente**: las 6 migraciones "fantasma" (`create_alt_users`, `create_alt_orders`, `create_alt_order_items`, `show_prices_to_guests`, `create_tags`, `migrate_product_tags_to_relational`) quedaron registradas como ejecutadas (batch 7) tras auditar que sus tablas/columnas/setting ya existían. `migrate:status` = 0 pendientes y `migrate` responde "Nothing to migrate". Backup en `/home/oagostini/backups/migrations-history-20261020/`.
 
 ### Abierto
 1. **Probar importación de ZIP de tema >2 MB en Theme Manager.** El error "El importFile no se pudo subir" se causó por `upload_max_filesize=2M` en el PHP de Herd. Se editó `C:\Users\quile\.config\herd\bin\php84\php.ini` (64M/64M). Verificar que Herd no revirtió los procesos/ini y que un ZIP de ~7 MB sube bien. Nota: `.user.ini` en `public/` NO funciona con Herd.
