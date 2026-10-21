@@ -166,7 +166,7 @@
                 @foreach($order->items as $item)
                     <tr>
                         <td class="text-center">{{ $item->product_id }}</td>
-                        <td>{{ $item->product->description }}</td>
+                        <td>{{ $item->product?->description ?? "Producto eliminado" }}</td>
                         <td class="text-center">{{ $item->quantity }}</td>
                         <td class="text-right">$ {{ number_format($item->price, 2, ',', '.') }}</td>
                         <td class="text-right">$ {{ number_format($item->price * $item->quantity, 2, ',', '.') }}</td>

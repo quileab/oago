@@ -29,9 +29,9 @@ class OrderMail extends Mailable implements ShouldQueue
     {
         $this->is_alt = $is_alt;
         if ($is_alt) {
-            $this->order = AltOrder::with(['user', 'items'])->find($order);
+            $this->order = AltOrder::with(['user', 'items.product', 'shipping'])->find($order);
         } else {
-            $this->order = Order::with(['user', 'items'])->find($order);
+            $this->order = Order::with(['user', 'items.product', 'shipping'])->find($order);
         }
     }
 

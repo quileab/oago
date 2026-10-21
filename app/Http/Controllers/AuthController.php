@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\Role;
+use App\Helpers\SettingsHelper;
 use App\Models\User;
 use Exception;
 use Illuminate\Http\JsonResponse;
@@ -59,7 +61,11 @@ class AuthController extends Controller
                 'message' => $e->getMessage(),
             ], 400);
         }
-        $user = User::create($fields);
+        $user = User::create(array_merge($fields, [
+            'role' => Role::NONE->value,
+            'list_id' => (int) SettingsHelper::settings('alt_user_default_price', 0) ?: null,
+            'is_internal' => false,
+        ]));
         $token = $user->createToken($request->name)->plainTextToken;
 
         return response()->json([

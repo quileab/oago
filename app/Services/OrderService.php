@@ -138,7 +138,7 @@ class OrderService
 
             $response = redirect()->route('ordersuccess', [
                 'order' => $orderCreated->id,
-                'status' => $orderCreated->status,
+                'status' => $orderCreated->status->value,
                 'is_alt' => $isAlt,
             ]);
 

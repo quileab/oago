@@ -5,8 +5,13 @@
   Contacto: 📨{{ $order->user->email }} / 📞 {{ $order->user->phone }}
   <hr>
   Envío: {{ $order->sending_method }}<br>
-  Dirección: {{ $order->sending_address }} / {{ $order->sending_city }}<br>
-  Contacto: {{ $order->contact_name }} / {{ $order->contact_number }}
+  @if($order->shipping)
+    Dirección: {{ $order->shipping->address }} / {{ $order->shipping->city }}<br>
+    Contacto: {{ $order->shipping->contact_name }} / {{ $order->shipping->phone }}
+  @else
+    Dirección: {{ $order->sending_address }} / {{ $order->sending_city }}<br>
+    Contacto: {{ $order->contact_name }} / {{ $order->contact_number }}
+  @endif
   <hr>
   Pago: {{ $order->payment_method }}<br>
   Detalle: {{ $order->payment_detail }}<br>
@@ -24,13 +29,9 @@
     </thead>
     <tbody style="border: 1px solid #000; border-collapse: collapse;">
       @foreach ($order->items as $item)
-        {{-- get product data --}}
-        @php
-        $prod = \App\Models\Product::where('id', $item->product_id)->get(['brand', 'description'])->first();
-      @endphp
         <tr>
         <td>{{ $item->product_id }}</td>
-        <td>{{ $prod->brand }} : {{ $prod->description }}</td>
+        <td>{{ $item->product?->brand }} : {{ $item->product?->description ?? 'Producto eliminado' }}</td>
         <td style="text-align: center;">{{ $item->quantity }}</td>
         <td style="text-align: right;">$ {{ number_format($item->price, 2) }}</td>
         <td style="text-align: right;">$ {{ number_format($item->quantity * $item->price, 2) }}</td>
