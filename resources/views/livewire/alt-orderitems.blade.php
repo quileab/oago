@@ -21,17 +21,18 @@ new class extends Component {
     public function loadCart(bool $update = false)
     {
         $cartItems = [];
-        $user = current_user();
+        $targetUser = $this->order->user ?? current_user();
         $priceService = app(\App\Services\PriceListService::class);
+        $listId = $priceService->resolveListId($targetUser);
 
         foreach ($this->items as $item) {
             $prodModel = \App\Models\Product::find($item['product_id']);
             if ($prodModel) {
-                $item['price'] = current_user()?->getProductPrice($prodModel) ?? $item['price'];
+                $item['price'] = $targetUser?->getProductPrice($prodModel) ?? $item['price'];
             }
 
             // Precio 0 = producto sin precio: no se vende, se excluye del carrito.
-            if (! $prodModel || ! $priceService->isSellable($priceService->resolveListId($user), $prodModel)) {
+            if (! $prodModel || ! $priceService->isSellable($listId, $prodModel)) {
                 continue;
             }
 
@@ -69,6 +70,10 @@ new class extends Component {
         $resolved = \App\Enums\OrderStatus::tryFrom($status);
         if (! $resolved) {
             $this->error('Estado inválido.', position: 'toast-bottom');
+            return;
+        }
+        if ($resolved !== $this->order->status && ! $this->order->status->canTransitionTo($resolved)) {
+            $this->error('Transición de estado no permitida.', position: 'toast-bottom');
             return;
         }
         $this->order->update(['status' => $resolved->value]);
@@ -175,15 +180,13 @@ new class extends Component {
             <div class="flex flex-col gap-2">
                 <x-badge :value="\App\Models\Order::orderStates($order->status)" class="w-full py-3 text-sm font-bold" />
                 
-                @if($order->status->value !== 'completed' && real_user()?->role?->value == 'admin')
+                @if(count($order->status->allowedTransitions()) > 0 && real_user()?->role?->value == 'admin')
                     <x-dropdown label="Cambiar Estado" icon="o-arrow-path-rounded-square" class="btn-primary btn-sm w-full">
-                        @foreach(['pending', 'on-hold', 'cancelled', 'completed'] as $statusOption)
-                            @if($statusOption !== $order->status->value)
-                                <x-menu-item title="{{ \App\Models\Order::orderStates($statusOption) }}"
-                                    wire:click="changeStatus('{{ $statusOption }}')"
-                                    wire:confirm="¿Está seguro de cambiar el estado?"
-                                    spinner="changeStatus" />
-                            @endif
+                        @foreach($order->status->allowedTransitions() as $statusOption)
+                            <x-menu-item title="{{ $statusOption->label() }}"
+                                wire:click="changeStatus('{{ $statusOption->value }}')"
+                                wire:confirm="¿Está seguro de cambiar el estado?"
+                                spinner="changeStatus" />
                         @endforeach
                     </x-dropdown>
                 @endif

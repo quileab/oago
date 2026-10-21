@@ -88,7 +88,8 @@ Route::middleware(['auth', 'check_guest'])->group(function () {
         $order = Order::with(['user', 'items.product'])->findOrFail($id);
         $real = real_user();
         $acting = current_user();
-        abort_if($order->user_id !== $acting?->id && $order->user_id !== $real?->id && $real?->role?->value !== 'admin', 403, 'Unauthorized');
+        $isManagedBySales = $real?->role?->value === 'sales' && $real->getManagedCustomersQuery()->whereKey($order->user_id)->exists();
+        abort_if($order->user_id !== $acting?->id && $order->user_id !== $real?->id && $real?->role?->value !== 'admin' && ! $isManagedBySales, 403, 'Unauthorized');
 
         return view('order-print', ['order' => $order, 'isAlt' => false]);
     })->name('order.print');

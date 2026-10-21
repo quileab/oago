@@ -52,20 +52,20 @@ class ExportController extends Controller
 
             $pricesByListId = $product->listPrices->keyBy('list_id');
             foreach ($listNames as $list) {
-                $effectivePrice = null;
-                if ($promoListId && $promoListId !== $list->id) {
+                $baseListId = $priceService->resolveBaseListId($list->id);
+                $listPriceObj = $pricesByListId->get($baseListId);
+                $basePrice = ($listPriceObj && (float) $listPriceObj->price > 0)
+                    ? (float) $listPriceObj->price
+                    : (float) ($product->price ?? 0);
+
+                $effectivePrice = $basePrice;
+                if ($promoListId && $promoListId !== $baseListId) {
                     $promoPriceObj = $pricesByListId->get($promoListId);
-                    if ($promoPriceObj) {
+                    if ($promoPriceObj && (float) $promoPriceObj->price > 0 && (float) $promoPriceObj->price < $basePrice) {
                         $effectivePrice = (float) $promoPriceObj->price;
                     }
                 }
-                if ($effectivePrice === null) {
-                    $listPriceObj = $pricesByListId->get($list->id);
-                    if ($listPriceObj) {
-                        $effectivePrice = (float) $listPriceObj->price;
-                    }
-                }
-                $row[] = $effectivePrice ?? '0';
+                $row[] = $effectivePrice;
             }
             fputcsv($handle, $row);
         }
@@ -118,20 +118,20 @@ class ExportController extends Controller
 
             $pricesByListId = $product->listPrices->keyBy('list_id');
             foreach ($listNames as $list) {
-                $effectivePrice = null;
-                if ($promoListId && $promoListId !== $list->id) {
+                $baseListId = $priceService->resolveBaseListId($list->id);
+                $listPriceObj = $pricesByListId->get($baseListId);
+                $basePrice = ($listPriceObj && (float) $listPriceObj->price > 0)
+                    ? (float) $listPriceObj->price
+                    : (float) ($product->price ?? 0);
+
+                $effectivePrice = $basePrice;
+                if ($promoListId && $promoListId !== $baseListId) {
                     $promoPriceObj = $pricesByListId->get($promoListId);
-                    if ($promoPriceObj) {
+                    if ($promoPriceObj && (float) $promoPriceObj->price > 0 && (float) $promoPriceObj->price < $basePrice) {
                         $effectivePrice = (float) $promoPriceObj->price;
                     }
                 }
-                if ($effectivePrice === null) {
-                    $listPriceObj = $pricesByListId->get($list->id);
-                    if ($listPriceObj) {
-                        $effectivePrice = (float) $listPriceObj->price;
-                    }
-                }
-                $row[] = $effectivePrice ?? '0';
+                $row[] = $effectivePrice;
             }
             fputcsv($handle, $row);
         }

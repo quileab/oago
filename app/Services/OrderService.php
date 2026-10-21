@@ -7,10 +7,12 @@ use App\Helpers\SettingsHelper;
 use App\Mail\OrderMail;
 use App\Models\AltOrder;
 use App\Models\AltOrderItem;
+use App\Models\AltUser;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\ShippingDetail;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
@@ -53,15 +55,25 @@ class OrderService
             $orderModel = $isAlt ? AltOrder::class : Order::class;
             $existingOrder = $updateOrderId ? $orderModel::find($updateOrderId) : null;
 
+            $actorIsOwner = true;
             if ($existingOrder) {
                 $this->ensureOrderBelongsToUser($existingOrder, $isAlt);
+
+                $ownerId = $isAlt ? $existingOrder->alt_user_id : $existingOrder->user_id;
+                if ((int) $ownerId !== (int) $user->id) {
+                    $owner = ($isAlt ? AltUser::class : User::class)::find($ownerId);
+                    if ($owner) {
+                        $user = $owner;
+                        $actorIsOwner = false;
+                    }
+                }
             }
 
             $requestedStatus = $this->resolveStatus($shippingData['status'] ?? null);
             $isDraft = $requestedStatus === OrderStatus::SAVED;
 
             // Un borrador no exige stock: es solo un carrito aparcado.
-            $validatedData = $this->validateCart($cart, $user, enforceStock: ! $isDraft);
+            $validatedData = $this->validateCart($cart, $user, enforceStock: ! $isDraft, checkPriceDrift: $actorIsOwner);
             $total = $validatedData['total'];
 
             $status = $this->resolveStatusForPersistence($existingOrder, $requestedStatus);
@@ -192,7 +204,7 @@ class OrderService
         }
 
         // Bloquear edici�n de pedidos ya finalizados.
-        if (in_array($existingOrder->status, [OrderStatus::COMPLETED, OrderStatus::CANCELLED], true)) {
+        if (in_array($existingOrder->status, [OrderStatus::COMPLETED, OrderStatus::CANCELLED, OrderStatus::REFUNDED, OrderStatus::FAILED], true)) {
             throw ValidationException::withMessages(['cart' => 'No se puede modificar un pedido ya finalizado.']);
         }
 
@@ -235,9 +247,10 @@ class OrderService
      * @param  array<int, array<string, mixed>>  $cart
      * @return array{total: float, products: Collection}
      */
-    public function validateCart(array $cart, $user, bool $enforceStock = true): array
+    public function validateCart(array $cart, $user, bool $enforceStock = true, bool $checkPriceDrift = true): array
     {
         $total = 0;
+        $drifted = [];
         $productIds = array_column($cart, 'product_id');
         $products = Product::whereIn('id', $productIds)->get()->keyBy('id');
 
@@ -258,8 +271,11 @@ class OrderService
             }
 
             $currentPrice = $user->getProductPrice($product);
-            if (abs((float) $item['price'] - (float) $currentPrice) > 0.01) {
-                throw ValidationException::withMessages(['cart' => "El precio de {$item['name']} ha cambiado ($ ".number_format($currentPrice, 2).'). Por favor verifique su carrito.']);
+            if ($checkPriceDrift && abs((float) $item['price'] - (float) $currentPrice) > 0.01) {
+                // Registrar el desvío y seguir: al final se actualizan todos los
+                // precios en sesión (el usuario no queda bloqueado item por item).
+                Session::put("cart.{$item['product_id']}.price", $currentPrice);
+                $drifted[] = ['name' => $item['name'], 'price' => $currentPrice];
             }
 
             $orderedQuantity = (int) $item['quantity'];
@@ -271,6 +287,22 @@ class OrderService
                 $orderedQuantity
             );
             $total += $line['subtotal'];
+        }
+
+        if ($drifted) {
+            // Sincronizar el carrito con los precios nuevos sin destruirlo.
+            $this->persistCartFile();
+
+            if (count($drifted) === 1) {
+                $message = "El precio de {$drifted[0]['name']} ha cambiado ($ ".number_format($drifted[0]['price'], 2).'). Por favor verifique su carrito.';
+            } else {
+                $message = 'Hubo cambios de precio en el carrito ('.implode(', ', array_map(
+                    fn (array $d) => $d['name'].' $ '.number_format($d['price'], 2),
+                    $drifted
+                )).'). Por favor verifique su carrito.';
+            }
+
+            throw ValidationException::withMessages(['cart' => $message]);
         }
 
         if ($total == 0) {
@@ -312,7 +344,7 @@ class OrderService
     {
         try {
             $adminEmail = SettingsHelper::settings('order_placed_mail');
-            $userEmail = current_user()?->email;
+            $userEmail = $order->user?->email ?? current_user()?->email;
 
             if ($userEmail) {
                 $mail = Mail::to($userEmail);
@@ -325,6 +357,21 @@ class OrderService
             }
         } catch (\Exception $e) {
             Log::error('Error enviando correo de orden ('.($isAlt ? 'Alt' : 'Normal').'): '.$e->getMessage());
+        }
+    }
+
+    /**
+     * Guarda el estado actual de la sesión del carrito en su archivo JSON.
+     */
+    protected function persistCartFile(): void
+    {
+        $cartId = current_user_cart_id();
+
+        if ($cartId) {
+            file_put_contents(
+                storage_path('app/private/'.$cartId.'_cart.json'),
+                json_encode(Session::get('cart'))
+            );
         }
     }
 

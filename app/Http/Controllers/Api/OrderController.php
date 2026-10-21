@@ -46,7 +46,14 @@ class OrderController extends Controller
             'status' => ['required', Rule::enum(OrderStatus::class)],
         ]);
 
-        $order->update(['status' => $request->status]);
+        $target = OrderStatus::from($request->status);
+        if ($target !== $order->status && ! $order->status->canTransitionTo($target)) {
+            return response()->json([
+                'message' => "Transición inválida: {$order->status->value} → {$target->value}.",
+            ], 422);
+        }
+
+        $order->update(['status' => $target]);
 
         return response()->json([
             'message' => 'Estado del pedido '.$order->id.' => '.$request->status.': OK',
@@ -91,6 +98,13 @@ class OrderController extends Controller
             ], 400);
         }
 
+        $finishedStatuses = [OrderStatus::COMPLETED, OrderStatus::CANCELLED, OrderStatus::REFUNDED, OrderStatus::FAILED];
+        if (in_array($order->status, $finishedStatuses, true)) {
+            return response()->json([
+                'message' => 'No se puede modificar un pedido ya finalizado.',
+            ], 422);
+        }
+
         try {
             DB::transaction(function () use ($request, $order) {
                 $order->items()->delete();
@@ -98,37 +112,34 @@ class OrderController extends Controller
                 $total = 0;
                 $productIds = array_column($request->items, 'product_id');
                 $products = Product::whereIn('id', $productIds)->get()->keyBy('id');
+                $orderUser = $order->user;
+
+                if (! $orderUser) {
+                    throw new \DomainException('El pedido no tiene un cliente asociado.');
+                }
 
                 foreach ($request->items as $item) {
                     $product = $products->get($item['product_id']);
-                    $orderUser = $order->user;
                     $orderedQuantity = (int) $item['quantity'];
 
-                    // Precio 0 = producto sin precio: no se vende.
-                    if ($product && $orderUser && ! app(PriceListService::class)->isSellable(app(PriceListService::class)->resolveListId($orderUser), $product)) {
-                        throw new \Exception("El producto {$product->description} no está disponible para la venta.");
+                    if (! $product) {
+                        throw new \DomainException("El producto ID {$item['product_id']} ya no está disponible.");
                     }
 
-                    if ($product && $orderUser) {
-                        $line = app(PriceListService::class)->calculateLine(
-                            app(PriceListService::class)->resolveListId($orderUser),
-                            $product,
-                            $orderedQuantity
-                        );
-                        $order->items()->create([
-                            'product_id' => $item['product_id'],
-                            'quantity' => $orderedQuantity,
-                            'price' => $line['unit_price'],
-                        ]);
-                        $total += $line['subtotal'];
-                    } else {
-                        $order->items()->create([
-                            'product_id' => $item['product_id'],
-                            'quantity' => $orderedQuantity,
-                            'price' => $item['price'],
-                        ]);
-                        $total += (float) $item['price'] * $orderedQuantity;
+                    $listId = app(PriceListService::class)->resolveListId($orderUser);
+
+                    // Precio 0 = producto sin precio: no se vende.
+                    if (! app(PriceListService::class)->isSellable($listId, $product)) {
+                        throw new \DomainException("El producto {$product->description} no está disponible para la venta.");
                     }
+
+                    $line = app(PriceListService::class)->calculateLine($listId, $product, $orderedQuantity);
+                    $order->items()->create([
+                        'product_id' => $item['product_id'],
+                        'quantity' => $orderedQuantity,
+                        'price' => $line['unit_price'],
+                    ]);
+                    $total += $line['subtotal'];
                 }
 
                 $order->update(['total_price' => $total]);
@@ -138,6 +149,8 @@ class OrderController extends Controller
                 'message' => 'Productos del pedido '.$order->id.' actualizados: OK',
                 'order' => $order->load('items.product'),
             ], 200);
+        } catch (\DomainException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
         } catch (\Exception $e) {
             Log::error('Error actualizando productos de orden API: '.$e->getMessage());
 

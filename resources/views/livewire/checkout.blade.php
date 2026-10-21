@@ -61,12 +61,23 @@ new class extends Component {
             return redirect('/');
         }
         
+        $currentUser = current_user();
+        if (session()->has('updateOrder')) {
+            $isAlt = \Illuminate\Support\Facades\Auth::guard('alt')->check();
+            $orderModel = $isAlt ? \App\Models\AltOrder::class : \App\Models\Order::class;
+            $existingOrder = $orderModel::find(session()->get('updateOrder'));
+            if ($existingOrder && $existingOrder->user) {
+                $currentUser = $existingOrder->user;
+            }
+        }
+
         $this->cart_content = session()->get('cart');
         $this->total = 0;
 
         $productIds = array_column($this->cart_content, 'product_id');
         $products = \App\Models\Product::whereIn('id', $productIds)->get()->keyBy('id');
         $priceListService = app(\App\Services\PriceListService::class);
+        $listId = $priceListService->resolveListId($currentUser);
 
         foreach ($this->cart_content as $productId => $item) {
             $product = $products->get($item['product_id']);
@@ -74,7 +85,7 @@ new class extends Component {
             $billableQuantity = $priceListService->calculateBillableQuantity($product, $orderedQuantity);
 
             $line = $priceListService->calculateLine(
-                $priceListService->resolveListId(current_user()),
+                $listId,
                 $product,
                 $orderedQuantity
             );
@@ -88,8 +99,7 @@ new class extends Component {
             $this->total += $itemSubtotal;
         }
 
-        // data address & city take from auth user
-        $currentUser = current_user();
+        // data address & city take from resolved user
         $this->data['sending_address'] = $currentUser->address;
         $this->data['sending_city'] = $currentUser->city . ' (' . $currentUser->postal_code . ')';
         

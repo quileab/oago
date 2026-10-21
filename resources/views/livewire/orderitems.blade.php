@@ -15,7 +15,8 @@ new class extends Component {
         $this->order = \App\Models\Order::with('items.product')->findOrFail($orderId);
         $real = real_user();
         $acting = current_user();
-        abort_if($this->order->user_id !== $acting?->id && $this->order->user_id !== $real?->id && $real?->role?->value !== 'admin', 403, 'Unauthorized');
+        $isManagedBySales = $real?->role?->value === 'sales' && $real->getManagedCustomersQuery()->whereKey($this->order->user_id)->exists();
+        abort_if($this->order->user_id !== $acting?->id && $this->order->user_id !== $real?->id && $real?->role?->value !== 'admin' && ! $isManagedBySales, 403, 'Unauthorized');
         $this->items = $this->order->items->toArray();
     }
 
@@ -24,17 +25,20 @@ new class extends Component {
     {
         // Rearmar el carrito con los items del pedido
         $cartItems = [];
+        $targetUser = $this->order->user ?? current_user();
         $priceService = app(\App\Services\PriceListService::class);
+        $listId = $priceService->resolveListId($targetUser);
+
         foreach ($this->items as $item) {
             // obtener el precio actualizado del producto según el usuario
             $prodModel = \App\Models\Product::find($item['product_id']);
             if ($prodModel) {
-                $item['price'] = current_user()?->getProductPrice($prodModel) ?? $item['price'];
+                $item['price'] = $targetUser?->getProductPrice($prodModel) ?? $item['price'];
                 $item['name'] = $item['product']['description'] ?? $prodModel->description;
             }
 
             // Precio 0 = producto sin precio: no se vende, se excluye del carrito.
-            if (! $prodModel || ! $priceService->isSellable($priceService->resolveListId(current_user()), $prodModel)) {
+            if (! $prodModel || ! $priceService->isSellable($listId, $prodModel)) {
                 continue;
             }
 
@@ -77,6 +81,10 @@ new class extends Component {
         $resolved = \App\Enums\OrderStatus::tryFrom($status);
         if (! $resolved) {
             $this->error('Estado inválido.', position: 'toast-bottom');
+            return;
+        }
+        if ($resolved !== $this->order->status && ! $this->order->status->canTransitionTo($resolved)) {
+            $this->error('Transición de estado no permitida.', position: 'toast-bottom');
             return;
         }
         $this->order->status = $resolved;
@@ -127,16 +135,14 @@ new class extends Component {
         <div>
             <h3 class="text-2xl"><small class="text-primary">Estado:</small>
                 {{ \App\Models\Order::orderStates($order->status) }}</h3>
-            {{-- Si el estado no es completado poder cambiar el estado --}}
-            @if($order->status->value !== 'completed' && real_user()?->role?->value == 'admin')
+            {{-- Si tiene transiciones permitidas y es admin poder cambiar el estado --}}
+            @if(count($order->status->allowedTransitions()) > 0 && real_user()?->role?->value == 'admin')
                 <x-dropdown label="Cambiar Estado" icon="o-arrow-path-rounded-square" class="btn-primary w-full mt-2">
-                    @foreach(['pending', 'processing', 'on-hold', 'completed', 'cancelled'] as $statusOption)
-                        @if($statusOption !== $order->status->value)
-                            <x-menu-item title="{{ \App\Models\Order::orderStates($statusOption) }}"
-                                wire:click="changeStatus('{{ $statusOption }}')"
-                                wire:confirm="¿Está seguro de cambiar el estado a {{ \App\Models\Order::orderStates($statusOption) }}?"
-                                spinner="changeStatus('{{ $statusOption }}')" />
-                        @endif
+                    @foreach($order->status->allowedTransitions() as $statusOption)
+                        <x-menu-item title="{{ $statusOption->label() }}"
+                            wire:click="changeStatus('{{ $statusOption->value }}')"
+                            wire:confirm="¿Está seguro de cambiar el estado a {{ $statusOption->label() }}?"
+                            spinner="changeStatus('{{ $statusOption->value }}')" />
                     @endforeach
                 </x-dropdown>
             @endif

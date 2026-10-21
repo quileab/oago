@@ -27,6 +27,8 @@ new class extends Component {
         'processing' => 'Procesando',
         'completed' => 'Completado',
         'cancelled' => 'Cancelado',
+        'refunded' => 'Reembolsado',
+        'failed' => 'Fallido',
     ];
 
     public function clear(): void
@@ -96,11 +98,21 @@ new class extends Component {
         return $query->paginate(20);
     }
 
-    public function updateStatus($orderId, $status)
+    public function updateStatus($orderId, $status): void
     {
+        abort_unless(real_user()?->role?->value === 'admin', 403);
+        $resolved = \App\Enums\OrderStatus::tryFrom((string) $status);
+        if (! $resolved) {
+            $this->error('Estado inválido.', position: 'toast-bottom');
+            return;
+        }
         $order = AltOrder::findOrFail($orderId);
-        $order->update(['status' => $status]);
-        $this->success("Pedido #{$orderId} actualizado a " . AltOrder::orderStates($status));
+        if ($resolved !== $order->status && ! $order->status->canTransitionTo($resolved)) {
+            $this->error('Transición de estado no permitida.', position: 'toast-bottom');
+            return;
+        }
+        $order->update(['status' => $resolved->value]);
+        $this->success("Pedido #{$orderId} actualizado a " . AltOrder::orderStates($resolved));
     }
 
     public function with(): array

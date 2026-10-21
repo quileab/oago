@@ -103,8 +103,21 @@ class Cart extends Component
     public function updateQuantity($productId, $quantity)
     {
         $cart = Session::get('cart', []);
-        if (isset($cart[$productId])) {
+        if (isset($cart[$productId]) && $user = current_user()) {
+            $productModel = Product::find($productId);
+
+            // Precio 0 = producto sin precio: dejó de venderse, se saca del carrito.
+            if (! $productModel || ! app(PriceListService::class)->isSellable(app(PriceListService::class)->resolveListId($user), $productModel)) {
+                unset($cart[$productId]);
+                $this->error('El producto ya no está disponible para la venta. Se retiró del carrito.');
+                $this->updateCartAndNotify($cart);
+
+                return;
+            }
+
             $cart[$productId]['quantity'] = max(1, (int) $quantity);
+            $cart[$productId]['price'] = $user->getProductPrice($productModel);
+
             $this->updateCartAndNotify($cart);
         }
     }

@@ -27,6 +27,27 @@ enum OrderStatus: string
         };
     }
 
+    /**
+     * Estados a los que se puede pasar desde el actual.
+     *
+     * @return array<int, OrderStatus>
+     */
+    public function allowedTransitions(): array
+    {
+        return match ($this) {
+            self::SAVED, self::ON_HOLD => [self::PENDING, self::CANCELLED],
+            self::PENDING => [self::PROCESSING, self::ON_HOLD, self::COMPLETED, self::CANCELLED],
+            self::PROCESSING => [self::COMPLETED, self::CANCELLED, self::ON_HOLD, self::FAILED],
+            self::COMPLETED => [self::REFUNDED],
+            self::CANCELLED, self::REFUNDED, self::FAILED => [],
+        };
+    }
+
+    public function canTransitionTo(self $target): bool
+    {
+        return in_array($target, $this->allowedTransitions(), true);
+    }
+
     public function color(): string
     {
         return match ($this) {

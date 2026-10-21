@@ -5,7 +5,6 @@
 namespace App\Services;
 
 use App\Helpers\SettingsHelper;
-use App\Models\AltUser;
 use App\Models\ListPrice;
 use App\Models\Product;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -130,11 +129,10 @@ class ProductSearchService
         $showPricesToGuests = (bool) SettingsHelper::settings('show_prices_to_guests', false);
         $defaultGuestListId = $showPricesToGuests ? (int) SettingsHelper::settings('alt_user_default_price', 0) : 0;
 
-        if ($user instanceof AltUser && ! $user->list_id) {
-            $targetListId = (int) SettingsHelper::settings('alt_user_default_price', 0) ?: $defaultGuestListId;
-        } else {
-            $targetListId = $user?->list_id ?: $defaultGuestListId;
-        }
+        $priceService = app(PriceListService::class);
+        $targetListId = $user
+            ? (int) ($priceService->resolveListId($user) ?? 0)
+            : $defaultGuestListId;
 
         if (! $targetListId) {
             foreach ($products as $product) {
@@ -146,7 +144,6 @@ class ProductSearchService
             return;
         }
 
-        $priceService = app(PriceListService::class);
         $baseListId = $priceService->resolveBaseListId($targetListId);
 
         // Cargar precios base en una sola consulta

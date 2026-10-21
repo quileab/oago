@@ -65,10 +65,10 @@ class CustomerApiController extends Controller
 
         // Enriquecer productos con el precio efectivo del usuario
         $priceService = app(PriceListService::class);
-        $products->getCollection()->transform(function ($product) use ($user, $priceService) {
-            $listId = $user->list_id ?? 0;
-            $basePrice = $priceService->getEffectivePrice($listId, $product->id, true) ?? (float) ($product->price ?? 0);
-            $promoPrice = $priceService->getEffectivePrice($listId, $product->id, false);
+        $listId = $priceService->resolveListId($user);
+        $products->getCollection()->transform(function ($product) use ($listId, $priceService) {
+            $basePrice = $priceService->getBasePrice($listId, $product);
+            $promoPrice = $priceService->getPromoPrice($listId, $product, $basePrice);
 
             if ($promoPrice !== null && $promoPrice < $basePrice) {
                 $product->price = $promoPrice;
@@ -271,9 +271,9 @@ class CustomerApiController extends Controller
             return response()->json(['message' => 'Producto no encontrado'], 404);
         }
         $priceService = app(PriceListService::class);
-        $listId = $user->list_id ?? 0;
-        $basePrice = $priceService->getEffectivePrice($listId, $product->id, true) ?? (float) ($product->price ?? 0);
-        $promoPrice = $priceService->getEffectivePrice($listId, $product->id, false);
+        $listId = $priceService->resolveListId($user);
+        $basePrice = $priceService->getBasePrice($listId, $product);
+        $promoPrice = $priceService->getPromoPrice($listId, $product, $basePrice);
         if ($promoPrice !== null && $promoPrice < $basePrice) {
             $product->price = $promoPrice;
             $product->base_price = $basePrice;

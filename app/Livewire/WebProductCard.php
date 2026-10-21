@@ -67,7 +67,10 @@ class WebProductCard extends Component
         $priceService = app(PriceListService::class);
         $showPricesToGuests = (bool) SettingsHelper::settings('show_prices_to_guests', false);
         $defaultGuestListId = $showPricesToGuests ? (int) SettingsHelper::settings('alt_user_default_price', 0) : 0;
-        $listId = current_user()?->list_id ?? $defaultGuestListId;
+        $currentUser = current_user();
+        $listId = $currentUser
+            ? (int) ($priceService->resolveListId($currentUser) ?? 0)
+            : $defaultGuestListId;
 
         $basePrice = $this->local_product['base_price']
             ?? ($productModel && $listId ? $priceService->getEffectivePrice($listId, $productModel->id, true) : null)

@@ -56,8 +56,12 @@ new class extends Component {
         $isAdmin = $real?->role?->value === 'admin';
         if (!$isAdmin) {
             if ($real?->role?->value === 'sales') {
-                $ids = $real->getManagedCustomersQuery()->pluck('id');
-                $query->whereIn('user_id', $ids->isEmpty() ? [0] : $ids);
+                if ($user && $user->id !== $real->id) {
+                    $query->where('user_id', $user->id);
+                } else {
+                    $ids = $real->getManagedCustomersQuery()->pluck('id');
+                    $query->whereIn('user_id', $ids->isEmpty() ? [0] : $ids);
+                }
             } else {
                 $query->where('user_id', $user->id);
             }

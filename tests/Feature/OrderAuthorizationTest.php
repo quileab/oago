@@ -127,7 +127,7 @@ it('lets only an admin change an alt order status', function () {
     $this->actingAs($admin);
 
     Volt::test('alt-orderitems', ['orderId' => $altOrder->id])
-        ->call('changeStatus', 'completed');
+        ->call('changeStatus', 'pending');
 
-    expect($altOrder->fresh()->status)->toBe(OrderStatus::COMPLETED);
+    expect($altOrder->fresh()->status)->toBe(OrderStatus::PENDING);
 });

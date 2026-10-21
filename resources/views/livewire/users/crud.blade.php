@@ -62,13 +62,28 @@ new class extends Component {
             'formData.is_internal' => 'boolean',
         ]);
 
+        $data = $validated['formData'];
+        $tempPassword = null;
+        if (empty($this->formData['id'])) {
+            $tempPassword = \Illuminate\Support\Str::random(16);
+            $data['password'] = $tempPassword;
+        }
+
         User::updateOrCreate(
             ['id' => $this->formData['id'] ?? null],
-            $validated['formData']
+            $data
         );
 
-        $this->success('Usuario guardado correctamente.', position: 'toast-bottom');
-        $this->redirect('/users', navigate: true);
+        $message = 'Usuario guardado correctamente.';
+        if ($tempPassword !== null) {
+            $message = "Usuario creado. Contraseña temporal: {$tempPassword} — comuníquela al usuario o defínala desde acciones adicionales.";
+        }
+        $this->success($message, position: 'toast-bottom');
+
+        // En el alta no navegamos todavía: el admin necesita leer la contraseña temporal.
+        if ($tempPassword === null) {
+            $this->redirect('/users', navigate: true);
+        }
     }
 
     public function changePassword(): void

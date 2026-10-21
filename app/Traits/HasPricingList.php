@@ -18,8 +18,9 @@ trait HasPricingList
     {
         $priceService = app(PriceListService::class);
         $listId = $priceService->resolveListId($this);
-        $price = $priceService->getEffectivePrice((int) ($listId ?? 0), $product->id, false);
+        $basePrice = $priceService->getBasePrice($listId, $product);
+        $promoPrice = $priceService->getPromoPrice($listId, $product, $basePrice);
 
-        return $price ?? (float) ($product->price ?? 0);
+        return $promoPrice ?? $basePrice;
     }
 }
