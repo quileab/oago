@@ -22,4 +22,10 @@
         </div>
         <div id="topProductsChart" wire:ignore></div>
     </div>
+
+    <div class="flex flex-wrap justify-end gap-2 mt-8 text-sm">
+        <span class="badge badge-soft">Laravel {{ app()->version() }}</span>
+        <span class="badge badge-soft">PHP {{ phpversion() }}</span>
+        <span class="badge badge-soft">Workers: {{ config('queue.default') }}</span>
+    </div>
 </div>
