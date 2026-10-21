@@ -759,13 +759,14 @@ Existing tests (do **not** delete without approval):
 - `/page/{slug}` verificado: las páginas de tema ya envuelven su contenido en `<x-layouts.clean>`; se agregó `ThemePageTest` como regresión (200 con `<html>` y 404 para slug inexistente).
 - Índice compuesto `products (featured, updated_at)` para el orden por defecto del catálogo (migración 2026_10_20_210653, **aplicada en prod**; EXPLAIN la usa sin filesort).
 - **Historial de migraciones de prod consistente**: las 6 migraciones "fantasma" (`create_alt_users`, `create_alt_orders`, `create_alt_order_items`, `show_prices_to_guests`, `create_tags`, `migrate_product_tags_to_relational`) quedaron registradas como ejecutadas (batch 7) tras auditar que sus tablas/columnas/setting ya existían. `migrate:status` = 0 pendientes y `migrate` responde "Nothing to migrate". Backup en `/home/oagostini/backups/migrations-history-20261020/`.
+- **`APP_URL` de prod corregido** (`http://localhost` → `https://oagostini.com.ar`): verificado que el mail de bienvenida de AltUser (generado por el worker, sin request) sale con el link `https://oagostini.com.ar/activate-account/{token}`, activación end-to-end OK. Backup del `.env`: `/home/oagostini/backups/env-20261020/.env.bak`. Requiere `queue:restart` porque los workers cachean config al arrancar.
 
 ### Abierto
 1. **Probar importación de ZIP de tema >2 MB en Theme Manager.** El error "El importFile no se pudo subir" se causó por `upload_max_filesize=2M` en el PHP de Herd. Se editó `C:\Users\quile\.config\herd\bin\php84\php.ini` (64M/64M). Verificar que Herd no revirtió los procesos/ini y que un ZIP de ~7 MB sube bien. Nota: `.user.ini` en `public/` NO funciona con Herd.
 2. **Deuda estructural del catálogo (Opción B):** una tarjeta = un componente Livewire. Los payload guards altos son un parche; la cura es una sola grilla Livewire con tarjetas Blade.
 3. **Trampa de estados en `OrderService`:** `if (status !== 'pending') → 'on-hold'` convierte silenciosamente cualquier estado en "En espera". El botón "Guardar para después" del carrito crea órdenes `on-hold` reales que el cliente puede confundir con un pedido confirmado. Definir UX/semántica antes de tocar.
 4. **Editar un pedido pisa el estado:** `updateOrCreate` del checkout reescribe `status` a `pending`, borrando un `processing`/`completed` que haya puesto el admin.
-5. **`APP_URL=localhost` en el `.env` de prod** — afecta URLs absolutas, mails y links de activación de AltUser.
+5. **El "Enviar correo de bienvenida" del admin manda un link de activación roto.** `users/alts/crud.blade.php::sendWelcomeEmail()` no genera ni persiste `activation_token` y encola `new AltUserWelcomeMail($user, $password)` sin el tercer parámetro → el mail sale con `/activate-account/` sin token (404). El registro público (`register.blade.php:119-131`) sí genera token y está OK. Fix: generar `Str::random(60)`, guardarlo y pasarlo al mail.
 6. **Deploys manuales por scp** no ejecutan `livewire:publish --assets`; `MakeDeployZip` sí lo hace. Usar siempre el ZIP o agregar el paso al checklist manual.
 
 
