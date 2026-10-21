@@ -38,14 +38,6 @@ function draftCartItem(Product $product, int $quantity = 1): array
     ];
 }
 
-function draftShipping(): array
-{
-    return [
-        'sending_method' => 'Envío a cargo de la Empresa a Dirección Registrada',
-        'payment_method' => 'Contado / Efectivo',
-    ];
-}
-
 it('saves the cart as a draft without sending mail and clears the cart', function () {
     Mail::fake();
 

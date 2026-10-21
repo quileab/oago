@@ -70,6 +70,19 @@ function makeProduct(array $overrides = []): Product
 }
 
 /**
+ * Minimum shipping payload that placeOrder() accepts in tests.
+ *
+ * @return array<string, string>
+ */
+function draftShipping(): array
+{
+    return [
+        'sending_method' => 'Envío a cargo de la Empresa a Dirección Registrada',
+        'payment_method' => 'Contado / Efectivo',
+    ];
+}
+
+/**
  * Attach tags by their display name, the way the admin and the API do.
  *
  * @param  array<int, string>  $names

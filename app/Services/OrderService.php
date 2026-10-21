@@ -235,7 +235,7 @@ class OrderService
      * @param  array<int, array<string, mixed>>  $cart
      * @return array{total: float, products: Collection}
      */
-    protected function validateCart(array $cart, $user, bool $enforceStock = true): array
+    public function validateCart(array $cart, $user, bool $enforceStock = true): array
     {
         $total = 0;
         $productIds = array_column($cart, 'product_id');
