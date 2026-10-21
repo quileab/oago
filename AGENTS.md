@@ -481,9 +481,17 @@ Defined in `config/default_settings.php` and provisioned via `php artisan app:sy
 5. `ProductSearchService::hydratePrices()` — bulk loads list prices for paginated results (N+1 prevention).
 6. `User::getProductPrice(Product)` (via `HasPricingList`) — single product lookup.
 
+**Regla de precio 0 (regla de negocio, CRÍTICO):**
+- **Precio efectivo = primer valor `> 0`** de (lista del usuario → `product->price`). **Precio 0 = el producto NO se vende.**
+- `PriceListService::isSellable($listId?'|User, Product)` : bool — el único criterio de vendibilidad.
+- Guardas server-side en: `Cart::onAddToCart`, `OrderService::validateCart`, API (crear/actualizar pedido: `CustomerApiController`, `OrderController` — los items guardan `unit_price` recalculado server-side) y `WebProductCard::buy()`; además `loadCart` en `orderitems`/`alt-orderitems` filtra ítems devenidos invendibles.
+- Usuarios sin `list_id` (p. ej. AltUsers): fallback a `alt_user_default_price` setting → lista; si tampoco tiene precio, `product->price`.
+- Promo en lista promocional con `price = 0` = **sin oferta** (los `price=0` históricos son datos de prueba; NO son "gratis").
+
 **Bonus/offer system:**
 - `Product::bonus_threshold > 0` AND `bonus_amount > 0` → quantity offer active.
-- Billable qty = ordered qty − free units (calculated in `Cart` and `OrderService`).
+- Billable qty = ordered qty − free units (centralizado en `PriceListService::calculateBillableQuantity()`; usado por `Cart`, `checkout` y `OrderService`).
+- Contrato de totales: `order.total_price` = suma exacta de subtotales (bulto + sueltas); el ítem guardado lleva el **unitario promedio** (round 2) → desvío máximo ±0.01/línea. Tests: `PricingConsistencyTest`.
 
 ---
 
@@ -707,7 +715,13 @@ new #[Layout('components.layouts.clean')] #[Title('Mi Página')] class extends C
 ### Test Coverage (`tests/Feature/`)
 
 Existing tests (do **not** delete without approval):
-`ApiOrderUpdateTest`, `AuthSecurityTest`, `CartDeepTest`, `CartPersistenceTest`, `CheckoutTest`, `ComponentTest`, `CustomerSalesAgentTest`, `ImageProxySecurityTest`, `OrderStatusValidationTest`, `OrderTotalConsistencyTest`, `OrderValidationTest`, `PermissionsTest`, `ProductSearchServiceTest`, `RateLimitingTest`, `UserControllerEscalationTest`, `WebProductsMainTest` + `tests/Feature/Api/`
+`ApiOrderUpdateTest`, `AltUserWelcomeMailTest`, `AuthSecurityTest`, `CartDeepTest`, `CartPersistenceTest`, `CheckoutTest`, `ComponentTest`, `CustomerSalesAgentTest`, `ImageProxySecurityTest`, `ImpersonationPricingTest`, `OnHoldResumeTest`, `OrderAuthorizationTest`, `OrderMailContentTest`, `OrderSavedStateTest`, `OrderStatusValidationTest`, `OrderTotalConsistencyTest`, `OrderValidationTest`, `PermissionsTest`, `PricingConsistencyTest`, `PrintRouteTest`, `ProductSearchServiceTest`, `RateLimitingTest`, `ThemeProviderTest`, `ThemePageTest`, `UserControllerEscalationTest`, `WebProductsMainTest` + `tests/Feature/Api/` (161 tests / 430 assertions, 2026-10-21).
+
+Notas de infraestructura de tests:
+- Helpers globales en `tests/Pest.php`: `makeProduct()`, `draftShipping()`, `draftCartItem()`.
+- `OrderService::validateCart()` es **public** (se testea directamente).
+- Los `abort()` dentro de acciones de Volt/Livewire se capturan, no reexcepcionan: el patrón de aserción es `Volt::test(...)->call(...)->assertForbidden()` (la llamada se delega a la `TestResponse`). `ValidationException` sí reexcepciona (`->toThrow(ValidationException::class)`).
+- `order_items`/`alt_order_items` tienen FK `onDelete cascade` hacia `products`: **borrar un producto borra sus ítems históricos**; `OrderMail` renderiza error-safe sin filas (asumido en `OrderMailContentTest`).
 
 ---
 
@@ -746,6 +760,10 @@ Existing tests (do **not** delete without approval):
 > Borrar de acá lo que se vaya cerrando.
 
 ### Cerrado recientemente (no reabrir)
+- **Regla precio 0 no vendible** (`PriceListService::isSellable`) con guardas server-side en `Cart`, `OrderService`, API de pedidos y `WebProductCard`; fallback `alt_user_default_price` para users sin lista; promo `price=0` = sin oferta. Validado contra datos reales de prod en local + smoke.
+- **UI de carrito**: precio actual grande + "Anterior" tachado (core + temas `encendido`, `encendidorqta`).
+- **Paletas dark legibles**: overrides scopeados (`[data-theme="light"]` vs `:root:not([data-theme="light"])`) en core y temas; encendido `#9fc1ff`, encendidorqta `#ff9668`.
+- **Suite de regresión ampliada**: `PricingConsistencyTest` (contrato de totales/centavos), `OrderAuthorizationTest` (authz en `orderitems`/`alt-orderitems`), `ImpersonationPricingTest` (precios por lista del cliente + limpieza de carrito al cambiar cliente), `PrintRouteTest`, `OnHoldResumeTest`, `OrderMailContentTest`. Total: 161 tests / 430 assertions.
 - Rate limiting con excepción de IPs de confianza (web + API) — deployado y verificado.
 - Guard anti-backlog de mails (`order_mail_stale_days`) + worker supervisor con `stopwaitsecs`/`--timeout`.
 - Vendor alineado a Laravel 13 / Livewire 4 / Pest 4 en producción.
@@ -765,8 +783,9 @@ Existing tests (do **not** delete without approval):
 - **Comparaciones enum en vistas corregidas**: `$order->status == 'on-hold'` comparaba un enum contra string y siempre daba false (el botón "Retomar Pedido" nunca aparecía); ahora se usa `->value` en `orderitems`, `alt-orderitems` (core y tema `encendido`).
 
 ### Abierto
-1. **Probar importación de ZIP de tema >2 MB en Theme Manager.** El error "El importFile no se pudo subir" se causó por `upload_max_filesize=2M` en el PHP de Herd. Se editó `C:\Users\quile\.config\herd\bin\php84\php.ini` (64M/64M). Verificar que Herd no revirtió los procesos/ini y que un ZIP de ~7 MB sube bien. Nota: `.user.ini` en `public/` NO funciona con Herd.
-2. **Deuda estructural del catálogo (Opción B):** una tarjeta = un componente Livewire. Los payload guards altos son un parche; la cura es una sola grilla Livewire con tarjetas Blade.
-3. **Deploys manuales por scp** no ejecutan `livewire:publish --assets`; `MakeDeployZip` sí lo hace. Usar siempre el ZIP o agregar el paso al checklist manual.
+1. **Deploy del lote 2026-10-21 a prod (pendiente de autorización explícita).** Incluye: guard precio 0 (`f663b75`), carrito UI (`4fc4b87`), paletas dark (`3e941b3`, `751d62a`), suite de regresión (`cfa3b5e`) y resto de commits locales en `dev` (rama ~19 commits adelante). Checklist de deploy: backup + md5, `npm run build` en prod (CSS requiere build; `public/build` está en `.gitignore`), `optimize:clear`, `view:cache`, `queue:restart`.
+2. **Probar importación de ZIP de tema >2 MB en Theme Manager.** El error "El importFile no se pudo subir" se causó por `upload_max_filesize=2M` en el PHP de Herd. Se editó `C:\Users\quile\.config\herd\bin\php84\php.ini` (64M/64M). Verificar que Herd no revirtió los procesos/ini y que un ZIP de ~7 MB sube bien. Nota: `.user.ini` en `public/` NO funciona con Herd.
+3. **Deuda estructural del catálogo (Opción B):** una tarjeta = un componente Livewire. Los payload guards altos son un parche; la cura es una sola grilla Livewire con tarjetas Blade.
+4. **Deploys manuales por scp** no ejecutan `livewire:publish --assets`; `MakeDeployZip` sí lo hace. Usar siempre el ZIP o agregar el paso al checklist manual.
 
 
