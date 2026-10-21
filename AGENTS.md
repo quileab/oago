@@ -756,15 +756,15 @@ Existing tests (do **not** delete without approval):
 - Payload guards de Livewire elevados (`max_components=1000`, `max_size=4MB`) para el catálogo por tarjeta.
 - Bonus también centralizado en `checkout.blade.php` (ya no queda copia de la fórmula).
 - **Suite de tests en verde**: 120 tests / 338 assertions (se agregó `RefreshDatabase` donde faltaba, se actualizaron los tests de listas "U" —comportamiento legacy eliminado— y `db:export` ahora es driver-safe para sqlite).
+- `/page/{slug}` verificado: las páginas de tema ya envuelven su contenido en `<x-layouts.clean>`; se agregó `ThemePageTest` como regresión (200 con `<html>` y 404 para slug inexistente).
+- Índice compuesto `products (featured, updated_at)` para el orden por defecto del catálogo (migración 2026_10_20_210653).
 
 ### Abierto
 1. **Probar importación de ZIP de tema >2 MB en Theme Manager.** El error "El importFile no se pudo subir" se causó por `upload_max_filesize=2M` en el PHP de Herd. Se editó `C:\Users\quile\.config\herd\bin\php84\php.ini` (64M/64M). Verificar que Herd no revirtió los procesos/ini y que un ZIP de ~7 MB sube bien. Nota: `.user.ini` en `public/` NO funciona con Herd.
-2. **`GET /page/{slug}` no respeta el `#[Layout]` Volt.** `routes/web.php` hace `return view($view)` y la página sale sin estilos/`<head>`. Solución: montar los `pages/` del tema vía componente Volt (`VoltServiceProvider`).
-3. **Deuda estructural del catálogo (Opción B):** una tarjeta = un componente Livewire. Los payload guards altos son un parche; la cura es una sola grilla Livewire con tarjetas Blade.
-4. **Trampa de estados en `OrderService`:** `if (status !== 'pending') → 'on-hold'` convierte silenciosamente cualquier estado en "En espera". El botón "Guardar para después" del carrito crea órdenes `on-hold` reales que el cliente puede confundir con un pedido confirmado. Definir UX/semántica antes de tocar.
-5. **Editar un pedido pisa el estado:** `updateOrCreate` del checkout reescribe `status` a `pending`, borrando un `processing`/`completed` que haya puesto el admin.
-6. **Índice compuesto `(featured, updated_at)`** para el orden por defecto del catálogo (no crítico con 3.286 productos).
-7. **`APP_URL=localhost` en el `.env` de prod** — afecta URLs absolutas, mails y links de activación de AltUser.
-8. **Deploys manuales por scp** no ejecutan `livewire:publish --assets`; `MakeDeployZip` sí lo hace. Usar siempre el ZIP o agregar el paso al checklist manual.
+2. **Deuda estructural del catálogo (Opción B):** una tarjeta = un componente Livewire. Los payload guards altos son un parche; la cura es una sola grilla Livewire con tarjetas Blade.
+3. **Trampa de estados en `OrderService`:** `if (status !== 'pending') → 'on-hold'` convierte silenciosamente cualquier estado en "En espera". El botón "Guardar para después" del carrito crea órdenes `on-hold` reales que el cliente puede confundir con un pedido confirmado. Definir UX/semántica antes de tocar.
+4. **Editar un pedido pisa el estado:** `updateOrCreate` del checkout reescribe `status` a `pending`, borrando un `processing`/`completed` que haya puesto el admin.
+5. **`APP_URL=localhost` en el `.env` de prod** — afecta URLs absolutas, mails y links de activación de AltUser.
+6. **Deploys manuales por scp** no ejecutan `livewire:publish --assets`; `MakeDeployZip` sí lo hace. Usar siempre el ZIP o agregar el paso al checklist manual.
 
 
