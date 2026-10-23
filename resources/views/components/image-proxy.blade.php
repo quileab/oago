@@ -1,5 +1,7 @@
+@props(['url' => null, 'fallback' => null])
+
 @php
-    $fallbackUrl = asset('imgs/fallback.webp');
+    $fallbackUrl = $fallback ?? asset('imgs/fallback.webp');
     $currentHost = parse_url(config('app.url'), PHP_URL_HOST);
     $requestHost = request()->getHost();
     $urlHost = $url ? parse_url($url, PHP_URL_HOST) : null;
@@ -17,8 +19,22 @@
     if (!$isExternal && $url) {
         $parsedUrl = parse_url($url, PHP_URL_PATH);
         if ($parsedUrl) {
-            $localPath = public_path(ltrim($parsedUrl, '/'));
-            if (!file_exists($localPath)) {
+            $path = ltrim($parsedUrl, '/');
+            $exists = false;
+
+            // Primero verificar si pertenece al disco público de Storage
+            if (str_starts_with($path, 'storage/')) {
+                $storagePath = substr($path, strlen('storage/'));
+                $exists = \Illuminate\Support\Facades\Storage::disk('public')->exists($storagePath);
+            }
+
+            // Si no o no se encontró, verificar con public_path
+            if (!$exists) {
+                $localPath = public_path($path);
+                $exists = file_exists($localPath);
+            }
+
+            if (!$exists) {
                 $displayUrl = $fallbackUrl;
             }
         }

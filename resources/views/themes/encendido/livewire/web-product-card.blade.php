@@ -38,8 +38,12 @@
 
         {{-- Image — full width top with grey bg --}}
         <a href="./?product_id={{ $product->id }}" class="block relative bg-[#e5e7eb] flex items-center justify-center p-4" style="aspect-ratio: 4/4;">
+            @php
+                $encendidoFallback = $isCibat ? asset('imgs/Logos/logo_cibat.png') : asset('imgs/Logos/ER50.png');
+            @endphp
             @if($product->image_url)
                 <x-image-proxy url="{{ $product->image_url }}"
+                    fallback="{{ $encendidoFallback }}"
                     class="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105 {{ $product->stock == 0 ? 'opacity-30 grayscale' : '' }}" />
             @else
                 <div class="flex flex-col items-center justify-center text-gray-400 opacity-50 select-none">

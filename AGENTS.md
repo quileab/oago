@@ -383,6 +383,32 @@ alt_users ─ same structure as users ─── alt_orders ── alt_order_item
 `Setting`:
 - `key`, `value`, `type` (`number|boolean|json|string`), `text`, `description`
 
+### Manejo y Renderizado de Imágenes de Productos (CRÍTICO)
+
+1. **Rutas y Almacenamiento**:
+   - Las imágenes de productos se almacenan como WebP optimizado en la estructura hash de caché:
+     `storage/app/public/image_cache/{p1}/{p2}/{hash}.webp` (donde `$hash = md5($url)` o nombre base).
+   - En la base de datos, `products.image_url` almacena la ruta relativa pública, ej: `/storage/image_cache/81/08/81085b133bff2706d147dcbbe9e0a2fc.webp`.
+   - Las galerías adicionales del producto residen en `storage/app/public/products/{id}/` y se resuelven vía `$product->media`.
+
+2. **Renderizado en Vistas y Temas**:
+   - **Siempre usar `<x-image-proxy>`** para renderizar imágenes de productos o URLs externas:
+     ```blade
+     <x-image-proxy url="{{ $product->image_url }}" fallback="{{ $logoFallback }}" class="..." />
+     ```
+   - **Regla Multiplataforma (Mac / Linux / Windows / Docker)**:
+     Nunca asumas que `file_exists(public_path('storage/...'))` funcionará en todos los entornos, ya que en macOS y contenedores los enlaces simbólicos (*symlinks*) pueden comportarse de forma distinta o no resolverse en tiempo de ejecución.
+     Por ello, `<x-image-proxy>` comprueba `Storage::disk('public')->exists(...)` antes de recurrir a `public_path()`, previniendo que se dispare falsamente el fallback.
+   - **En el Carrito (`cart.blade.php`)**:
+     Siempre priorizar `$item['product_model']?->image_url`. Solo si este es nulo se recurre a la URL legacy de Regente como fallback secundario.
+   - **Soporte de Fallback por Tema**:
+     `<x-image-proxy>` acepta el atributo `fallback="..."` (ej. logos corporativos Cibat o Encendido en temas personalizados como `encendidorqta`). Si no se suministra, usa `/imgs/fallback.webp`.
+
+3. **Herramientas de Importación**:
+   - `App\Services\ImageImportService`: Servicio central para procesar carpetas locales, extraer códigos de producto mediante regex, convertir a WebP (resolución máx. 1200px) y asociar a `products.image_url`.
+   - Comando: `php artisan app:import-product-images {path} [--strategy=regex] [--regex=...] [--quality=80] [--batch-size=50]`
+   - Panel Web: `/admin/products/import-images` (Livewire Volt SFC) con persistencia de preferencias en sesión por usuario.
+
 ---
 
 ### Tags de Productos (CRÍTICO)
