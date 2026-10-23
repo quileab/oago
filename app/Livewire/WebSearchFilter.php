@@ -64,14 +64,27 @@ class WebSearchFilter extends Component
         $referer = request()->headers->get('referer');
         if ($referer) {
             $path = parse_url($referer, PHP_URL_PATH) ?? '/';
+            $query = parse_url($referer, PHP_URL_QUERY) ?? '';
             $basePath = parse_url(url('/'), PHP_URL_PATH) ?? '/';
 
-            if ($path === $basePath || $path === $basePath.'/') {
-                return; // Ya estamos en la página principal, no es necesario recargar
+            parse_str($query, $queryParams);
+            $hasProductId = isset($queryParams['product_id']) || request()->has('product_id');
+
+            // Si estamos en la página principal y NO hay un product_id en la URL/referer, no redirigir
+            if (($path === $basePath || $path === $basePath.'/') && ! $hasProductId) {
+                return;
             }
         }
 
-        $this->redirect('/', navigate: true);
+        $params = array_filter([
+            'search' => $this->search,
+            'category' => $this->category,
+            'brand' => $this->brand,
+            'tag' => $this->tag,
+        ]);
+
+        $url = empty($params) ? '/' : '/?'.http_build_query($params);
+        $this->redirect($url, navigate: true);
     }
 
     public function clearSearch()

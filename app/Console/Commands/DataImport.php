@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\Product;
 use App\Models\Tag;
 use Illuminate\Console\Command;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
@@ -19,23 +20,55 @@ class DataImport extends Command
 
     public function handle()
     {
-        $sqlFiles = array_map('basename', File::glob(base_path('*.sql')) ?: []);
-
-        if (! empty($sqlFiles)) {
-            $this->info('Archivos .sql disponibles en la raíz:');
-            foreach ($sqlFiles as $file) {
-                $this->line(" - $file");
-            }
-            $this->newLine();
-        }
-
         $fileName = $this->argument('file');
 
         if (! $fileName) {
-            $fileName = $this->ask('¿Cuál es el nombre del archivo SQL a importar?', 'source.sql');
+            $discoveredFiles = array_unique(array_merge(
+                File::glob(base_path('*.sql')) ?: [],
+                File::glob(database_path('*.sql')) ?: [],
+                File::glob(database_path('dumps/*.sql')) ?: []
+            ));
+
+            // Ordenar por fecha de modificación más reciente primero
+            usort($discoveredFiles, function ($a, $b) {
+                return filemtime($b) <=> filemtime($a);
+            });
+
+            if (! empty($discoveredFiles)) {
+                $labels = [];
+                $lookup = [];
+
+                foreach ($discoveredFiles as $path) {
+                    $relPath = str_replace([base_path().DIRECTORY_SEPARATOR, base_path().'/'], '', $path);
+                    $size = $this->formatFileSize(filesize($path));
+                    $date = Carbon::createFromTimestamp(filemtime($path))->format('Y-m-d H:i');
+                    $label = sprintf('%-30s | %8s | %s', $relPath, $size, $date);
+
+                    $labels[] = $label;
+                    $lookup[$label] = $relPath;
+                }
+
+                $manualOption = '✍️  Ingresar nombre o ruta manualmente...';
+                $labels[] = $manualOption;
+
+                $choice = $this->choice(
+                    'Seleccione el archivo SQL a importar (ingrese el número)',
+                    $labels,
+                    0
+                );
+
+                if ($choice === $manualOption) {
+                    $fileName = $this->ask('¿Cuál es el nombre o ruta del archivo SQL a importar?', 'source.sql');
+                } else {
+                    $fileName = $lookup[$choice] ?? $choice;
+                }
+            } else {
+                $fileName = $this->ask('¿Cuál es el nombre o ruta del archivo SQL a importar?', 'source.sql');
+            }
         }
 
-        $filePath = base_path($fileName);
+        $isAbsolute = str_starts_with($fileName, '/') || (DIRECTORY_SEPARATOR === '\\' && preg_match('/^[a-zA-Z]:[\\\\\/]/', $fileName));
+        $filePath = $isAbsolute ? $fileName : base_path($fileName);
 
         if (! File::exists($filePath)) {
             $this->error("✘ Archivo base no encontrado: $filePath");
@@ -50,7 +83,12 @@ class DataImport extends Command
         $this->warn("🗄️  Base de datos destino: $dbName");
         $this->newLine();
 
-        if (! $this->confirm('⚠️  Esto puede sobrescribir datos en la base de datos "'.$dbName.'". ¿Continuar?', true)) {
+        $confirmed = $this->confirm(
+            "⚠️  Esto puede sobrescribir datos en la base de datos \"{$dbName}\". ¿Desea continuar?",
+            true
+        );
+
+        if (! $confirmed) {
             $this->info('Operación cancelada.');
 
             return 0;
@@ -500,5 +538,14 @@ class DataImport extends Command
             'contact_name' => $clean($cName), 'phone' => $clean($phone),
             'shipping_status' => 'pending', 'created_at' => now(), 'updated_at' => now(),
         ]);
+    }
+
+    private function formatFileSize(int|float $bytes): string
+    {
+        $units = ['B', 'KB', 'MB', 'GB'];
+        $power = $bytes > 0 ? floor(log($bytes, 1024)) : 0;
+        $power = min($power, count($units) - 1);
+
+        return number_format($bytes / pow(1024, $power), 2).' '.$units[$power];
     }
 }

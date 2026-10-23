@@ -1,0 +1,10 @@
+$kind: http-request
+name: Delete Product Media Gallery
+method: DELETE
+url: '{{base_url}}/api/products/{{product_id}}/media'
+order: 6060
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{token}}'

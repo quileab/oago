@@ -48,7 +48,7 @@
                             @foreach ($cart as $item)
                                 <tr class="even:bg-slate-200/70 odd:bg-slate-100 border-b border-slate-200">
                                     <td class="text-center w-20">
-                                        <x-image-proxy url="{{ config('services.regente.base_url') . $item['product_id'] . '.jpg' }}"
+                                        <x-image-proxy url="{{ $item['product_model']?->image_url ?? (config('services.regente.base_url') . $item['product_id'] . '.jpg') }}"
                                             alt="{{ $item['product_id'] }}" class="w-16 h-16 object-cover rounded border border-slate-300 bg-white" />
                                     </td>
                                     <td class="font-medium text-slate-800">

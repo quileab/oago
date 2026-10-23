@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\ProductRequest;
 use App\Models\Product;
+use App\Services\ImageImportService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 
 class ProductController extends Controller
@@ -140,7 +142,7 @@ class ProductController extends Controller
     public function uploadImage(Request $request, Product $product): JsonResponse
     {
         $request->validate([
-            'image' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'image' => 'required|image|mimes:jpeg,png,jpg,gif,svg,webp|max:5120',
         ]);
 
         if ($request->hasFile('image')) {
@@ -159,6 +161,94 @@ class ProductController extends Controller
         }
 
         return response()->json(['message' => 'No se pudo subir la imagen'], 500);
+    }
+
+    /**
+     * Subir múltiples imágenes para la galería de un producto.
+     *
+     * Almacena las imágenes en `storage/app/public/products/{product_id}/`,
+     * purga la caché de medios `product_media_{id}` y la caché de optimización de imágenes.
+     *
+     * @response array{message: string, product_id: int, uploaded_count: int, files: array<int, string>, media: array<int, array<string, mixed>>}
+     */
+    public function uploadMedia(Request $request, Product $product, ImageImportService $importService): JsonResponse
+    {
+        $request->validate([
+            /** Lista de archivos de imagen para la galería del producto. */
+            'images' => 'required|array|min:1',
+            'images.*' => 'image|mimes:jpeg,png,jpg,gif,svg,webp|max:10240',
+            /** Si es verdadero, elimina todas las imágenes anteriores de la galería antes de agregar las nuevas. */
+            'clean_previous' => 'nullable|boolean',
+            /** Si es verdadero, establece la primera imagen subida como la imagen de portada principal del producto. */
+            'set_first_as_cover' => 'nullable|boolean',
+        ]);
+
+        $directory = "products/{$product->id}";
+
+        // Si se solicita limpiar las anteriores, se borra el contenido de la carpeta de extras
+        if ($request->boolean('clean_previous')) {
+            $existingFiles = Storage::disk('public')->files($directory);
+            foreach ($existingFiles as $file) {
+                $this->deleteImageCache($file);
+            }
+            Storage::disk('public')->deleteDirectory($directory);
+        }
+
+        $uploadedPaths = [];
+        $files = $request->file('images', []);
+        $setAsCover = $request->boolean('set_first_as_cover');
+
+        foreach ($files as $index => $file) {
+            $imageIndex = ($index === 0 && $setAsCover) ? 1 : ($index + 2);
+            $result = $importService->processSingleImage(
+                filePath: $file->getRealPath(),
+                productId: $product->id,
+                imageIndex: $imageIndex,
+                overwrite: true
+            );
+
+            $uploadedPaths[] = str_replace('Guardado en ', '', $result['message']);
+        }
+
+        // Limpiar caché de media del producto y tocar el timestamp
+        Cache::forget("product_media_{$product->id}");
+        $product->touch();
+
+        return response()->json([
+            'message' => 'Imágenes subidas y asociadas a la galería correctamente en formato WebP',
+            'product_id' => $product->id,
+            'uploaded_count' => count($uploadedPaths),
+            'files' => $uploadedPaths,
+            'media' => $product->fresh()->media,
+        ], 200);
+    }
+
+    /**
+     * Eliminar la galería de imágenes de un producto.
+     *
+     * Elimina el directorio completo `storage/app/public/products/{product_id}/` y purga las cachés asociadas.
+     *
+     * @response array{message: string, product_id: int}
+     */
+    public function deleteMedia(Request $request, Product $product): JsonResponse
+    {
+        $directory = "products/{$product->id}";
+
+        if (Storage::disk('public')->exists($directory)) {
+            $files = Storage::disk('public')->files($directory);
+            foreach ($files as $file) {
+                $this->deleteImageCache($file);
+            }
+            Storage::disk('public')->deleteDirectory($directory);
+        }
+
+        Cache::forget("product_media_{$product->id}");
+        $product->touch();
+
+        return response()->json([
+            'message' => 'Galería de imágenes eliminada correctamente',
+            'product_id' => $product->id,
+        ], 200);
     }
 
     public function changeVisibility(Request $request, $product): JsonResponse

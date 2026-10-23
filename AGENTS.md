@@ -361,7 +361,13 @@ alt_users ─ same structure as users ─── alt_orders ── alt_order_item
 
 `Product`:
 - `hasBonus()` / `getBonusLabelAttribute()` — e.g. `"23 + 1 off !!"`
-- `getMediaAttribute()` — cached array of images + YouTube thumbnails (`product_media_{id}`, 1 day TTL)
+- `getMediaAttribute()` — cached array of images + YouTube thumbnails (`product_media_{id}`, 1 day TTL). Reads from `storage/app/public/products/{id}/`.
+- Media API: `POST /api/products/{id}/media` (sube múltiples imágenes vía `images[]`, flags `clean_previous`, `set_first_as_cover`), `DELETE /api/products/{id}/media` (elimina galería).
+- Almacenamiento e importación de imágenes:
+  - Estructura hash estándar en caché WebP: `storage/app/public/image_cache/{p1}/{p2}/{hash}.webp` (compatible con `ImageProxyController` y la API).
+  - Servicio `App\Services\ImageImportService`: procesamiento masivo local con extracción por regex, redimensionamiento/conversión WebP y asignación automática a `products.image_url`.
+  - Comando Artisan: `php artisan app:import-product-images {path} [--strategy=...] [--regex=...] [--quality=80] [--batch-size=50]`
+  - Interfaz web administrativa: Volt SFC en `/admin/products/import-images` con persistencia de preferencias por usuario y reporte de progreso por lotes.
 - `qtty_package` — package size for bulk pricing
 - `published`, `featured`, `visibility` — display control
 - Cache cleared on `save` / `delete` via model boot

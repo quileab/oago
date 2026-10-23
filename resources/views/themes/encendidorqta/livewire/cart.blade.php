@@ -53,7 +53,7 @@
                                     <div class="shrink-0 w-20 h-20 md:w-16 md:h-16 flex justify-center md:mx-auto" x-data="{ isFallback: false }">
                                         <div class="w-full h-full rounded-md overflow-hidden border border-slate-200"
                                             x-bind:class="isFallback ? 'bg-gray-100 p-2' : 'bg-white p-1'">
-                                            <x-image-proxy url="{{ config('services.regente.base_url') . $item['product_id'] . '.jpg' }}"
+                                            <x-image-proxy url="{{ $item['product_model']?->image_url ?? (config('services.regente.base_url') . $item['product_id'] . '.jpg') }}"
                                                 fallback="{{ $fallbackLogo }}"
                                                 alt="{{ $item['product_id'] }}" 
                                                 class="w-full h-full object-contain"

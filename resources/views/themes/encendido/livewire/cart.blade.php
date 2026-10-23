@@ -49,7 +49,7 @@
                                     {{-- Image --}}
                                     <div class="shrink-0 w-20 h-20 md:w-16 md:h-16 flex justify-center md:mx-auto">
                                         <div class="w-full h-full rounded-md overflow-hidden border border-base-200 bg-white">
-                                            <x-image-proxy url="{{ config('services.regente.base_url') . $item['product_id'] . '.jpg' }}"
+                                            <x-image-proxy url="{{ $item['product_model']?->image_url ?? (config('services.regente.base_url') . $item['product_id'] . '.jpg') }}"
                                                 alt="{{ $item['product_id'] }}" class="w-full h-full object-contain" />
                                         </div>
                                     </div>

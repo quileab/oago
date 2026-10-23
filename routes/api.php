@@ -45,6 +45,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('products/{product}', [ProductController::class, 'update']);
         Route::delete('products/{product}', [ProductController::class, 'destroy']);
         Route::post('products/{product}/upload-image', [ProductController::class, 'uploadImage']);
+        Route::post('products/{product}/media', [ProductController::class, 'uploadMedia']);
+        Route::delete('products/{product}/media', [ProductController::class, 'deleteMedia']);
         Route::put('products/{product}/visibility', [ProductController::class, 'changeVisibility']);
 
         // Rutas de Listas de Precios

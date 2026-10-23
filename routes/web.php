@@ -115,6 +115,33 @@ Route::middleware(['auth', 'check_guest'])->group(function () {
     Volt::route('/alt/{id?}', 'users.alts.crud')->middleware('is_admin');
     Volt::route('/alt-users/create', 'users.alts.crud')->middleware('is_admin'); // New route for adding alt user
     Volt::route('/products', 'products.index')->middleware('is_admin');
+    Volt::route('/products/import-images', 'products.import-images')->middleware('is_admin');
+    Route::get('/admin/import-images/preview', function (Request $request) {
+        $path = $request->query('path');
+        if (! $path || ! file_exists($path)) {
+            abort(404);
+        }
+
+        // Permitir solo extensiones de imagen seguras
+        $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+        $allowed = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+        if (! in_array($ext, $allowed, true)) {
+            abort(403);
+        }
+
+        $mime = match ($ext) {
+            'jpg', 'jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+            'webp' => 'image/webp',
+            'gif' => 'image/gif',
+            default => 'application/octet-stream',
+        };
+
+        return response()->file($path, [
+            'Content-Type' => $mime,
+            'Cache-Control' => 'private, max-age=3600',
+        ]);
+    })->name('admin.import-images.preview')->middleware('is_admin');
     Volt::route('/products/extras', 'products.extras')->middleware('is_admin');
     Volt::route('/products/lists', 'products.lists')->middleware('is_admin');
     Volt::route('/product/{id?}', 'products.crud')->middleware('is_admin');
