@@ -248,11 +248,12 @@ new class extends Component
             return;
         }
 
-        // Delete image if exists
+        // Delete main image and extra media in image_cache
         if ($this->product->image_url) {
             $path = str_replace([Storage::disk('public')->url(''), '/storage/'], '', $this->product->image_url);
             Storage::disk('public')->delete($path);
         }
+        app(\App\Services\ImageImportService::class)->deleteProductMedia($this->product->id, includeMain: true);
 
         $this->product->listPrices()->delete();
         $this->product->delete();
@@ -262,63 +263,34 @@ new class extends Component
 
     private function processExtraMedia(Product $product)
     {
-        $directory = "products/{$product->id}";
+        $importService = app(\App\Services\ImageImportService::class);
+        $nextExtraIdx = $importService->getNextExtraIndex($product->id);
 
-        if (! Storage::disk('public')->exists($directory)) {
-            Storage::disk('public')->makeDirectory($directory);
-        }
-
-        // 1. Determinar el siguiente índice disponible
-        $files = Storage::disk('public')->files($directory);
-        $maxIndex = 0;
-        foreach ($files as $file) {
-            $name = basename($file);
-            if (preg_match('/extra-(\d+)\./', $name, $matches)) {
-                $maxIndex = max($maxIndex, (int) $matches[1]);
-            }
-        }
-
-        // 2. Procesar fotos extras
-        // Livewire puede devolver un objeto solo si es un archivo, o array si son varios
+        // 1. Procesar fotos extras delegando a ImageImportService (image_cache/{p1}/{p2}/{hash}-{idx}.webp)
         $photos = is_array($this->extraPhotos) ? $this->extraPhotos : ($this->extraPhotos ? [$this->extraPhotos] : []);
 
         foreach ($photos as $photo) {
             try {
-                $maxIndex++;
-                $tmpPath = $photo->getRealPath();
-                $imageContent = file_get_contents($tmpPath);
-                $image = @imagecreatefromstring($imageContent);
-
-                if ($image !== false) {
-                    imagepalettetotruecolor($image);
-                    imagealphablending($image, true);
-                    imagesavealpha($image, true);
-
-                    $extraFileName = "{$directory}/extra-{$maxIndex}.webp";
-
-                    ob_start();
-                    imagewebp($image, null, 80);
-                    $webpData = ob_get_clean();
-                    imagedestroy($image);
-
-                    if ($webpData) {
-                        Storage::disk('public')->put($extraFileName, $webpData);
-                    }
-                }
+                $importService->processSingleImage(
+                    filePath: $photo->getRealPath(),
+                    productId: $product->id,
+                    imageIndex: $nextExtraIdx + 1,
+                    overwrite: true
+                );
+                $nextExtraIdx++;
             } catch (Exception $e) {
                 $this->error('Error al procesar foto extra: '.$e->getMessage());
             }
         }
 
-        // 3. Procesar videos extras
+        // 2. Procesar videos extras (.url en image_cache)
         foreach ($this->extraVideos as $videoUrl) {
             if (empty($videoUrl)) {
                 continue;
             }
 
-            $maxIndex++;
-            $videoFileName = "{$directory}/extra-{$maxIndex}.url";
-            Storage::disk('public')->put($videoFileName, $videoUrl);
+            $importService->storeExtraVideo($product->id, $videoUrl, $nextExtraIdx);
+            $nextExtraIdx++;
         }
 
         $this->extraPhotos = [];
@@ -357,12 +329,12 @@ new class extends Component
                 imagealphablending($image, true);
                 imagesavealpha($image, true);
 
-                $dir = "products/{$product->id}";
-                if (! Storage::disk('public')->exists($dir)) {
-                    Storage::disk('public')->makeDirectory($dir);
+                $hashed = app(\App\Services\ImageImportService::class)->computeHashedPath((string) $product->id);
+                if (! Storage::disk('public')->exists($hashed['directory'])) {
+                    Storage::disk('public')->makeDirectory($hashed['directory']);
                 }
 
-                $fileName = "{$dir}/main.webp";
+                $fileName = $hashed['storage_path'];
 
                 ob_start();
                 imagewebp($image, null, 80);
@@ -380,7 +352,7 @@ new class extends Component
 
                     Storage::disk('public')->put($fileName, $webpData);
                     $product->update([
-                        'image_url' => '/storage/'.$fileName,
+                        'image_url' => $hashed['public_url'],
                     ]);
                 }
             }

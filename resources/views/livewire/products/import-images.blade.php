@@ -215,10 +215,9 @@ new class extends Component
         <div class="lg:col-span-1 space-y-4">
             <x-card title="Parámetros de Importación" separator shadow class="bg-base-100">
                 <div class="space-y-4">
-                    <x-input label="Carpeta Origen (en public/)" 
+                    <x-input label="Carpeta Origen" 
                              wire:model.live.debounce.400ms="folder" 
-                             prefix="public/" 
-                             hint="Ruta donde se suben las imágenes (ej. imagenes_productos)" />
+                             hint="Ruta absoluta o relativa a public/ (ej. imagenes_productos o C:\mis_imagenes)" />
 
                     <x-select label="Campo Identificador" 
                               wire:model.live="field" 
@@ -427,7 +426,7 @@ new class extends Component
                 @else
                     <div class="text-center py-12 text-base-content/60">
                         <x-icon name="o-photo" class="w-12 h-12 mx-auto mb-2 opacity-30" />
-                        <p class="font-medium">No se detectaron imágenes en <code>public/{{ $folder }}</code>.</p>
+                        <p class="font-medium">No se detectaron imágenes en <code>{{ $folder }}</code>.</p>
                         <p class="text-xs opacity-70 mt-1">Sube archivos a esa carpeta y pulsa "Actualizar Escaneo".</p>
                     </div>
                 @endif

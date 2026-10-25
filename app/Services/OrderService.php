@@ -75,6 +75,7 @@ class OrderService
             // Un borrador no exige stock: es solo un carrito aparcado.
             $validatedData = $this->validateCart($cart, $user, enforceStock: ! $isDraft, checkPriceDrift: $actorIsOwner);
             $total = $validatedData['total'];
+            $products = $validatedData['products'];
 
             $status = $this->resolveStatusForPersistence($existingOrder, $requestedStatus);
 
@@ -82,7 +83,7 @@ class OrderService
             $shippingData['user_id'] = $user->id;
             $shippingData['status'] = $status->value;
 
-            $orderCreated = DB::transaction(function () use ($isAlt, $updateOrderId, $shippingData, $cart, $user) {
+            $orderCreated = DB::transaction(function () use ($isAlt, $updateOrderId, $shippingData, $cart, $user, $products) {
                 // 1. Crear/Actualizar la Orden
                 $orderModel = $isAlt ? AltOrder::class : Order::class;
                 $userIdField = $isAlt ? 'alt_user_id' : 'user_id';
@@ -110,12 +111,15 @@ class OrderService
 
                 $itemModel::where($orderIdField, $order->id)->delete();
 
+                $priceListService = app(PriceListService::class);
+                $listId = $priceListService->resolveListId($user);
                 $itemsToInsert = [];
+
                 foreach ($cart as $item) {
-                    $product = Product::find($item['product_id']);
+                    $product = $products->get($item['product_id']);
                     $line = $product
-                        ? app(PriceListService::class)->calculateLine(
-                            app(PriceListService::class)->resolveListId($user),
+                        ? $priceListService->calculateLine(
+                            $listId,
                             $product,
                             (int) $item['quantity']
                         )

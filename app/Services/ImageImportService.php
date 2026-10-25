@@ -66,14 +66,20 @@ class ImageImportService
      */
     public function resolveSourcePath(string $folder = 'imagenes_productos'): string
     {
-        $folder = trim($folder, '/\\');
-        $isAbsolute = str_starts_with($folder, '/') || (DIRECTORY_SEPARATOR === '\\' && preg_match('/^[a-zA-Z]:[\\\\\/]/', $folder));
-
-        if ($isAbsolute) {
-            return $folder;
+        $folder = trim($folder);
+        if ($folder === '') {
+            return public_path();
         }
 
-        return public_path($folder);
+        $isAbsolute = str_starts_with($folder, '/')
+            || str_starts_with($folder, '\\')
+            || (DIRECTORY_SEPARATOR === '\\' && preg_match('/^[a-zA-Z]:[\\\\\/]/', $folder));
+
+        if ($isAbsolute) {
+            return rtrim($folder, '/\\');
+        }
+
+        return public_path(trim($folder, '/\\'));
     }
 
     /**
@@ -477,8 +483,8 @@ class ImageImportService
             ];
         }
 
-        // Clave base para el hash: preferir sku o id único del producto
-        $baseKey = $product->sku ?: (string) $product->id;
+        // Clave base para el hash: exclusivamente el ID del producto
+        $baseKey = (string) $product->id;
         $extraIdx = $imageIndex > 1 ? ($imageIndex - 1) : null;
         $hashed = $this->computeHashedPath($baseKey, $extraIdx);
 
@@ -502,24 +508,87 @@ class ImageImportService
         // Guardar en la estructura segmentada image_cache/{p1}/{p2}/
         Storage::disk('public')->put($hashed['storage_path'], $webpData);
 
-        // También guardar en products/{id}/ para máxima redundancia y descubrimiento directo
-        $stableDir = "products/{$productId}";
-        if (! Storage::disk('public')->exists($stableDir)) {
-            Storage::disk('public')->makeDirectory($stableDir);
-        }
-        $stableName = $imageIndex <= 1 ? 'main.webp' : "extra-{$extraIdx}.webp";
-        Storage::disk('public')->put("{$stableDir}/{$stableName}", $webpData);
-
         // Si es la imagen principal, actualizar la columna products.image_url
         if ($imageIndex <= 1) {
             $product->image_url = $hashed['public_url'];
             $product->save();
         }
 
+        // Invalidar caché de medios para reflejar cambios en la galería
+        Cache::forget("product_media_{$productId}");
+
         return [
             'status' => 'imported',
             'message' => "Guardado en {$hashed['public_url']}",
+            'public_url' => $hashed['public_url'],
+            'storage_path' => $hashed['storage_path'],
         ];
+    }
+
+    /**
+     * Determina el siguiente índice extra disponible (1, 2, 3...) para un producto en image_cache.
+     */
+    public function getNextExtraIndex(int $productId): int
+    {
+        $hashed = $this->computeHashedPath((string) $productId);
+        $directory = $hashed['directory'];
+        $hash = $hashed['hash'];
+
+        if (! Storage::disk('public')->exists($directory)) {
+            return 1;
+        }
+
+        $maxIndex = 0;
+        foreach (Storage::disk('public')->files($directory) as $file) {
+            $name = basename($file);
+            if (preg_match('/^'.preg_quote($hash, '/').'-(\d+)\./', $name, $matches)) {
+                $maxIndex = max($maxIndex, (int) $matches[1]);
+            }
+        }
+
+        return $maxIndex + 1;
+    }
+
+    /**
+     * Guarda una URL de video externo (.url) en la galería image_cache del producto.
+     */
+    public function storeExtraVideo(int $productId, string $videoUrl, ?int $extraIndex = null): string
+    {
+        $extraIdx = $extraIndex ?? $this->getNextExtraIndex($productId);
+        $hashed = $this->computeHashedPath((string) $productId);
+        $directory = $hashed['directory'];
+
+        if (! Storage::disk('public')->exists($directory)) {
+            Storage::disk('public')->makeDirectory($directory);
+        }
+
+        $storagePath = "{$directory}/{$hashed['hash']}-{$extraIdx}.url";
+        Storage::disk('public')->put($storagePath, trim($videoUrl));
+
+        Cache::forget("product_media_{$productId}");
+
+        return $storagePath;
+    }
+
+    /**
+     * Elimina los archivos de galería de un producto en image_cache ({hash}-* y opcionalmente la portada {hash}.webp).
+     */
+    public function deleteProductMedia(int $productId, bool $includeMain = false): void
+    {
+        $hashed = $this->computeHashedPath((string) $productId);
+        $directory = $hashed['directory'];
+        $hash = $hashed['hash'];
+
+        if (Storage::disk('public')->exists($directory)) {
+            foreach (Storage::disk('public')->files($directory) as $file) {
+                $name = basename($file);
+                if (str_starts_with($name, "{$hash}-") || ($includeMain && $name === "{$hash}.webp")) {
+                    Storage::disk('public')->delete($file);
+                }
+            }
+        }
+
+        Cache::forget("product_media_{$productId}");
     }
 
     /**

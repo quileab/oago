@@ -29,10 +29,56 @@ class Product extends Model
     {
         static::saved(function (Product $product) {
             Cache::forget("product_media_{$product->id}");
+            static::clearCatalogFiltersCache();
         });
 
         static::deleted(function (Product $product) {
             Cache::forget("product_media_{$product->id}");
+            static::clearCatalogFiltersCache();
+        });
+    }
+
+    public static function clearCatalogFiltersCache(): void
+    {
+        Cache::forget('catalog.categories');
+        Cache::forget('catalog.brands');
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public static function getCachedCategories(): array
+    {
+        return Cache::remember('catalog.categories', 3600, function () {
+            return self::query()
+                ->where('published', 1)
+                ->where('visibility', '!=', 'hidden')
+                ->where('category', '!=', '')
+                ->distinct()
+                ->orderBy('category')
+                ->pluck('category')
+                ->filter()
+                ->values()
+                ->all();
+        });
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public static function getCachedBrands(): array
+    {
+        return Cache::remember('catalog.brands', 3600, function () {
+            return self::query()
+                ->where('published', 1)
+                ->where('visibility', '!=', 'hidden')
+                ->where('brand', '!=', '')
+                ->distinct()
+                ->orderBy('brand')
+                ->pluck('brand')
+                ->filter()
+                ->values()
+                ->all();
         });
     }
 
@@ -55,39 +101,26 @@ class Product extends Model
                 ];
             }
 
-            // 2. Buscar archivos en la carpeta estable del producto
-            $stableDirectory = "products/{$this->id}";
-            $stableFiles = [];
-            if (Storage::disk('public')->exists($stableDirectory)) {
-                $stableFiles = Storage::disk('public')->files($stableDirectory);
+            // 2. Buscar archivos adicionales relacionados en image_cache ({hash}-1.webp, {hash}-2.url, etc.)
+            $relatedFiles = [];
+            $path = str_replace(['/storage/', Storage::disk('public')->url('')], '', $this->image_url);
+            $directory = dirname($path);
+            $filename = basename($path);
+            $baseName = pathinfo($filename, PATHINFO_FILENAME);
+
+            if ($directory !== '.' && Storage::disk('public')->exists($directory)) {
+                $files = Storage::disk('public')->files($directory);
+                $relatedFiles = array_filter($files, function ($file) use ($baseName, $filename) {
+                    $name = basename($file);
+
+                    return str_starts_with($name, $baseName.'-') && $name !== $filename;
+                });
             }
 
-            // 3. Fallback: buscar archivos en la carpeta antigua (si la imagen principal es local)
-            $oldRelatedFiles = [];
-            if ($this->image_url && ! str_starts_with($this->image_url, '/storage/products/'.$this->id.'/')) {
-                $path = str_replace(['/storage/', Storage::disk('public')->url('')], '', $this->image_url);
-                $directory = dirname($path);
-                $filename = basename($path);
-                $baseName = pathinfo($filename, PATHINFO_FILENAME);
-
-                if ($directory !== '.' && Storage::disk('public')->exists($directory)) {
-                    $files = Storage::disk('public')->files($directory);
-                    $oldRelatedFiles = array_filter($files, function ($file) use ($baseName, $filename) {
-                        $name = basename($file);
-
-                        return str_starts_with($name, $baseName.'-') && $name !== $filename;
-                    });
-                }
-            }
-
-            // Combinar archivos (excluyendo la imagen principal si ya está en stableFiles)
-            $allRelatedFiles = array_unique(array_merge($stableFiles, $oldRelatedFiles));
-
-            // Si la imagen principal es local y está en la carpeta estable, ya está en el primer lugar
-            // Debemos evitar duplicarla en la lista de extras
+            // Excluir la imagen principal si ya está en la lista de extras
             $mainStoragePath = $this->image_url ? str_replace(['/storage/', Storage::disk('public')->url('')], '', $this->image_url) : null;
 
-            $allRelatedFiles = array_filter($allRelatedFiles, fn ($file) => $file !== $mainStoragePath);
+            $allRelatedFiles = array_filter($relatedFiles, fn ($file) => $file !== $mainStoragePath);
             sort($allRelatedFiles);
 
             foreach ($allRelatedFiles as $file) {

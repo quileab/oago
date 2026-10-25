@@ -2,7 +2,7 @@
 
 namespace App\Livewire;
 
-use Illuminate\Support\Facades\DB;
+use App\Models\Product;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Mary\Traits\Toast;
@@ -32,26 +32,15 @@ class WebSearchFilter extends Component
 
     public function mount()
     {
-        // Get unique categories and brands as an array of objects with id and name
-        $this->categories = DB::table('products')
-            ->select('category')
-            ->where('published', 1)
-            ->where('category', '!=', '')
-            ->distinct()
-            ->orderBy('category')
-            ->get()
-            ->map(fn ($item) => ['id' => $item->category, 'category' => $item->category])
-            ->toArray();
+        $this->categories = array_map(
+            fn (string $category) => ['id' => $category, 'category' => $category],
+            Product::getCachedCategories()
+        );
 
-        $this->brands = DB::table('products')
-            ->select('brand')
-            ->where('published', 1)
-            ->where('brand', '!=', '')
-            ->distinct()
-            ->orderBy('brand')
-            ->get()
-            ->map(fn ($item) => ['id' => $item->brand, 'brand' => $item->brand])
-            ->toArray();
+        $this->brands = array_map(
+            fn (string $brand) => ['id' => $brand, 'brand' => $brand],
+            Product::getCachedBrands()
+        );
     }
 
     public function render()

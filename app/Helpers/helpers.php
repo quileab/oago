@@ -31,7 +31,14 @@ if (! function_exists('current_user')) {
         if ($user->role->value === 'sales') {
             $actingId = session('sales_acting_as_customer_id');
             if ($actingId) {
-                return User::find($actingId) ?? $user;
+                static $cachedCustomers = [];
+                $key = (int) $actingId;
+
+                if (! array_key_exists($key, $cachedCustomers)) {
+                    $cachedCustomers[$key] = User::find($key);
+                }
+
+                return $cachedCustomers[$key] ?? $user;
             }
         }
 

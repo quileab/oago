@@ -144,11 +144,9 @@ class ProductSearchService
             return;
         }
 
-        $baseListId = $priceService->resolveBaseListId($targetListId);
-
         // Cargar precios base en una sola consulta
         $listPrices = ListPrice::query()
-            ->where('list_id', $baseListId)
+            ->where('list_id', $targetListId)
             ->whereIn('product_id', $products->pluck('id'))
             ->get()
             ->keyBy('product_id');
@@ -156,7 +154,7 @@ class ProductSearchService
         // Si la lista principal no es la de invitados pero faltan precios y showPricesToGuests está activo,
         // cargar los precios de la lista por defecto de invitados como fallback
         $fallbackListPrices = collect();
-        if ($showPricesToGuests && $defaultGuestListId && $defaultGuestListId !== $baseListId) {
+        if ($showPricesToGuests && $defaultGuestListId && $defaultGuestListId !== $targetListId) {
             $fallbackListPrices = ListPrice::query()
                 ->where('list_id', $defaultGuestListId)
                 ->whereIn('product_id', $products->pluck('id'))
@@ -167,7 +165,7 @@ class ProductSearchService
         // Cargar precios de promoción en una sola consulta
         $promoListId = (int) SettingsHelper::settings('promo_list_id');
         $promoListPrices = collect();
-        if ($promoListId && $promoListId !== $baseListId) {
+        if ($promoListId && $promoListId !== $targetListId) {
             $promoListPrices = ListPrice::query()
                 ->where('list_id', $promoListId)
                 ->whereIn('product_id', $products->pluck('id'))
@@ -204,11 +202,6 @@ class ProductSearchService
             $product->promo_price = $promoPrice;
             $product->user_price = ($promoPrice !== null && $promoPrice < $basePrice) ? $promoPrice : $basePrice;
         }
-    }
-
-    protected function addUserPriceJoin($query, $user): void
-    {
-        // Este método queda obsoleto con la nueva hidratación masiva
     }
 
     /**

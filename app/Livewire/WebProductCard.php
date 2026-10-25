@@ -40,15 +40,16 @@ class WebProductCard extends Component
         if ($productModel) {
             $raw = $productModel->toArray();
             $raw['tags_array'] = $productModel->tags_array;
+            $attributes = $productModel->getAttributes();
 
             if (isset($product->description_html)) {
                 $raw['description_html'] = $product->description_html;
             }
-            if (isset($product->base_price)) {
-                $raw['base_price'] = $product->base_price;
+            if (array_key_exists('base_price', $attributes)) {
+                $raw['base_price'] = $attributes['base_price'];
             }
-            if (isset($product->promo_price)) {
-                $raw['promo_price'] = $product->promo_price;
+            if (array_key_exists('promo_price', $attributes)) {
+                $raw['promo_price'] = $attributes['promo_price'];
             }
         } else {
             $raw = (array) $product;
@@ -64,31 +65,39 @@ class WebProductCard extends Component
             ])
         );
 
-        $priceService = app(PriceListService::class);
-        $showPricesToGuests = (bool) SettingsHelper::settings('show_prices_to_guests', false);
-        $defaultGuestListId = $showPricesToGuests ? (int) SettingsHelper::settings('alt_user_default_price', 0) : 0;
-        $currentUser = current_user();
-        $listId = $currentUser
-            ? (int) ($priceService->resolveListId($currentUser) ?? 0)
-            : $defaultGuestListId;
+        $isPreHydrated = array_key_exists('base_price', $this->local_product)
+            && array_key_exists('promo_price', $this->local_product);
 
-        $basePrice = $this->local_product['base_price']
-            ?? ($productModel && $listId ? $priceService->getEffectivePrice($listId, $productModel->id, true) : null)
-            ?? ($this->local_product['price'] ?? 0);
+        if ($isPreHydrated) {
+            $basePrice = (float) ($this->local_product['base_price'] ?? 0);
+            $promoPrice = $this->local_product['promo_price'];
+        } else {
+            $priceService = app(PriceListService::class);
+            $showPricesToGuests = (bool) SettingsHelper::settings('show_prices_to_guests', false);
+            $defaultGuestListId = $showPricesToGuests ? (int) SettingsHelper::settings('alt_user_default_price', 0) : 0;
+            $currentUser = current_user();
+            $listId = $currentUser
+                ? (int) ($priceService->resolveListId($currentUser) ?? 0)
+                : $defaultGuestListId;
 
-        if ((! $basePrice || $basePrice <= 0) && $showPricesToGuests && $defaultGuestListId) {
-            $productId = $productModel ? $productModel->id : ($this->local_product['id'] ?? 0);
-            if ($productId) {
-                $fallbackPrice = $priceService->getEffectivePrice($defaultGuestListId, $productId, true);
-                if ($fallbackPrice && $fallbackPrice > 0) {
-                    $basePrice = $fallbackPrice;
+            $basePrice = $this->local_product['base_price']
+                ?? ($productModel && $listId ? $priceService->getEffectivePrice($listId, $productModel->id, true) : null)
+                ?? ($this->local_product['price'] ?? 0);
+
+            if ((! $basePrice || $basePrice <= 0) && $showPricesToGuests && $defaultGuestListId) {
+                $productId = $productModel ? $productModel->id : ($this->local_product['id'] ?? 0);
+                if ($productId) {
+                    $fallbackPrice = $priceService->getEffectivePrice($defaultGuestListId, $productId, true);
+                    if ($fallbackPrice && $fallbackPrice > 0) {
+                        $basePrice = $fallbackPrice;
+                    }
                 }
             }
-        }
 
-        $promoPrice = $this->local_product['promo_price']
-            ?? ($productModel && $listId ? $priceService->getEffectivePrice($listId, $productModel->id, false) : null)
-            ?? null;
+            $promoPrice = array_key_exists('promo_price', $this->local_product)
+                ? $this->local_product['promo_price']
+                : ($productModel && $listId ? $priceService->getEffectivePrice($listId, $productModel->id, false) : null);
+        }
 
         if ($promoPrice !== null && $promoPrice < $basePrice) {
             $this->user_price = $basePrice;

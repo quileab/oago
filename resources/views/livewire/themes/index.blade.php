@@ -24,6 +24,8 @@ new class extends Component
 
     public string $search = '';
 
+    public string $selectedCategory = 'all';
+
     public string $newThemeName = '';
 
     public string $newVariantName = '';
@@ -309,6 +311,62 @@ CSS;
         $this->success('Vista revertida. Ahora usa el fallback.');
     }
 
+        private function categorizeView(string $path): array
+    {
+        if (str_starts_with($path, 'errors/')) {
+            return ['id' => 'errors', 'label' => 'Error', 'icon' => 'o-exclamation-triangle', 'color' => 'badge-error text-white'];
+        }
+        if (str_starts_with($path, 'emails/')) {
+            return ['id' => 'emails', 'label' => 'Email', 'icon' => 'o-envelope', 'color' => 'badge-info text-white'];
+        }
+        if (str_starts_with($path, 'components/')) {
+            return ['id' => 'components', 'label' => 'Layout / UI', 'icon' => 'o-rectangle-group', 'color' => 'badge-secondary text-white'];
+        }
+        if (preg_match('#^livewire/(products|users|tags|settings|admin|achievements)/#', $path)) {
+            return ['id' => 'admin', 'label' => 'Admin', 'icon' => 'o-cog-6-tooth', 'color' => 'badge-warning text-black'];
+        }
+        if (str_starts_with($path, 'livewire/')) {
+            return ['id' => 'store', 'label' => 'Tienda', 'icon' => 'o-shopping-bag', 'color' => 'badge-primary text-white'];
+        }
+
+        return ['id' => 'root', 'label' => 'Base / Página', 'icon' => 'o-document-text', 'color' => 'badge-neutral text-white'];
+    }
+
+    public function getCategoriesCountProperty(): array
+    {
+        if (empty($this->selectedTheme)) {
+            return [];
+        }
+
+        $basePath = resource_path('views');
+        $allFiles = File::allFiles($basePath);
+
+        $counts = [
+            'all' => 0,
+            'store' => 0,
+            'admin' => 0,
+            'components' => 0,
+            'emails' => 0,
+            'errors' => 0,
+            'root' => 0,
+        ];
+
+        foreach ($allFiles as $file) {
+            $relativePath = str_replace('\\', '/', $file->getRelativePathname());
+            if (str_starts_with($relativePath, 'themes/')) {
+                continue;
+            }
+
+            $counts['all']++;
+            $category = $this->categorizeView($relativePath);
+            if (isset($counts[$category['id']])) {
+                $counts[$category['id']]++;
+            }
+        }
+
+        return $counts;
+    }
+
     public function getViewsProperty()
     {
         if (empty($this->selectedTheme)) {
@@ -330,6 +388,12 @@ CSS;
                 continue;
             }
 
+            $category = $this->categorizeView($relativePath);
+
+            if ($this->selectedCategory !== 'all' && $category['id'] !== $this->selectedCategory) {
+                continue;
+            }
+
             if ($this->search && stripos($relativePath, $this->search) === false) {
                 continue;
             }
@@ -337,8 +401,14 @@ CSS;
             $themePath = resource_path("views/themes/{$prefix}/{$relativePath}");
             $isOverridden = File::exists($themePath);
 
+            $directory = dirname($relativePath);
+            $fileName = basename($relativePath);
+
             $viewsList[] = [
                 'file' => $relativePath,
+                'directory' => $directory === '.' ? '' : $directory . '/',
+                'filename' => $fileName,
+                'category' => $category,
                 'overridden' => $isOverridden,
             ];
         }
@@ -681,6 +751,61 @@ CSS;
             </div>
 
             <x-card title="Vistas del motor" class="shadow-sm">
+                {{-- Filtro por categorías / tipos --}}
+                <div class="flex flex-wrap items-center gap-1.5 mb-4 p-2 bg-base-200/50 rounded-lg border border-base-300">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-base-content/60 px-2 flex items-center gap-1">
+                        <x-icon name="o-funnel" class="w-3.5 h-3.5" /> Filtrar por:
+                    </span>
+                    <button 
+                        type="button"
+                        wire:click="$set('selectedCategory', 'all')" 
+                        class="btn btn-xs {{ $selectedCategory === 'all' ? 'btn-neutral' : 'btn-ghost' }}"
+                    >
+                        Todos <span class="badge badge-xs">{{ $this->categoriesCount['all'] ?? 0 }}</span>
+                    </button>
+                    <button 
+                        type="button"
+                        wire:click="$set('selectedCategory', 'store')" 
+                        class="btn btn-xs {{ $selectedCategory === 'store' ? 'btn-primary' : 'btn-ghost' }}"
+                    >
+                        <x-icon name="o-shopping-bag" class="w-3.5 h-3.5" /> Tienda <span class="badge badge-xs">{{ $this->categoriesCount['store'] ?? 0 }}</span>
+                    </button>
+                    <button 
+                        type="button"
+                        wire:click="$set('selectedCategory', 'admin')" 
+                        class="btn btn-xs {{ $selectedCategory === 'admin' ? 'btn-warning' : 'btn-ghost' }}"
+                    >
+                        <x-icon name="o-cog-6-tooth" class="w-3.5 h-3.5" /> Admin <span class="badge badge-xs">{{ $this->categoriesCount['admin'] ?? 0 }}</span>
+                    </button>
+                    <button 
+                        type="button"
+                        wire:click="$set('selectedCategory', 'components')" 
+                        class="btn btn-xs {{ $selectedCategory === 'components' ? 'btn-secondary' : 'btn-ghost' }}"
+                    >
+                        <x-icon name="o-rectangle-group" class="w-3.5 h-3.5" /> Layout / UI <span class="badge badge-xs">{{ $this->categoriesCount['components'] ?? 0 }}</span>
+                    </button>
+                    <button 
+                        type="button"
+                        wire:click="$set('selectedCategory', 'emails')" 
+                        class="btn btn-xs {{ $selectedCategory === 'emails' ? 'btn-info' : 'btn-ghost' }}"
+                    >
+                        <x-icon name="o-envelope" class="w-3.5 h-3.5" /> Emails <span class="badge badge-xs">{{ $this->categoriesCount['emails'] ?? 0 }}</span>
+                    </button>
+                    <button 
+                        type="button"
+                        wire:click="$set('selectedCategory', 'errors')" 
+                        class="btn btn-xs {{ $selectedCategory === 'errors' ? 'btn-error' : 'btn-ghost' }}"
+                    >
+                        <x-icon name="o-exclamation-triangle" class="w-3.5 h-3.5" /> Errores <span class="badge badge-xs">{{ $this->categoriesCount['errors'] ?? 0 }}</span>
+                    </button>
+                    <button 
+                        type="button"
+                        wire:click="$set('selectedCategory', 'root')" 
+                        class="btn btn-xs {{ $selectedCategory === 'root' ? 'btn-neutral' : 'btn-ghost' }}"
+                    >
+                        <x-icon name="o-document-text" class="w-3.5 h-3.5" /> Base <span class="badge badge-xs">{{ $this->categoriesCount['root'] ?? 0 }}</span>
+                    </button>
+                </div>
                 <div class="flex flex-col md:flex-row items-center justify-between mb-4 gap-4">
                     <div class="text-sm opacity-70 w-full md:w-auto text-center md:text-left">
                         Mostrando overrides para: <strong>{{ $this->selectedVariant ? "{$selectedTheme} / {$selectedVariant}" : $selectedTheme }}</strong>
@@ -702,7 +827,20 @@ CSS;
                         <tbody>
                             @forelse($this->views as $view)
                                 <tr>
-                                    <td class="font-mono text-sm">{{ $view['file'] }}</td>
+                                    <td>
+                                        <div class="flex items-center gap-2.5">
+                                            <span class="badge badge-sm gap-1 shrink-0 {{ $view['category']['color'] }}">
+                                                <x-icon name="{{ $view['category']['icon'] }}" class="w-3 h-3" />
+                                                <span>{{ $view['category']['label'] }}</span>
+                                            </span>
+                                            <div class="font-mono text-xs sm:text-sm">
+                                                @if($view['directory'])
+                                                    <span class="opacity-50 text-xs">{{ $view['directory'] }}</span>
+                                                @endif
+                                                <span class="font-medium text-base-content">{{ $view['filename'] }}</span>
+                                            </div>
+                                        </div>
+                                    </td>
                                     <td class="text-center">
                                         @if($view['overridden'])
                                             <x-badge value="Sobrescrito" class="badge-success badge-sm" />

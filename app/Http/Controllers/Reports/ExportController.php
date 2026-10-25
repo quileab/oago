@@ -7,7 +7,6 @@ use App\Http\Controllers\Controller;
 use App\Models\ListName;
 use App\Models\Product;
 use App\Models\User;
-use App\Services\PriceListService;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ExportController extends Controller
@@ -22,7 +21,6 @@ class ExportController extends Controller
 
         // Obtener todas las listas de nombres para las columnas
         $listNames = ListName::all();
-        $priceService = app(PriceListService::class);
 
         // get all products
         $products = Product::with(['listPrices', 'tags'])->get();
@@ -52,14 +50,13 @@ class ExportController extends Controller
 
             $pricesByListId = $product->listPrices->keyBy('list_id');
             foreach ($listNames as $list) {
-                $baseListId = $priceService->resolveBaseListId($list->id);
-                $listPriceObj = $pricesByListId->get($baseListId);
+                $listPriceObj = $pricesByListId->get($list->id);
                 $basePrice = ($listPriceObj && (float) $listPriceObj->price > 0)
                     ? (float) $listPriceObj->price
                     : (float) ($product->price ?? 0);
 
                 $effectivePrice = $basePrice;
-                if ($promoListId && $promoListId !== $baseListId) {
+                if ($promoListId && $promoListId !== $list->id) {
                     $promoPriceObj = $pricesByListId->get($promoListId);
                     if ($promoPriceObj && (float) $promoPriceObj->price > 0 && (float) $promoPriceObj->price < $basePrice) {
                         $effectivePrice = (float) $promoPriceObj->price;
@@ -84,7 +81,6 @@ class ExportController extends Controller
 
         // Obtener todas las listas de nombres para las columnas
         $listNames = ListName::all();
-        $priceService = app(PriceListService::class);
 
         // get all products
         $products = Product::with(['listPrices', 'tags'])
@@ -118,14 +114,13 @@ class ExportController extends Controller
 
             $pricesByListId = $product->listPrices->keyBy('list_id');
             foreach ($listNames as $list) {
-                $baseListId = $priceService->resolveBaseListId($list->id);
-                $listPriceObj = $pricesByListId->get($baseListId);
+                $listPriceObj = $pricesByListId->get($list->id);
                 $basePrice = ($listPriceObj && (float) $listPriceObj->price > 0)
                     ? (float) $listPriceObj->price
                     : (float) ($product->price ?? 0);
 
                 $effectivePrice = $basePrice;
-                if ($promoListId && $promoListId !== $baseListId) {
+                if ($promoListId && $promoListId !== $list->id) {
                     $promoPriceObj = $pricesByListId->get($promoListId);
                     if ($promoPriceObj && (float) $promoPriceObj->price > 0 && (float) $promoPriceObj->price < $basePrice) {
                         $effectivePrice = (float) $promoPriceObj->price;

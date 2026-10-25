@@ -361,7 +361,7 @@ alt_users ─ same structure as users ─── alt_orders ── alt_order_item
 
 `Product`:
 - `hasBonus()` / `getBonusLabelAttribute()` — e.g. `"23 + 1 off !!"`
-- `getMediaAttribute()` — cached array of images + YouTube thumbnails (`product_media_{id}`, 1 day TTL). Reads from `storage/app/public/products/{id}/`.
+- `getMediaAttribute()` — cached array of images + YouTube thumbnails (`product_media_{id}`, 1 day TTL). Reads from `storage/app/public/image_cache/{p1}/{p2}/{hash}-*`.
 - Media API: `POST /api/products/{id}/media` (sube múltiples imágenes vía `images[]`, flags `clean_previous`, `set_first_as_cover`), `DELETE /api/products/{id}/media` (elimina galería).
 - Almacenamiento e importación de imágenes:
   - Estructura hash estándar en caché WebP: `storage/app/public/image_cache/{p1}/{p2}/{hash}.webp` (compatible con `ImageProxyController` y la API).
@@ -387,9 +387,9 @@ alt_users ─ same structure as users ─── alt_orders ── alt_order_item
 
 1. **Rutas y Almacenamiento**:
    - Las imágenes de productos se almacenan como WebP optimizado en la estructura hash de caché:
-     `storage/app/public/image_cache/{p1}/{p2}/{hash}.webp` (donde `$hash = md5($url)` o nombre base).
+     `storage/app/public/image_cache/{p1}/{p2}/{hash}.webp` (donde `$hash = md5((string) $product->id)`).
    - En la base de datos, `products.image_url` almacena la ruta relativa pública, ej: `/storage/image_cache/81/08/81085b133bff2706d147dcbbe9e0a2fc.webp`.
-   - Las galerías adicionales del producto residen en `storage/app/public/products/{id}/` y se resuelven vía `$product->media`.
+   - Las galerías y archivos multimedia adicionales (WebP o `.url`) residen en la misma carpeta como `{hash}-{index}.webp` o `{hash}-{index}.url` y se resuelven vía `$product->media` (almacenamiento unificado en `image_cache/`).
 
 2. **Renderizado en Vistas y Temas**:
    - **Siempre usar `<x-image-proxy>`** para renderizar imágenes de productos o URLs externas:

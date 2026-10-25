@@ -44,45 +44,32 @@ class Cart extends Component
             return;
         }
 
-        if (is_numeric($product)) {
-            $productModel = Product::find($product);
-            if (! $productModel) {
-                return;
-            }
-
-            $product = [
-                'id' => $productModel->id,
-                'description' => $productModel->description,
-                'user_price' => current_user()->getProductPrice($productModel),
-                'qtty_package' => $productModel->qtty_package,
-            ];
-        }
-
-        $productId = $product['id'];
-        $productModel = Product::find($productId);
-        if ($productModel) {
-            $product['user_price'] = current_user()?->getProductPrice($productModel) ?? $product['user_price'];
-            $product['qtty_package'] = $productModel->qtty_package;
-            $product['description'] = $product['description'] ?? $productModel->description;
-        }
+        $productId = is_numeric($product) ? (int) $product : (int) ($product['id'] ?? 0);
+        $productModel = $productId ? Product::find($productId) : null;
 
         // Precio 0 = producto sin precio: no se vende.
-        if (! $productModel || ! app(PriceListService::class)->isSellable(app(PriceListService::class)->resolveListId($user), $productModel)) {
+        $priceListService = app(PriceListService::class);
+        if (! $productModel || ! $priceListService->isSellable($priceListService->resolveListId($user), $productModel)) {
             $this->error('Este producto no está disponible para la venta.');
 
             return;
         }
 
+        $userPrice = $user->getProductPrice($productModel);
+        $description = is_array($product) && ! empty($product['description'])
+            ? $product['description']
+            : $productModel->description;
+
         $cart = Session::get('cart', []);
-        $qttyPackage = max(1, $product['qtty_package'] ?? 1);
+        $qttyPackage = max(1, (int) ($productModel->qtty_package ?? 1));
 
         if (isset($cart[$productId])) {
             $cart[$productId]['quantity'] += $quantity;
         } else {
             $cart[$productId] = [
                 'product_id' => $productId,
-                'name' => $product['description'],
-                'price' => $product['user_price'],
+                'name' => $description,
+                'price' => $userPrice,
                 'bulkQuantity' => $qttyPackage,
                 'quantity' => $quantity,
             ];

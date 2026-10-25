@@ -6,7 +6,7 @@ Este proyecto utiliza un sistema de **"Convención sobre Configuración"** para 
 
 El sistema busca archivos en la misma carpeta donde reside la imagen principal del producto (`image_url`).
 
-Si la imagen principal es: `productos/01/af/abcdef12345.webp`
+Si la imagen principal es: `storage/image_cache/01/af/abcdef12345.webp` (donde `abcdef12345` es `md5((string) $product->id)`)
 El sistema buscará automáticamente:
 - `abcdef12345-1.webp` (Imagen extra)
 - `abcdef12345-2.url` (Archivo de texto con URL de YouTube)

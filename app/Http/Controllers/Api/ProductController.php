@@ -138,26 +138,27 @@ class ProductController extends Controller
         return response()->json(['message' => 'Producto eliminado correctamente'], 200);
     }
 
-    // Subir la imagen de un producto
-    public function uploadImage(Request $request, Product $product): JsonResponse
+    // Subir la imagen principal de un producto en formato WebP bajo image_cache
+    public function uploadImage(Request $request, Product $product, ImageImportService $importService): JsonResponse
     {
         $request->validate([
             'image' => 'required|image|mimes:jpeg,png,jpg,gif,svg,webp|max:5120',
         ]);
 
         if ($request->hasFile('image')) {
-            // Eliminar imagen anterior si existe
-            if ($product->image_url) {
-                Storage::delete($product->image_url);
-                $this->deleteImageCache($product->image_url);
-            }
+            $result = $importService->processSingleImage(
+                filePath: $request->file('image')->getRealPath(),
+                productId: $product->id,
+                imageIndex: 1,
+                overwrite: true
+            );
 
-            // Almacenar la nueva imagen
-            $path = $request->file('image')->store('images/products');
-            $product->update(['image_url' => $path]);
             $product->touch();
 
-            return response()->json(['message' => 'Imagen subida correctamente', 'path' => $path], 200);
+            return response()->json([
+                'message' => 'Imagen subida correctamente',
+                'path' => $result['public_url'] ?? $product->fresh()->image_url,
+            ], 200);
         }
 
         return response()->json(['message' => 'No se pudo subir la imagen'], 500);
@@ -166,7 +167,7 @@ class ProductController extends Controller
     /**
      * Subir múltiples imágenes para la galería de un producto.
      *
-     * Almacena las imágenes en `storage/app/public/products/{product_id}/`,
+     * Almacena las imágenes en `storage/app/public/image_cache/{p1}/{p2}/`,
      * purga la caché de medios `product_media_{id}` y la caché de optimización de imágenes.
      *
      * @response array{message: string, product_id: int, uploaded_count: int, files: array<int, string>, media: array<int, array<string, mixed>>}
@@ -183,23 +184,24 @@ class ProductController extends Controller
             'set_first_as_cover' => 'nullable|boolean',
         ]);
 
-        $directory = "products/{$product->id}";
-
-        // Si se solicita limpiar las anteriores, se borra el contenido de la carpeta de extras
+        // Si se solicita limpiar las anteriores, se borran los archivos extras en image_cache
         if ($request->boolean('clean_previous')) {
-            $existingFiles = Storage::disk('public')->files($directory);
-            foreach ($existingFiles as $file) {
-                $this->deleteImageCache($file);
-            }
-            Storage::disk('public')->deleteDirectory($directory);
+            $importService->deleteProductMedia($product->id, includeMain: false);
         }
 
         $uploadedPaths = [];
         $files = $request->file('images', []);
         $setAsCover = $request->boolean('set_first_as_cover');
+        $nextExtraIndex = $request->boolean('clean_previous') ? 1 : $importService->getNextExtraIndex($product->id);
 
         foreach ($files as $index => $file) {
-            $imageIndex = ($index === 0 && $setAsCover) ? 1 : ($index + 2);
+            if ($index === 0 && $setAsCover) {
+                $imageIndex = 1;
+            } else {
+                $imageIndex = $nextExtraIndex + 1;
+                $nextExtraIndex++;
+            }
+
             $result = $importService->processSingleImage(
                 filePath: $file->getRealPath(),
                 productId: $product->id,
@@ -207,7 +209,7 @@ class ProductController extends Controller
                 overwrite: true
             );
 
-            $uploadedPaths[] = str_replace('Guardado en ', '', $result['message']);
+            $uploadedPaths[] = $result['public_url'] ?? str_replace('Guardado en ', '', $result['message']);
         }
 
         // Limpiar caché de media del producto y tocar el timestamp
@@ -224,25 +226,15 @@ class ProductController extends Controller
     }
 
     /**
-     * Eliminar la galería de imágenes de un producto.
+     * Eliminar la galería de imágenes adicionales de un producto.
      *
-     * Elimina el directorio completo `storage/app/public/products/{product_id}/` y purga las cachés asociadas.
+     * Elimina los archivos adicionales en `storage/app/public/image_cache/{p1}/{p2}/` y purga las cachés asociadas.
      *
      * @response array{message: string, product_id: int}
      */
-    public function deleteMedia(Request $request, Product $product): JsonResponse
+    public function deleteMedia(Request $request, Product $product, ImageImportService $importService): JsonResponse
     {
-        $directory = "products/{$product->id}";
-
-        if (Storage::disk('public')->exists($directory)) {
-            $files = Storage::disk('public')->files($directory);
-            foreach ($files as $file) {
-                $this->deleteImageCache($file);
-            }
-            Storage::disk('public')->deleteDirectory($directory);
-        }
-
-        Cache::forget("product_media_{$product->id}");
+        $importService->deleteProductMedia($product->id, includeMain: false);
         $product->touch();
 
         return response()->json([

@@ -35,14 +35,8 @@ class ListPriceController extends Controller
     public function store(StoreListPriceRequest $request): JsonResponse
     {
         $validatedData = $request->validated();
-
-        $normalized = $this->priceService->normalize(
-            $validatedData['list_id'],
-            array_intersect_key($validatedData, array_flip(['price', 'unit_price']))
-        );
-
-        $list_id = $normalized['list_id'];
-        $data = $normalized['data'];
+        $list_id = (int) $validatedData['list_id'];
+        $data = array_intersect_key($validatedData, array_flip(['price', 'unit_price']));
 
         $existingRecord = ListPrice::where('product_id', $validatedData['product_id'])
             ->where('list_id', $list_id)
@@ -67,14 +61,9 @@ class ListPriceController extends Controller
      */
     public function show(int $product_id, int $list_id): JsonResponse
     {
-        $requestedListId = (int) $list_id;
-        $baseListId = $this->priceService->resolveBaseListId($requestedListId);
-
         $listPrice = ListPrice::where('product_id', $product_id)
-            ->where('list_id', $baseListId)
+            ->where('list_id', $list_id)
             ->firstOrFail();
-
-        $listPrice->list_id = $requestedListId;
 
         return response()->json($listPrice, 200);
     }
@@ -93,13 +82,7 @@ class ListPriceController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $normalized = $this->priceService->normalize(
-            $list_id,
-            $request->only(['price', 'unit_price'])
-        );
-
-        $list_id = $normalized['list_id'];
-        $data = $normalized['data'];
+        $data = $request->only(['price', 'unit_price']);
 
         $listPrice = ListPrice::where('product_id', $product_id)
             ->where('list_id', $list_id)

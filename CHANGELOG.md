@@ -4,6 +4,41 @@ Este documento resume los cambios significativos entre la rama `v1` y la rama `m
 
 ## Cambios Recientes (Actualizaciones de Seguridad y Funcionalidad)
 
+### 🧹 Refactorización KISS / DRY y Optimización Integral de Recursos (2026-10-24)
+
+Auditoría y optimización integral del catálogo, almacenamiento de archivos, consultas N+1 y reducción de llamadas redundantes:
+
+*   **Paso 1: Unificación de Almacenamiento de Multimedia en image_cache/:**
+    *   Se unificó el almacenamiento de imágenes principales y galerías adicionales ({hash}-{index}.webp o .url) bajo la ruta estándar storage/app/public/image_cache/{p1}/{p2}/.
+    *   El hash MD5 se calcula exclusivamente a partir del ID del producto (md5((string) $product->id)), eliminando duplicaciones cruzadas con SKUs y writes duplicados a la carpeta legacy products/{id}/.
+    *   Product::getMediaAttribute() lee exclusivamente de la carpeta de image_cache/.
+    *   El importador masivo (ImageImportService y /products/import-images) admite rutas absolutas en cualquier disco o carpeta del sistema operativo.
+    *   Controladores de subida y eliminación de multimedia (ProductController, products/crud) unificados para delegar en ImageImportService.
+
+*   **Paso 2: Eliminación de Consultas Redundantes en Tarjetas de Catálogo (WebProductCard):**
+    *   Se reemplazó la validación isset($this->product->promo_price) por array_key_exists('promo_price', $attributes) para conservar valores hidratados en lote (promo_price = null cuando un producto no tiene promoción).
+    *   Se eliminaron hasta 30 consultas SQL redundantes por recarga/página en el catálogo.
+
+*   **Paso 3: Optimización de Carrito y Creación de Pedidos (Cart y OrderService):**
+    *   En Cart::onAddToCart(), se eliminó la consulta repetida Product::find() y el recálculo innecesario de precios.
+    *   En OrderService::placeOrder(), se reutiliza el mapa de modelos ya validados en $validatedData['products'], evitando consultas SQL Product::find() dentro del bucle de creación de items.
+
+*   **Paso 4: Caché en Memoria por Petición para current_user():**
+    *   Al estar activa la suplantación de clientes por vendedores (sales_acting_as_customer_id), current_user() cachea en memoria estática por request la instancia resuelta de User, eliminando hasta 20 consultas User::find() duplicadas en la misma invocación.
+
+*   **Paso 5: Eliminación de Consultas N+1 en CustomerApiController:**
+    *   En GET /api/customer/products: Eager loading de etiquetas con Product::with('tags') e hidratación masiva en lote de precios mediante ListPrice::whereIn(), reduciendo ~90 consultas N+1 a solo 2.
+    *   En POST /api/customer/orders: Inserción masiva de items mediante OrderItem::insert() y remoción de llamadas muertas a getProductPrice().
+
+*   **Paso 6: Caché de Filtros de Catálogo (DISTINCT category y DISTINCT brand):**
+    *   Se implementaron los métodos Product::getCachedCategories() y Product::getCachedBrands() con caché de 24 horas y auto-invalidación en hooks saved y deleted.
+    *   Implementado en WebSearchFilter y en CustomerApiController::filters(), sustituyendo escaneos completos a la tabla products.
+
+*   **Paso 7: Limpieza de Código Muerto y Métodos No-Op:**
+    *   Eliminado el método no referenciado ProductSearchService::addUserPriceJoin().
+    *   Eliminadas llamadas innecesarias a métodos no-op (PriceListService::normalize() y PriceListService::resolveBaseListId()) en ListPriceController, ProductSearchService y ExportController.
+
+
 ### 🏷️ Tags de Productos: el pivote `taggables` pasa a ser la única fuente de verdad
 
 **Problema:** los tags se perdían "solos" en producción. Existían dos fuentes de verdad

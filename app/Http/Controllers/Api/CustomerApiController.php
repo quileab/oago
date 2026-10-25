@@ -8,6 +8,7 @@ use App\Helpers\SettingsHelper;
 use App\Http\Controllers\Controller;
 use App\Mail\OrderMail;
 use App\Models\AltUser;
+use App\Models\ListPrice;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
@@ -35,7 +36,8 @@ class CustomerApiController extends Controller
             return response()->json(['message' => 'No autorizado'], 401);
         }
 
-        $query = Product::where('published', true)
+        $query = Product::with('tags')
+            ->where('published', true)
             ->where('visibility', 'visible')
             ->where(DB::raw('ifnull(model, "")'), '!=', 'consumo interno');
 
@@ -63,25 +65,44 @@ class CustomerApiController extends Controller
 
         $products = $query->paginate($request->input('per_page', 30));
 
-        // Enriquecer productos con el precio efectivo del usuario
-        $priceService = app(PriceListService::class);
-        $listId = $priceService->resolveListId($user);
-        $products->getCollection()->transform(function ($product) use ($listId, $priceService) {
-            $basePrice = $priceService->getBasePrice($listId, $product);
-            $promoPrice = $priceService->getPromoPrice($listId, $product, $basePrice);
+        // Enriquecer productos con el precio efectivo del usuario de forma masiva (sin N+1)
+        $collection = $products->getCollection();
+        if ($collection->isNotEmpty()) {
+            $priceService = app(PriceListService::class);
+            $listId = $priceService->resolveListId($user);
+            $productIds = $collection->pluck('id');
 
-            if ($promoPrice !== null && $promoPrice < $basePrice) {
-                $product->price = $promoPrice;
-                $product->base_price = $basePrice;
-                $product->promo_price = $promoPrice;
-            } else {
-                $product->price = $basePrice;
-                $product->base_price = null;
-                $product->promo_price = null;
-            }
+            $basePrices = $listId
+                ? ListPrice::query()->where('list_id', $listId)->whereIn('product_id', $productIds)->get()->keyBy('product_id')
+                : collect();
 
-            return $product;
-        });
+            $promoListId = (int) SettingsHelper::settings('promo_list_id');
+            $promoPrices = ($promoListId && $promoListId !== $listId)
+                ? ListPrice::query()->where('list_id', $promoListId)->whereIn('product_id', $productIds)->get()->keyBy('product_id')
+                : collect();
+
+            $collection->transform(function ($product) use ($basePrices, $promoPrices) {
+                $lp = $basePrices->get($product->id);
+                $basePrice = ($lp && (float) $lp->price > 0) ? (float) $lp->price : (float) ($product->price ?? 0);
+
+                $promoLp = $promoPrices->get($product->id);
+                $promoPrice = ($promoLp && (float) $promoLp->price > 0 && (float) $promoLp->price < $basePrice)
+                    ? (float) $promoLp->price
+                    : null;
+
+                if ($promoPrice !== null) {
+                    $product->price = $promoPrice;
+                    $product->base_price = $basePrice;
+                    $product->promo_price = $promoPrice;
+                } else {
+                    $product->price = $basePrice;
+                    $product->base_price = null;
+                    $product->promo_price = null;
+                }
+
+                return $product;
+            });
+        }
 
         return response()->json($products, 200);
     }
@@ -161,7 +182,11 @@ class CustomerApiController extends Controller
                 $products = Product::whereIn('id', $productIds)->get()->keyBy('id');
 
                 // 1. Validar Stock y Precios
+                $priceService = app(PriceListService::class);
+                $listId = $priceService->resolveListId($user);
                 $itemsData = [];
+                $now = now();
+
                 foreach ($items as $item) {
                     $product = $products->get($item['product_id']);
                     if (! $product) {
@@ -169,7 +194,7 @@ class CustomerApiController extends Controller
                     }
 
                     // Precio 0 = producto sin precio: no se vende.
-                    if (! app(PriceListService::class)->isSellable(app(PriceListService::class)->resolveListId($user), $product)) {
+                    if (! $priceService->isSellable($listId, $product)) {
                         throw new \Exception("El producto {$product->description} no está disponible para la venta.");
                     }
 
@@ -177,19 +202,16 @@ class CustomerApiController extends Controller
                         throw new \Exception("Stock insuficiente para {$product->description}. Disponible: {$product->stock}.");
                     }
 
-                    $currentPrice = $user->getProductPrice($product);
                     $orderedQuantity = (int) $item['quantity'];
-                    $line = app(PriceListService::class)->calculateLine(
-                        app(PriceListService::class)->resolveListId($user),
-                        $product,
-                        $orderedQuantity
-                    );
+                    $line = $priceService->calculateLine($listId, $product, $orderedQuantity);
 
                     // Add item data
                     $itemsData[] = [
                         'product_id' => $product->id,
                         'quantity' => $orderedQuantity,
                         'price' => $line['unit_price'],
+                        'created_at' => $now,
+                        'updated_at' => $now,
                     ];
 
                     $total += $line['subtotal'];
@@ -225,15 +247,12 @@ class CustomerApiController extends Controller
                     ]);
                 }
 
-                // 4. Crear los Items
-                foreach ($itemsData as $itemData) {
-                    OrderItem::create([
-                        'order_id' => $order->id,
-                        'product_id' => $itemData['product_id'],
-                        'quantity' => $itemData['quantity'],
-                        'price' => $itemData['price'],
-                    ]);
-                }
+                // 4. Crear los Items en bloque
+                $itemsToInsert = array_map(fn (array $itemData) => array_merge($itemData, [
+                    'order_id' => $order->id,
+                ]), $itemsData);
+
+                OrderItem::insert($itemsToInsert);
 
                 return $order;
             });
@@ -290,8 +309,8 @@ class CustomerApiController extends Controller
 
     public function filters(Request $request): JsonResponse
     {
-        $categories = Product::where('published', true)->where('visibility', 'visible')->distinct()->pluck('category')->filter()->values();
-        $brands = Product::where('published', true)->where('visibility', 'visible')->distinct()->pluck('brand')->filter()->values();
+        $categories = Product::getCachedCategories();
+        $brands = Product::getCachedBrands();
         $tags = Tag::allCached()->map(fn ($t) => ['slug' => $t->slug, 'name' => $t->name])->values();
 
         return response()->json(['categories' => $categories, 'brands' => $brands, 'tags' => $tags], 200);
