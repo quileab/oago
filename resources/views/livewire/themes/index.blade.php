@@ -26,6 +26,8 @@ new class extends Component
 
     public string $selectedCategory = 'all';
 
+    public string $statusFilter = 'all';
+
     public string $newThemeName = '';
 
     public string $newVariantName = '';
@@ -311,25 +313,55 @@ CSS;
         $this->success('Vista revertida. Ahora usa el fallback.');
     }
 
-        private function categorizeView(string $path): array
+    private function categorizeView(string $path): array
     {
         if (str_starts_with($path, 'errors/')) {
-            return ['id' => 'errors', 'label' => 'Error', 'icon' => 'o-exclamation-triangle', 'color' => 'badge-error text-white'];
+            return ['id' => 'errors', 'label' => 'Error', 'icon' => 'o-exclamation-triangle', 'bg' => 'bg-error/5 hover:bg-error/10'];
         }
         if (str_starts_with($path, 'emails/')) {
-            return ['id' => 'emails', 'label' => 'Email', 'icon' => 'o-envelope', 'color' => 'badge-info text-white'];
+            return ['id' => 'emails', 'label' => 'Email', 'icon' => 'o-envelope', 'bg' => 'bg-info/5 hover:bg-info/10'];
         }
         if (str_starts_with($path, 'components/')) {
-            return ['id' => 'components', 'label' => 'Layout / UI', 'icon' => 'o-rectangle-group', 'color' => 'badge-secondary text-white'];
+            return ['id' => 'components', 'label' => 'Layout / UI', 'icon' => 'o-rectangle-group', 'bg' => 'bg-secondary/5 hover:bg-secondary/10'];
         }
         if (preg_match('#^livewire/(products|users|tags|settings|admin|achievements)/#', $path)) {
-            return ['id' => 'admin', 'label' => 'Admin', 'icon' => 'o-cog-6-tooth', 'color' => 'badge-warning text-black'];
+            return ['id' => 'admin', 'label' => 'Admin', 'icon' => 'o-cog-6-tooth', 'bg' => 'bg-warning/5 hover:bg-warning/10'];
         }
         if (str_starts_with($path, 'livewire/')) {
-            return ['id' => 'store', 'label' => 'Tienda', 'icon' => 'o-shopping-bag', 'color' => 'badge-primary text-white'];
+            return ['id' => 'store', 'label' => 'Tienda', 'icon' => 'o-shopping-bag', 'bg' => 'bg-primary/5 hover:bg-primary/10'];
         }
 
-        return ['id' => 'root', 'label' => 'Base / Página', 'icon' => 'o-document-text', 'color' => 'badge-neutral text-white'];
+        return ['id' => 'root', 'label' => 'Base / Página', 'icon' => 'o-document-text', 'bg' => 'bg-base-200/30 hover:bg-base-200/60'];
+    }
+
+    public function getStatusCountsProperty(): array
+    {
+        if (empty($this->selectedTheme)) {
+            return ['all' => 0, 'overridden' => 0, 'fallback' => 0];
+        }
+
+        $basePath = resource_path('views');
+        $allFiles = File::allFiles($basePath);
+        $prefix = $this->getCurrentOverridePrefix();
+
+        $counts = ['all' => 0, 'overridden' => 0, 'fallback' => 0];
+
+        foreach ($allFiles as $file) {
+            $relativePath = str_replace('\\', '/', $file->getRelativePathname());
+            if (str_starts_with($relativePath, 'themes/') || str_starts_with($relativePath, 'livewire/themes/')) {
+                continue;
+            }
+
+            $counts['all']++;
+            $themePath = resource_path("views/themes/{$prefix}/{$relativePath}");
+            if (File::exists($themePath)) {
+                $counts['overridden']++;
+            } else {
+                $counts['fallback']++;
+            }
+        }
+
+        return $counts;
     }
 
     public function getCategoriesCountProperty(): array
@@ -353,7 +385,7 @@ CSS;
 
         foreach ($allFiles as $file) {
             $relativePath = str_replace('\\', '/', $file->getRelativePathname());
-            if (str_starts_with($relativePath, 'themes/')) {
+            if (str_starts_with($relativePath, 'themes/') || str_starts_with($relativePath, 'livewire/themes/')) {
                 continue;
             }
 
@@ -383,8 +415,8 @@ CSS;
             $relativePath = $file->getRelativePathname();
             $relativePath = str_replace('\\', '/', $relativePath);
 
-            // Ignore files that are inside the themes directory itself
-            if (str_starts_with($relativePath, 'themes/')) {
+            // Ignore files that are inside themes/ or the theme manager itself
+            if (str_starts_with($relativePath, 'themes/') || str_starts_with($relativePath, 'livewire/themes/')) {
                 continue;
             }
 
@@ -398,8 +430,16 @@ CSS;
                 continue;
             }
 
-            $themePath = resource_path("views/themes/{$prefix}/{$relativePath}");
+            $themeRelativePath = "themes/{$prefix}/{$relativePath}";
+            $themePath = resource_path("views/{$themeRelativePath}");
             $isOverridden = File::exists($themePath);
+
+            if ($this->statusFilter === 'overridden' && ! $isOverridden) {
+                continue;
+            }
+            if ($this->statusFilter === 'fallback' && $isOverridden) {
+                continue;
+            }
 
             $directory = dirname($relativePath);
             $fileName = basename($relativePath);
@@ -408,6 +448,7 @@ CSS;
                 'file' => $relativePath,
                 'directory' => $directory === '.' ? '' : $directory . '/',
                 'filename' => $fileName,
+                'theme_path' => $themeRelativePath,
                 'category' => $category,
                 'overridden' => $isOverridden,
             ];
@@ -750,61 +791,94 @@ CSS;
                 </div>
             </div>
 
-            <x-card title="Vistas del motor" class="shadow-sm">
-                {{-- Filtro por categorías / tipos --}}
-                <div class="flex flex-wrap items-center gap-1.5 mb-4 p-2 bg-base-200/50 rounded-lg border border-base-300">
-                    <span class="text-xs font-semibold uppercase tracking-wider text-base-content/60 px-2 flex items-center gap-1">
-                        <x-icon name="o-funnel" class="w-3.5 h-3.5" /> Filtrar por:
-                    </span>
-                    <button 
-                        type="button"
-                        wire:click="$set('selectedCategory', 'all')" 
-                        class="btn btn-xs {{ $selectedCategory === 'all' ? 'btn-neutral' : 'btn-ghost' }}"
-                    >
-                        Todos <span class="badge badge-xs">{{ $this->categoriesCount['all'] ?? 0 }}</span>
-                    </button>
-                    <button 
-                        type="button"
-                        wire:click="$set('selectedCategory', 'store')" 
-                        class="btn btn-xs {{ $selectedCategory === 'store' ? 'btn-primary' : 'btn-ghost' }}"
-                    >
-                        <x-icon name="o-shopping-bag" class="w-3.5 h-3.5" /> Tienda <span class="badge badge-xs">{{ $this->categoriesCount['store'] ?? 0 }}</span>
-                    </button>
-                    <button 
-                        type="button"
-                        wire:click="$set('selectedCategory', 'admin')" 
-                        class="btn btn-xs {{ $selectedCategory === 'admin' ? 'btn-warning' : 'btn-ghost' }}"
-                    >
-                        <x-icon name="o-cog-6-tooth" class="w-3.5 h-3.5" /> Admin <span class="badge badge-xs">{{ $this->categoriesCount['admin'] ?? 0 }}</span>
-                    </button>
-                    <button 
-                        type="button"
-                        wire:click="$set('selectedCategory', 'components')" 
-                        class="btn btn-xs {{ $selectedCategory === 'components' ? 'btn-secondary' : 'btn-ghost' }}"
-                    >
-                        <x-icon name="o-rectangle-group" class="w-3.5 h-3.5" /> Layout / UI <span class="badge badge-xs">{{ $this->categoriesCount['components'] ?? 0 }}</span>
-                    </button>
-                    <button 
-                        type="button"
-                        wire:click="$set('selectedCategory', 'emails')" 
-                        class="btn btn-xs {{ $selectedCategory === 'emails' ? 'btn-info' : 'btn-ghost' }}"
-                    >
-                        <x-icon name="o-envelope" class="w-3.5 h-3.5" /> Emails <span class="badge badge-xs">{{ $this->categoriesCount['emails'] ?? 0 }}</span>
-                    </button>
-                    <button 
-                        type="button"
-                        wire:click="$set('selectedCategory', 'errors')" 
-                        class="btn btn-xs {{ $selectedCategory === 'errors' ? 'btn-error' : 'btn-ghost' }}"
-                    >
-                        <x-icon name="o-exclamation-triangle" class="w-3.5 h-3.5" /> Errores <span class="badge badge-xs">{{ $this->categoriesCount['errors'] ?? 0 }}</span>
-                    </button>
-                    <button 
-                        type="button"
-                        wire:click="$set('selectedCategory', 'root')" 
-                        class="btn btn-xs {{ $selectedCategory === 'root' ? 'btn-neutral' : 'btn-ghost' }}"
-                    >
-                        <x-icon name="o-document-text" class="w-3.5 h-3.5" /> Base <span class="badge badge-xs">{{ $this->categoriesCount['root'] ?? 0 }}</span>
-                    </button>
+            <x-card title="Vistas del motor vs Overrides de Tema" class="shadow-sm">
+                {{-- Filtros: Estado y Categorías --}}
+                <div class="flex flex-col gap-3 mb-4 p-3 bg-base-200/50 rounded-lg border border-base-300">
+                    {{-- 1. Filtro por Estado de Override --}}
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="text-xs font-semibold uppercase tracking-wider text-base-content/60 px-1 flex items-center gap-1">
+                            <x-icon name="o-arrows-right-left" class="w-3.5 h-3.5" /> Estado:
+                        </span>
+                        <button 
+                            type="button"
+                            wire:click="$set('statusFilter', 'all')" 
+                            class="btn btn-xs {{ $statusFilter === 'all' ? 'btn-neutral' : 'btn-ghost' }}"
+                        >
+                            Todas las vistas <span class="badge badge-xs">{{ $this->statusCounts['all'] ?? 0 }}</span>
+                        </button>
+                        <button 
+                            type="button"
+                            wire:click="$set('statusFilter', 'overridden')" 
+                            class="btn btn-xs {{ $statusFilter === 'overridden' ? 'btn-success text-white' : 'btn-ghost' }}"
+                        >
+                            <x-icon name="o-check-circle" class="w-3.5 h-3.5" /> Sobrescritas en {{ $selectedTheme }} <span class="badge badge-xs">{{ $this->statusCounts['overridden'] ?? 0 }}</span>
+                        </button>
+                        <button 
+                            type="button"
+                            wire:click="$set('statusFilter', 'fallback')" 
+                            class="btn btn-xs {{ $statusFilter === 'fallback' ? 'btn-neutral' : 'btn-ghost' }}"
+                        >
+                            <x-icon name="o-arrow-path" class="w-3.5 h-3.5" /> Usando Motor Base <span class="badge badge-xs">{{ $this->statusCounts['fallback'] ?? 0 }}</span>
+                        </button>
+                    </div>
+
+                    <div class="border-t border-base-300/60"></div>
+
+                    {{-- 2. Filtro por Categorías / Ámbitos --}}
+                    <div class="flex flex-wrap items-center gap-1.5">
+                        <span class="text-xs font-semibold uppercase tracking-wider text-base-content/60 px-1 flex items-center gap-1">
+                            <x-icon name="o-funnel" class="w-3.5 h-3.5" /> Ámbito:
+                        </span>
+                        <button 
+                            type="button"
+                            wire:click="$set('selectedCategory', 'all')" 
+                            class="btn btn-xs {{ $selectedCategory === 'all' ? 'btn-neutral' : 'btn-ghost' }}"
+                        >
+                            Todos <span class="badge badge-xs">{{ $this->categoriesCount['all'] ?? 0 }}</span>
+                        </button>
+                        <button 
+                            type="button"
+                            wire:click="$set('selectedCategory', 'store')" 
+                            class="btn btn-xs {{ $selectedCategory === 'store' ? 'btn-primary' : 'btn-ghost' }}"
+                        >
+                            <x-icon name="o-shopping-bag" class="w-3.5 h-3.5" /> Tienda <span class="badge badge-xs">{{ $this->categoriesCount['store'] ?? 0 }}</span>
+                        </button>
+                        <button 
+                            type="button"
+                            wire:click="$set('selectedCategory', 'admin')" 
+                            class="btn btn-xs {{ $selectedCategory === 'admin' ? 'btn-warning' : 'btn-ghost' }}"
+                        >
+                            <x-icon name="o-cog-6-tooth" class="w-3.5 h-3.5" /> Admin <span class="badge badge-xs">{{ $this->categoriesCount['admin'] ?? 0 }}</span>
+                        </button>
+                        <button 
+                            type="button"
+                            wire:click="$set('selectedCategory', 'components')" 
+                            class="btn btn-xs {{ $selectedCategory === 'components' ? 'btn-secondary' : 'btn-ghost' }}"
+                        >
+                            <x-icon name="o-rectangle-group" class="w-3.5 h-3.5" /> Layout / UI <span class="badge badge-xs">{{ $this->categoriesCount['components'] ?? 0 }}</span>
+                        </button>
+                        <button 
+                            type="button"
+                            wire:click="$set('selectedCategory', 'emails')" 
+                            class="btn btn-xs {{ $selectedCategory === 'emails' ? 'btn-info' : 'btn-ghost' }}"
+                        >
+                            <x-icon name="o-envelope" class="w-3.5 h-3.5" /> Emails <span class="badge badge-xs">{{ $this->categoriesCount['emails'] ?? 0 }}</span>
+                        </button>
+                        <button 
+                            type="button"
+                            wire:click="$set('selectedCategory', 'errors')" 
+                            class="btn btn-xs {{ $selectedCategory === 'errors' ? 'btn-error' : 'btn-ghost' }}"
+                        >
+                            <x-icon name="o-exclamation-triangle" class="w-3.5 h-3.5" /> Errores <span class="badge badge-xs">{{ $this->categoriesCount['errors'] ?? 0 }}</span>
+                        </button>
+                        <button 
+                            type="button"
+                            wire:click="$set('selectedCategory', 'root')" 
+                            class="btn btn-xs {{ $selectedCategory === 'root' ? 'btn-neutral' : 'btn-ghost' }}"
+                        >
+                            <x-icon name="o-document-text" class="w-3.5 h-3.5" /> Base <span class="badge badge-xs">{{ $this->categoriesCount['root'] ?? 0 }}</span>
+                        </button>
+                    </div>
                 </div>
                 <div class="flex flex-col md:flex-row items-center justify-between mb-4 gap-4">
                     <div class="text-sm opacity-70 w-full md:w-auto text-center md:text-left">
@@ -816,36 +890,52 @@ CSS;
                 </div>
 
                 <div class="overflow-x-auto max-h-[600px] border border-base-300 rounded-lg">
-                    <table class="table table-zebra table-pin-rows table-sm w-full">
+                    <table class="table table-pin-rows table-sm w-full">
                         <thead>
                             <tr>
-                                <th>Archivo / Componente</th>
-                                <th class="text-center">Estado</th>
-                                <th class="text-right">Acción</th>
+                                <th class="w-2/3">Componente Base vs Equivalente en Tema</th>
+                                <th class="text-center w-1/6">Resolución Activa</th>
+                                <th class="text-right w-1/6">Acción</th>
                             </tr>
                         </thead>
                         <tbody>
                             @forelse($this->views as $view)
-                                <tr>
-                                    <td>
-                                        <div class="flex items-center gap-2.5">
-                                            <span class="badge badge-sm gap-1 shrink-0 {{ $view['category']['color'] }}">
-                                                <x-icon name="{{ $view['category']['icon'] }}" class="w-3 h-3" />
-                                                <span>{{ $view['category']['label'] }}</span>
-                                            </span>
-                                            <div class="font-mono text-xs sm:text-sm">
-                                                @if($view['directory'])
-                                                    <span class="opacity-50 text-xs">{{ $view['directory'] }}</span>
+                                <tr class="{{ $view['category']['bg'] }} transition-colors">
+                                    <td class="py-2.5">
+                                        <div class="flex flex-col gap-1.5">
+                                            {{-- Vista Base del Motor --}}
+                                            <div class="flex items-center gap-2">
+                                                <span class="badge badge-ghost badge-sm gap-1 shrink-0 border-base-300">
+                                                    <x-icon name="{{ $view['category']['icon'] }}" class="w-3 h-3 opacity-70" />
+                                                    <span class="opacity-80">{{ $view['category']['label'] }}</span>
+                                                </span>
+                                                <div class="font-mono text-xs sm:text-sm">
+                                                    <span class="text-xs opacity-50">resources/views/</span>@if($view['directory'])<span class="opacity-60">{{ $view['directory'] }}</span>@endif<span class="font-semibold text-base-content">{{ $view['filename'] }}</span>
+                                                </div>
+                                            </div>
+
+                                            {{-- Equivalente en el Tema Seleccionado --}}
+                                            <div class="flex items-center gap-2 pl-3 ml-2 border-l-2 {{ $view['overridden'] ? 'border-success' : 'border-base-300/60' }} text-xs font-mono">
+                                                @if($view['overridden'])
+                                                    <x-icon name="o-arrow-turn-down-right" class="w-3.5 h-3.5 text-success shrink-0" />
+                                                    <span class="text-success font-medium">resources/views/{{ $view['theme_path'] }}</span>
+                                                @else
+                                                    <span class="opacity-40 italic">↳ Sin override en este tema (utiliza la plantilla del motor base)</span>
                                                 @endif
-                                                <span class="font-medium text-base-content">{{ $view['filename'] }}</span>
                                             </div>
                                         </div>
                                     </td>
-                                    <td class="text-center">
+                                    <td class="text-center align-middle">
                                         @if($view['overridden'])
-                                            <x-badge value="Sobrescrito" class="badge-success badge-sm" />
+                                            <div class="flex flex-col items-center gap-1">
+                                                <x-badge value="Activo en Tema" class="badge-success badge-sm text-white font-medium" />
+                                                <span class="text-[10px] text-success/80 font-mono">Prioridad alta</span>
+                                            </div>
                                         @else
-                                            <x-badge value="Fallback (Motor)" class="badge-ghost badge-sm" />
+                                            <div class="flex flex-col items-center gap-1">
+                                                <x-badge value="Motor Base" class="badge-ghost badge-sm opacity-80" />
+                                                <span class="text-[10px] opacity-40 font-mono">Fallback</span>
+                                            </div>
                                         @endif
                                     </td>
                                     <td class="text-right">
