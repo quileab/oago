@@ -37,6 +37,8 @@
             @if($product->image_url)
                 <x-image-proxy url="{{ $product->image_url }}"
                     fallback="{{ $logoSrc }}"
+                    data-fallback="{{ $logoSrc }}"
+                    data-fallback-class="p-10 brightness-0 opacity-20"
                     class="w-full h-full object-contain mix-blend-multiply transition-transform duration-500 hover:scale-110 {{ $product->stock == 0 ? 'opacity-40' : '' }}" />
             @else
                 <img src="{{ $logoSrc }}" alt="" class="w-2/3 max-w-[160px] h-auto brightness-0 opacity-20">

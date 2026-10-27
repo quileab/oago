@@ -33,7 +33,7 @@ new class extends Component
                 'id' => 0,
                 'brand' => 'Producto no encontrado',
                 'description' => 'El producto que busca no está disponible o no existe.',
-                'image_url' => asset('imgs/oago.png'),
+                'image_url' => asset('themes/' . config('app.theme') . '/images/erlogo.png'),
                 'featured' => false,
                 'description_html' => '',
                 'user_price' => 0,
@@ -176,6 +176,7 @@ new class extends Component
                                 <template x-if="!activeMedia.isFallback && activeMedia.url">
                                     <img :src="getProxiedUrl(activeMedia.url)"
                                         class="max-w-full max-h-full object-contain transition-transform duration-700 hover:scale-105 {{ $product->stock == 0 ? 'opacity-40 grayscale' : '' }}"
+                                        x-on:load="window.erIsProxyFallback($el).then((isFallback) => { if (isFallback) activeMedia.isFallback = true; })"
                                         x-on:error="activeMedia.isFallback = true;">
                                 </template>
 
@@ -220,7 +221,9 @@ new class extends Component
                                     ]">
 
                                     <template x-if="!item.isFallback && item.url">
-                                        <img :src="getProxiedUrl(item.thumb)" class="w-full h-full object-contain rounded-md" x-on:error="item.isFallback = true; activeMedia.isFallback = true;">
+                                        <img :src="getProxiedUrl(item.thumb)" class="w-full h-full object-contain rounded-md"
+                                            x-on:load="window.erIsProxyFallback($el).then((isFallback) => { if (isFallback) { item.isFallback = true; if (activeMedia.url === item.url) activeMedia.isFallback = true; } })"
+                                            x-on:error="item.isFallback = true; activeMedia.isFallback = true;">
                                     </template>
 
                                     <template x-if="item.isFallback || !item.url">

@@ -55,6 +55,8 @@
                                             x-bind:class="isFallback ? 'bg-gray-100 p-2' : 'bg-white p-1'">
                                             <x-image-proxy url="{{ $item['product_model']?->image_url ?? (config('services.regente.base_url') . $item['product_id'] . '.jpg') }}"
                                                 fallback="{{ $fallbackLogo }}"
+                                                data-fallback="{{ $fallbackLogo }}"
+                                                data-fallback-class="brightness-0 opacity-20"
                                                 alt="{{ $item['product_id'] }}" 
                                                 class="w-full h-full object-contain"
                                                 onerror=""
