@@ -126,8 +126,11 @@ new class extends Component
             <div class="w-full md:w-[45%] flex flex-col items-center">
                 @php
                     $primaryMedia = $this->primaryMedia();
-                    $isCibat = stripos($product->brand ?? '', 'CIBAT') !== false || stripos($product->description ?? '', 'BATERIA') !== false;
-                    $fallbackLogo = $isCibat ? asset('themes/' . config('app.theme') . '/images/cibatlogo.png') : asset('themes/' . config('app.theme') . '/images/erlogo.png');
+                    $divisionTags = array_intersect(['CIBAT', 'ENCENDIDO'], array_map('strtoupper', (array) ($product->tags_array ?? [])));
+                    $isCibat = $divisionTags
+                        ? in_array('CIBAT', $divisionTags, true)
+                        : (stripos($product->brand ?? '', 'CIBAT') !== false || stripos($product->description ?? '', 'BATERIA') !== false);
+                    $fallbackLogo = asset('themes/' . config('app.theme') . '/images/fallback-' . ($isCibat ? 'cibat' : 'encendido') . '.webp');
                 @endphp
 
                 <div x-data="{
@@ -182,10 +185,7 @@ new class extends Component
 
                                 <!-- Fallback State -->
                                 <template x-if="activeMedia.isFallback || !activeMedia.url">
-                                    <div class="w-full h-full flex flex-col items-center justify-center">
-                                        <img src="{{ $fallbackLogo }}" alt="" class="w-2/3 max-w-[160px] h-auto brightness-0 opacity-20">
-                                        <span class="absolute bottom-8 left-0 right-0 text-center text-[11px] font-bold text-gray-500 uppercase tracking-widest select-none">Imagen no disponible</span>
-                                    </div>
+                                    <img src="{{ $fallbackLogo }}" alt="" class="w-full h-full object-contain">
                                 </template>
                             </div>
                         </template>
@@ -227,9 +227,7 @@ new class extends Component
                                     </template>
 
                                     <template x-if="item.isFallback || !item.url">
-                                        <div class="w-full h-full flex items-center justify-center p-2">
-                                            <img src="{{ $fallbackLogo }}" alt="" class="w-full h-full object-contain brightness-0 opacity-20">
-                                        </div>
+                                        <img src="{{ $fallbackLogo }}" alt="" class="w-full h-full object-contain">
                                     </template>
 
                                     <template x-if="item.type === 'video'">

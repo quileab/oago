@@ -1,7 +1,10 @@
 @php
-    $isCibat = stripos($product->brand ?? '', 'CIBAT') !== false || stripos($product->description ?? '', 'BATERIA') !== false;
+    $divisionTags = array_intersect(['CIBAT', 'ENCENDIDO'], array_map('strtoupper', (array) ($product->tags_array ?? [])));
+    $isCibat = $divisionTags
+        ? in_array('CIBAT', $divisionTags, true)
+        : (stripos($product->brand ?? '', 'CIBAT') !== false || stripos($product->description ?? '', 'BATERIA') !== false);
     $brandColor = $isCibat ? '#1b365d' : '#cc0000'; // CIBAT = blue, ER = red
-    $logoSrc = $isCibat ? asset('themes/' . config('app.theme') . '/images/cibatlogo.png') : asset('themes/' . config('app.theme') . '/images/erlogo.png');
+    $fallbackSrc = asset('themes/' . config('app.theme') . '/images/fallback-' . ($isCibat ? 'cibat' : 'encendido') . '.webp');
     $hoverTextBrand = $isCibat ? 'hover:text-[#1b365d]' : 'hover:text-[#cc0000]';
 @endphp
 
@@ -34,16 +37,11 @@
 
         <!-- Columna Imagen (Vertical) -->
         <div class="relative flex flex-col items-center justify-center p-4 {{ $product->image_url ? 'bg-gray-100/50' : 'bg-white' }}" style="aspect-ratio: 4/4;" id="prod-img-{{ $product->id }}">
-            @if($product->image_url)
-                <x-image-proxy url="{{ $product->image_url }}"
-                    fallback="{{ $logoSrc }}"
-                    data-fallback="{{ $logoSrc }}"
-                    data-fallback-class="p-10 brightness-0 opacity-20"
-                    class="w-full h-full object-contain mix-blend-multiply transition-transform duration-500 hover:scale-110 {{ $product->stock == 0 ? 'opacity-40' : '' }}" />
-            @else
-                <img src="{{ $logoSrc }}" alt="" class="w-2/3 max-w-[160px] h-auto brightness-0 opacity-20">
-                <span class="absolute bottom-4 left-0 right-0 text-center text-[11px] font-bold text-gray-500 uppercase tracking-widest select-none">Imagen no disponible</span>
-            @endif
+            <x-image-proxy url="{{ $product->image_url }}"
+                fallback="{{ $fallbackSrc }}"
+                data-fallback="{{ $fallbackSrc }}"
+                alt="{{ $product->description }}"
+                class="w-full h-full object-contain mix-blend-multiply transition-transform duration-500 hover:scale-110 {{ $product->stock == 0 ? 'opacity-40' : '' }}" />
             
             @if($product->stock == 0)
                 <div class="absolute inset-0 flex items-center justify-center bg-white/40">

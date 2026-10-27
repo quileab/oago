@@ -42,26 +42,26 @@
                     <div class="flex flex-col">
                         @foreach ($cart as $item)
                             @php
-                                $isCibat = stripos($item['brand'] ?? '', 'CIBAT') !== false || stripos($item['name'] ?? '', 'BATERIA') !== false;
-                                $fallbackLogo = $isCibat ? asset('themes/' . config('app.theme') . '/images/cibatlogo.png') : asset('themes/' . config('app.theme') . '/images/erlogo.png');
+                                $divisionTags = array_intersect(['CIBAT', 'ENCENDIDO'], array_map('strtoupper', (array) ($item['product_model']?->tags_array ?? [])));
+                                $isCibat = $divisionTags
+                                    ? in_array('CIBAT', $divisionTags, true)
+                                    : (stripos($item['product_model']?->brand ?? '', 'CIBAT') !== false || stripos($item['name'] ?? '', 'BATERIA') !== false);
+                                $fallbackLogo = asset('themes/' . config('app.theme') . '/images/fallback-' . ($isCibat ? 'cibat' : 'encendido') . '.webp');
                             @endphp
                             <div class="border-b border-slate-200 hover:bg-white transition-colors p-3 md:p-2 flex flex-col md:grid md:grid-cols-[80px_1fr_100px_120px_100px_48px] gap-2 md:items-center relative">
                                 
                                 {{-- Top Section on Mobile (Image + Title) --}}
                                 <div class="flex items-start gap-3 mb-2 md:mb-0 md:contents">
                                     {{-- Image --}}
-                                    <div class="shrink-0 w-20 h-20 md:w-16 md:h-16 flex justify-center md:mx-auto" x-data="{ isFallback: false }">
-                                        <div class="w-full h-full rounded-md overflow-hidden border border-slate-200"
-                                            x-bind:class="isFallback ? 'bg-gray-100 p-2' : 'bg-white p-1'">
+                                    <div class="shrink-0 w-20 h-20 md:w-16 md:h-16 flex justify-center md:mx-auto">
+                                        <div class="w-full h-full rounded-md overflow-hidden border border-slate-200 bg-white p-1">
                                             <x-image-proxy url="{{ $item['product_model']?->image_url ?? (config('services.regente.base_url') . $item['product_id'] . '.jpg') }}"
                                                 fallback="{{ $fallbackLogo }}"
                                                 data-fallback="{{ $fallbackLogo }}"
-                                                data-fallback-class="brightness-0 opacity-20"
                                                 alt="{{ $item['product_id'] }}" 
                                                 class="w-full h-full object-contain"
                                                 onerror=""
-                                                x-on:error="isFallback = true; $el.src = '{{ $fallbackLogo }}';"
-                                                x-bind:class="isFallback ? 'brightness-0 opacity-20' : ''" />
+                                                x-on:error="$el.src = '{{ $fallbackLogo }}'" />
                                         </div>
                                     </div>
                                     

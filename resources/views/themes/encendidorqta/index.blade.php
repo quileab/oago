@@ -258,8 +258,6 @@
             if (!(img instanceof HTMLImageElement) || !img.dataset.fallback) return;
 
             if (await window.erIsProxyFallback(img)) {
-                img.classList.remove('mix-blend-multiply');
-                img.classList.add(...(img.dataset.fallbackClass || '').split(' ').filter(Boolean));
                 img.src = img.dataset.fallback;
             }
         }, true);
