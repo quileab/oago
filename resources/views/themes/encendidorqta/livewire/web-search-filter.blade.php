@@ -1,4 +1,5 @@
 <div class="sticky top-0 z-40 px-4 md:px-10 py-4  bg-white/90 backdrop-blur-md shadow-md">
+    <style>#web-search-input::-webkit-search-cancel-button { display: none; -webkit-appearance: none; }</style>
     <div class="container mx-auto flex flex-col gap-3">
         
         <!-- Buscador Principal Estilizado -->
@@ -6,15 +7,18 @@
             <div class="bg-white border border-gray-300 rounded-full flex shadow-lg overflow-hidden w-full lg:w-3/4 p-1 items-center transition-shadow focus-within:shadow-xl">
                 
                 <!-- Input Búsqueda -->
-                <div class="flex-grow flex items-center px-4">
+                <div class="flex-grow flex items-center px-4" x-data="{ hasText: {{ $search ? 'true' : 'false' }} }">
                     <x-icon name="o-magnifying-glass" class="w-6 h-6 text-[#8c8c8c]" />
-                    <input type="search" wire:model="search" wire:keydown.enter="goSearch()" placeholder="Buscar productos, marcas, códigos..." class="w-full outline-none px-3 py-2 text-gray-700 bg-transparent text-sm md:text-base font-semibold" />
-                    
-                    @if($search)
-                        <button type="button" wire:click="clearSearch()" class="text-gray-400 hover:text-red-500 p-1">
-                            <x-icon name="o-x-mark" class="w-5 h-5" />
-                        </button>
-                    @endif
+                    <input type="search" id="web-search-input" wire:model="search" wire:keydown.enter="goSearch()"
+                        x-on:input="hasText = $event.target.value.length > 0"
+                        placeholder="Buscar productos, marcas, códigos..."
+                        class="w-full outline-none px-3 py-2 text-gray-700 bg-transparent text-sm md:text-base font-semibold " />
+
+                    <button type="button" wire:click="clearSearch()" x-show="hasText" x-on:click="hasText = false"
+                        @unless($search) style="display: none;" @endunless
+                        class="text-gray-400 hover:text-red-500 p-1" aria-label="Limpiar búsqueda">
+                        <x-icon name="o-x-mark" class="w-5 h-5" />
+                    </button>
                 </div>
 
                 <!-- Select Categorías -->

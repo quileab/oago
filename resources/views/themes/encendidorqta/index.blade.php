@@ -42,8 +42,37 @@
     <livewire:web-search-filter />
 
     @if (!request()->query('product_id') && !request()->has('store'))
-        <!-- Contenedor general -->
-        <div class="relative w-full mb-10">
+        @php
+            $activeFilters = [
+                'search' => (string) request()->query('search', ''),
+                'category' => (string) request()->query('category', ''),
+                'brand' => (string) request()->query('brand', ''),
+                'tag' => (string) request()->query('tag', ''),
+                'similar' => (string) request()->query('similar', ''),
+            ];
+            $hasActiveFilters = collect($activeFilters)->contains(fn ($value) => $value !== '');
+        @endphp
+        <!-- Contenedor general: se oculta mientras hay búsqueda/filtros para que los resultados queden arriba -->
+        <div class="relative w-full mb-10"
+            x-data="{
+                filters: {{ Js::from($activeFilters) }},
+                get filtered() { return Object.values(this.filters).some(Boolean); },
+                onUpdateProducts(detail) {
+                    const incoming = detail?.filters ?? detail ?? {};
+                    const wasFiltered = this.filtered;
+                    Object.keys(this.filters).forEach((key) => {
+                        if (key in incoming) this.filters[key] = incoming[key] || '';
+                    });
+                    if (this.filtered) {
+                        window.erScrollToResultsOnRender();
+                    } else if (wasFiltered) {
+                        this.$nextTick(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
+                    }
+                }
+            }"
+            x-show="!filtered"
+            x-on:update-products.window.camel="onUpdateProducts($event.detail)"
+            @if($hasActiveFilters) style="display: none;" @endif>
             <!-- Slider (z-20 para que quede arriba) -->
             <div class="relative z-20">
                 <livewire:web-product-slider type="featured" title="PRODUCTO DESTACADOS" />
@@ -103,7 +132,7 @@
         </div>
     @endif
 
-    <div class="my-4">
+    <div class="my-4" id="resultados" style="scroll-margin-top: 10rem;">
         @php
             $prod_id = request()->query('product_id');
         @endphp
@@ -117,66 +146,124 @@
     <x-toast />
 </body>
 <script>
-    function flyToCart(imgId) {
-        const source = document.getElementById(imgId);
-        const cart = document.getElementById('cart-highlight');
-        
-        if (!source || !cart) return;
+    (function () {
+        window.flyToCart = function (imgId) {
+            const source = document.getElementById(imgId);
+            const cart = document.getElementById('cart-highlight');
 
-        // Clonar la imagen dentro del contenedor
-        const originalImg = source.querySelector('img');
-        if (!originalImg) return;
+            if (!source || !cart) return;
 
-        const clone = originalImg.cloneNode(true);
-        const rect = originalImg.getBoundingClientRect();
-        const cartRect = cart.getBoundingClientRect();
+            const originalImg = source.querySelector('img');
+            if (!originalImg) return;
 
-        // Estilos iniciales del clon
-        Object.assign(clone.style, {
-            position: 'fixed',
-            top: `${rect.top}px`,
-            left: `${rect.left}px`,
-            width: `${rect.width}px`,
-            height: `${rect.height}px`,
-            zIndex: '9999',
-            transition: 'all 0.8s cubic-bezier(0.42, 0, 0.58, 1)',
-            pointerEvents: 'none',
-            opacity: '0.8'
-        });
+            const clone = originalImg.cloneNode(true);
+            const rect = originalImg.getBoundingClientRect();
+            const cartRect = cart.getBoundingClientRect();
 
-        document.body.appendChild(clone);
-
-        // Disparar animación en el siguiente frame
-        requestAnimationFrame(() => {
             Object.assign(clone.style, {
-                top: `${cartRect.top + 10}px`,
-                left: `${cartRect.left + 10}px`,
-                width: '20px',
-                height: '20px',
-                opacity: '0.2',
-                transform: 'rotate(360deg)'
+                position: 'fixed',
+                top: `${rect.top}px`,
+                left: `${rect.left}px`,
+                width: `${rect.width}px`,
+                height: `${rect.height}px`,
+                zIndex: '9999',
+                transition: 'all 0.8s cubic-bezier(0.42, 0, 0.58, 1)',
+                pointerEvents: 'none',
+                opacity: '0.8'
             });
-        });
 
-        // Limpiar
-        clone.addEventListener('transitionend', () => {
-            clone.remove();
-        });
-    }
+            document.body.appendChild(clone);
 
-    // const animationName = 'animar-rebote';
-    const animationName = "cart-wiggle-animation";
-    const cartIconEffect = document.getElementById("cart-highlight");
-    if (cartIconEffect) {
-        window.addEventListener("cart-updated", () => {
+            requestAnimationFrame(() => {
+                Object.assign(clone.style, {
+                    top: `${cartRect.top + 10}px`,
+                    left: `${cartRect.left + 10}px`,
+                    width: '20px',
+                    height: '20px',
+                    opacity: '0.2',
+                    transform: 'rotate(360deg)'
+                });
+            });
+
+            clone.addEventListener('transitionend', () => {
+                clone.remove();
+            });
+        };
+
+        /**
+         * El proxy de imágenes responde 200 con su logo genérico (290x290, 3608 bytes) cuando no
+         * logra bajar la imagen original, así que el onerror nunca dispara. Se detecta por tamaño.
+         */
+        window.erIsProxyFallback = async function (img) {
+            const src = img?.currentSrc || '';
+            if (!src.includes('/proxy-image')) return false;
+            if (img.naturalWidth !== 290 || img.naturalHeight !== 290) return false;
+
+            try {
+                const blob = await (await fetch(src)).blob();
+                return blob.size === 3608;
+            } catch (error) {
+                return false;
+            }
+        };
+
+        // Esta función se vuelve a ejecutar en cada wire:navigate: los listeners se registran una sola vez.
+        if (window.__erIndexBound) return;
+        window.__erIndexBound = true;
+
+        /**
+         * Lleva la vista a los resultados una vez que el listado terminó de actualizarse,
+         * así el scroll no se calcula sobre un layout que todavía está cambiando.
+         */
+        let scrollPending = false;
+        window.erScrollToResultsOnRender = function () {
+            scrollPending = true;
+            setTimeout(() => { scrollPending = false; }, 4000);
+        };
+
+        const bindResultsScroll = () => {
+            Livewire.hook('commit', ({ component, succeed }) => {
+                succeed(() => {
+                    if (!scrollPending || component.name !== 'webproductsmain') return;
+                    scrollPending = false;
+                    requestAnimationFrame(() => {
+                        document.getElementById('resultados')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    });
+                });
+            });
+        };
+
+        if (window.Livewire) {
+            bindResultsScroll();
+        } else {
+            document.addEventListener('livewire:init', bindResultsScroll, { once: true });
+        }
+
+        const animationName = 'cart-wiggle-animation';
+
+        window.addEventListener('cart-updated', () => {
+            const cartIconEffect = document.getElementById('cart-highlight');
+            if (!cartIconEffect) return;
+
             cartIconEffect.classList.remove(animationName);
-            void cartIconEffect.offsetWidth; // Forzar reflow
+            void cartIconEffect.offsetWidth;
             cartIconEffect.classList.add(animationName);
+            cartIconEffect.addEventListener('animationend', () => {
+                cartIconEffect.classList.remove(animationName);
+            }, { once: true });
         });
-        cartIconEffect.addEventListener("animationend", () => {
-            cartIconEffect.classList.remove(animationName);
-        });
-    }
+
+        document.addEventListener('load', async (event) => {
+            const img = event.target;
+            if (!(img instanceof HTMLImageElement) || !img.dataset.fallback) return;
+
+            if (await window.erIsProxyFallback(img)) {
+                img.classList.remove('mix-blend-multiply');
+                img.classList.add(...(img.dataset.fallbackClass || '').split(' ').filter(Boolean));
+                img.src = img.dataset.fallback;
+            }
+        }, true);
+    })();
 </script>
 
 </html>

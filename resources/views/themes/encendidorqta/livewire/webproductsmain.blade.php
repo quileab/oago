@@ -189,12 +189,16 @@ new class extends Component {
                         <h2 class="text-xl md:text-3xl font-black text-gray-400 tracking-wide uppercase">
                             @if($category)
                                 {{ $category }}
+                            @elseif($brand)
+                                {{ $brand }}
+                            @elseif($tag)
+                                {{ \App\Models\Tag::allCached()->firstWhere('slug', $tag)?->name ?? $tag }}
                             @else
                                 NUEVOS INGRESOS
                             @endif
                         </h2>
                         
-                        @if(!$category)
+                        @if(!$category && !$brand && !$tag)
                             <div class="ml-4 text-xs md:text-sm text-gray-500 text-left leading-tight font-bold hidden sm:block">
                                 Lo mejor de nuestro catálogo, reunido en un solo lugar.<br>Descubrí nuestros productos destacados.
                             </div>
