@@ -1,8 +1,11 @@
 @php
     $benefits = [
-        ['title' => 'Experiencia', 'text' => 'Más de 50 años liderando el rubro automotor en la región.', 'icon' => 'o-shield-check'],
-        ['title' => 'Especialización', 'text' => 'Técnicos capacitados para resolver lo que otros no pueden.', 'icon' => 'o-academic-cap'],
-        ['title' => 'Transparencia', 'text' => 'Presupuestos claros y repuestos de primera calidad.', 'icon' => 'o-document-text'],
+        ['title' => 'Lealtad', 'icon' => 'o-hand-raised'],
+        ['title' => 'Honestidad', 'icon' => 'o-shield-check'],
+        ['title' => 'Ética comercial', 'icon' => 'o-scale'],
+        ['title' => 'Orientación a la excelencia', 'icon' => 'o-star'],
+        ['title' => 'Trabajo en equipo', 'icon' => 'o-user-group'],
+        ['title' => 'Escucha activa', 'icon' => 'o-chat-bubble-left-right'],
     ];
 
     $erServices = [
@@ -10,22 +13,29 @@
         'Instalaciones eléctricas',
         'Bobinas, distribuidores y bujías',
         'Módulos y captores electrónicos',
-        'Ópticas y faros',
-        'Carburación y accesorios',
+        'Ópticas y faros para autos y camiones',
+        'Carburación completa',
+        'Compresores y calefactores',
+        'Accesorios: balizas, matafuegos y estética vehicular',
     ];
 
     $cibatServices = [
-        'Baterías multimarca y línea pesada',
-        'Baterías para energía solar (litio, VRLA)',
-        'Llaves codificadas en el acto',
-        'Telemandos originales y alternativos',
-        'Reparación y diagnóstico',
+        'Baterías para todo tipo de vehículos',
+        'Línea pesada y motos',
+        'Baterías para sistemas fotovoltaicos',
+        'Baterías de litio, VRLA y estacionarias',
+    ];
+
+    $llavesServices = [
+        'Llaves codificadas para todas las marcas y modelos',
+        'Telemandos y controles remotos originales y alternativos',
+        'Reparación y accesorios',
     ];
 
     $timeline = [
-        ['year' => '1975', 'title' => 'El origen', 'text' => 'Pablo Zancada y Ángela Weidmann abren el taller familiar. Lealtad, honestidad y ética comercial como cimientos.'],
-        ['year' => '1990 — 2010', 'title' => 'Crecimiento', 'text' => 'Segunda generación al frente. De mostrador a depot regional: más stock, más marcas, mismo trato cercano.'],
-        ['year' => 'Hoy', 'title' => 'Centro integral', 'text' => '3 unidades de negocio, 25.000 productos y 100 marcas. El mismo barrio, escala mayorista.'],
+        ['year' => '1975', 'title' => 'El origen', 'text' => 'Pablo Ventura Zancada y Ángela Elisabeth Weidmann fundan la empresa familiar en Reconquista, Santa Fe.'],
+        ['year' => 'Segunda generación', 'title' => 'Continuidad familiar', 'text' => 'La gestión de la empresa continúa en manos de la segunda generación familiar.'],
+        ['year' => 'Hoy', 'title' => 'Tres unidades especializadas', 'text' => 'Encendido Reconquista, CIBAT – Centro Integral de Baterías y Llaves Codificadas ofrecen soluciones para las necesidades del sector vehicular en el norte de Santa Fe.'],
     ];
 @endphp
 
@@ -69,9 +79,9 @@
                         Nosotros
                     </h1>
                     <p class="mt-4 text-lg md:text-xl text-white font-medium max-w-2xl leading-relaxed drop-shadow-md">
-                        Un legado familiar que se hizo centro integral. Dos marcas, un mismo mostrador: <span
-                            class="text-white font-black drop-shadow-lg">ER</span> electricidad y <span
-                            class="text-white font-black drop-shadow-lg">CIBAT</span> baterías.
+                        Una empresa familiar con más de <span class="text-white font-black drop-shadow-lg">50 años</span>
+                        de trayectoria en Reconquista, Santa Fe. <span class="text-white font-black drop-shadow-lg">Tres
+                        unidades de negocio</span> especializadas en soluciones vehiculares para el norte de la provincia.
                     </p>
                 </div>
 
@@ -179,13 +189,13 @@
                 </div>
 
                 <h2 class="mt-5 text-3xl md:text-4xl font-black uppercase tracking-tighter text-gray-900 leading-none drop-shadow-sm">
-                    Fundada por <span class="text-[#a6282e] drop-shadow-sm">Pablo</span> y <span class="text-[#1b365d] drop-shadow-sm">Ángela</span>
+                    Una historia <span class="text-[#a6282e] drop-shadow-sm">familiar</span> desde <span class="text-[#1b365d] drop-shadow-sm">1975</span>
                 </h2>
                 <p class="mt-4 text-base md:text-lg text-gray-600 leading-relaxed font-medium">
-                    Lo que nació como proyecto de dedicación se convirtió en el centro integral de soluciones
-                    vehiculares más importante del norte de Santa Fe.
-                    Hoy, la <span class="bg-gray-900 text-white px-1.5 py-0.5 rounded font-black">segunda
-                        generación</span> mantiene intactos los valores que nos dieron origen.
+                    Somos una empresa familiar fundada en 1975 en Reconquista, Santa Fe, por Pablo Ventura Zancada y
+                    Ángela Elisabeth Weidmann. Hoy, la <span class="bg-gray-900 text-white px-1.5 py-0.5 rounded font-black">segunda
+                        generación</span> familiar continúa al frente de la empresa, con el compromiso de ofrecer
+                    soluciones vehiculares y una atención cercana a nuestros clientes.
                 </p>
 
                 {{-- timeline compacto con hex --}}
@@ -211,8 +221,9 @@
                     </div>
                 </div>
 
-                {{-- beneficios --}}
-                <div class="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {{-- valores --}}
+                <div class="mt-8 text-[11px] font-black uppercase tracking-widest text-gray-500">Nuestros valores</div>
+                <div class="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-3">
                     @foreach($benefits as $b)
                         <div
                             class="bg-white rounded-2xl border border-gray-100 p-4 shadow-md hover:shadow-xl transition-shadow duration-300">
@@ -220,7 +231,6 @@
                                 <x-icon :name="$b['icon']" class="w-5 h-5" />
                             </div>
                             <div class="mt-3 text-sm font-black text-gray-900 leading-tight drop-shadow-sm">{{ $b['title'] }}</div>
-                            <div class="mt-1 text-xs text-gray-500 leading-snug">{{ $b['text'] }}</div>
                         </div>
                     @endforeach
                 </div>
@@ -245,11 +255,11 @@
                 <span class="w-2 h-2 bg-white rounded-full"></span>
             </div>
             <h2 class="text-xl md:text-2xl font-black uppercase tracking-wide text-gray-400">Nuestras unidades</h2>
-            <span class="hidden md:inline text-xs font-bold text-gray-400 ml-3">Dos mostradores, un mismo estándar de
-                servicio</span>
+            <span class="hidden md:inline text-xs font-bold text-gray-400 ml-3">Tres unidades de negocio especializadas
+                para acompañar cada necesidad vehicular</span>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {{-- ER --}}
             <div
                 class="relative bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300">
@@ -267,6 +277,7 @@
                             class="text-[10px] font-black uppercase tracking-widest bg-[#a6282e] text-white px-3 py-1 rounded-full">Repuestos
                             y electricidad</span>
                     </div>
+                    <p class="mt-6 text-sm font-bold text-gray-900">Encendido Reconquista · Repuestos eléctricos, de encendido y climatización vehicular.</p>
                     <ul class="mt-6 space-y-3">
                         @foreach($erServices as $s)
                             <li class="flex items-start gap-3 text-sm font-medium text-gray-700">
@@ -298,9 +309,9 @@
                             class="h-10 w-auto object-contain grayscale opacity-60"
                             style="filter: grayscale(1) brightness(0.35) contrast(1.05);">
                         <span
-                            class="text-[10px] font-black uppercase tracking-widest bg-[#1b365d] text-white px-3 py-1 rounded-full">Baterías
-                            y cerrajería</span>
+                            class="text-[10px] font-black uppercase tracking-widest bg-[#1b365d] text-white px-3 py-1 rounded-full">Baterías</span>
                     </div>
+                    <p class="mt-6 text-sm font-bold text-gray-900">CIBAT · Centro Integral de Baterías.</p>
                     <ul class="mt-6 space-y-3">
                         @foreach($cibatServices as $s)
                             <li class="flex items-start gap-3 text-sm font-medium text-gray-700">
@@ -315,6 +326,38 @@
                         class="mt-6 inline-flex items-center gap-2 bg-[#1b365d] hover:bg-[#162d4d] text-white px-5 py-2.5 rounded-full text-xs font-black uppercase tracking-widest shadow-md transition-colors">
                         Ver catálogo CIBAT <x-icon name="o-arrow-right" class="w-4 h-4" />
                     </a>
+                </div>
+            </div>
+
+            {{-- Llaves Codificadas --}}
+            <div
+                class="relative bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300">
+                <div class="absolute inset-0 opacity-[0.04] pointer-events-none grayscale"
+                    style="background-image: url('{{ asset('themes/encendidorqta/images/patron_hex2.png') }}'); background-size: cover; background-position: center;">
+                </div>
+                <div class="absolute -right-10 -top-10 w-36 h-36 bg-gray-900/10"
+                    style="clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);"></div>
+                <div class="relative p-6 md:p-8">
+                    <div class="flex items-center justify-between">
+                        <div class="h-10 flex items-center gap-2 text-gray-700">
+                            <x-icon name="o-key" class="w-7 h-7" />
+                            <span class="text-sm font-black uppercase tracking-widest">Llaves Codificadas</span>
+                        </div>
+                        <span
+                            class="text-[10px] font-black uppercase tracking-widest bg-gray-900 text-white px-3 py-1 rounded-full">Llaves
+                            y telemandos</span>
+                    </div>
+                    <p class="mt-6 text-sm font-bold text-gray-900">Llaves Codificadas · Copias, codificación y telemandos.</p>
+                    <ul class="mt-6 space-y-3">
+                        @foreach($llavesServices as $s)
+                            <li class="flex items-start gap-3 text-sm font-medium text-gray-700">
+                                <span
+                                    class="mt-1 w-6 h-6 rounded-full bg-gray-900/10 text-gray-900 flex items-center justify-center shrink-0"><x-icon
+                                        name="o-check" class="w-3.5 h-3.5" /></span>
+                                <span>{{ $s }}</span>
+                            </li>
+                        @endforeach
+                    </ul>
                 </div>
             </div>
         </div>
