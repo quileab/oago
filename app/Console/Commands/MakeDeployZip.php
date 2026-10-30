@@ -51,7 +51,9 @@ class MakeDeployZip extends Command
 
         // 1. Preparación de Assets
         $this->info('📦 Ejecutando npm run build...');
-        $process = new Process(['npm', 'run', 'build']);
+        $process = PHP_OS_FAMILY === 'Windows'
+            ? Process::fromShellCommandline('npm run build')
+            : new Process(['npm', 'run', 'build']);
         $process->setTimeout(300);
         $process->run();
 
@@ -66,6 +68,12 @@ class MakeDeployZip extends Command
             $this->call('livewire:publish', ['--assets' => true]);
         } else {
             $this->info('⏩ Omitiendo publicación de assets.');
+        }
+
+        // Limpieza de archivos temporales de desarrollo
+        if (file_exists(public_path('hot'))) {
+            @unlink(public_path('hot'));
+            $this->info('🧹 Archivo public/hot eliminado preventivamente.');
         }
 
         if (file_exists($zipPath)) {
@@ -95,13 +103,51 @@ class MakeDeployZip extends Command
             return $winPath;
         }
 
-        // 2. Intentar buscar en el PATH (Linux o Windows con PATH configurado)
-        $command = PHP_OS_FAMILY === 'Windows' ? 'where 7z' : 'which 7z';
-        $process = Process::fromShellCommandline($command);
-        $process->run();
+        // 2. Intentar rutas estándar de macOS (Homebrew x86_64 y Apple Silicon / MacPorts)
+        if (PHP_OS_FAMILY === 'Darwin') {
+            $macPaths = [
+                '/opt/homebrew/bin/7z',
+                '/usr/local/bin/7z',
+                '/opt/local/bin/7z',
+                '/opt/homebrew/bin/7za',
+                '/usr/local/bin/7za',
+            ];
+            foreach ($macPaths as $macPath) {
+                if (file_exists($macPath) && is_executable($macPath)) {
+                    return $macPath;
+                }
+            }
+        }
 
-        if ($process->isSuccessful()) {
-            return trim($process->getOutput());
+        // 3. Intentar rutas estándar de Linux
+        if (PHP_OS_FAMILY === 'Linux') {
+            $linuxPaths = [
+                '/usr/bin/7z',
+                '/usr/local/bin/7z',
+                '/usr/bin/7za',
+                '/usr/local/bin/7za',
+            ];
+            foreach ($linuxPaths as $linuxPath) {
+                if (file_exists($linuxPath) && is_executable($linuxPath)) {
+                    return $linuxPath;
+                }
+            }
+        }
+
+        // 4. Intentar buscar en el PATH del sistema (7z y alternativa p7zip: 7za)
+        $binaries = ['7z', '7za'];
+        foreach ($binaries as $binary) {
+            $command = PHP_OS_FAMILY === 'Windows' ? "where $binary" : "which $binary";
+            $process = Process::fromShellCommandline($command);
+            $process->run();
+
+            if ($process->isSuccessful()) {
+                $lines = array_filter(array_map('trim', explode("\n", $process->getOutput())));
+                $firstLine = reset($lines);
+                if ($firstLine && (PHP_OS_FAMILY === 'Windows' || (file_exists($firstLine) && is_executable($firstLine)))) {
+                    return $firstLine;
+                }
+            }
         }
 
         return null;
@@ -112,7 +158,7 @@ class MakeDeployZip extends Command
         $this->info("💎 Usando 7-Zip para máxima compatibilidad (Motor: $binary)");
 
         $exclusions = [
-            'vendor', 'node_modules', '.git', '.env',
+            'vendor', 'node_modules', '.git', '.env', 'public/hot',
             'storage/logs/*', 'storage/framework/cache/data/*',
             'storage/framework/sessions/*', 'storage/framework/views/*',
             'storage/app/private/*', 'storage/app/livewire-tmp/*',
@@ -181,8 +227,8 @@ class MakeDeployZip extends Command
         $count = 0;
         foreach ($files as $name => $file) {
             $filePath = $file->getRealPath();
-            $relativePath = ltrim(str_replace($rootPath, '', $filePath), DIRECTORY_SEPARATOR);
-            $zipPathInternal = str_replace(DIRECTORY_SEPARATOR, '/', $relativePath);
+            $relativePath = ltrim(substr($filePath, strlen($rootPath)), DIRECTORY_SEPARATOR);
+            $zipPathInternal = str_replace('\\', '/', $relativePath);
 
             // Reglas de exclusión (Paridad con 7z)
             if (Str::startsWith($zipPathInternal, 'vendor/') ||
@@ -205,7 +251,8 @@ class MakeDeployZip extends Command
                 Str::startsWith($zipPathInternal, 'ignore.me/') ||
                 basename($zipPathInternal) === '.DS_Store' ||
                 basename($zipPathInternal) === 'Thumbs.db' ||
-                $zipPathInternal === '.env'
+                $zipPathInternal === '.env' ||
+                $zipPathInternal === 'public/hot'
             ) {
                 // Permitir public/vendor
                 if (! Str::startsWith($zipPathInternal, 'public/vendor/')) {

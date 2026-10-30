@@ -1,6 +1,11 @@
 # Arquitectura Técnica - Proyecto OAGO
 
-Este documento proporciona una descripción técnica detallada de la arquitectura, funcionalidades y flujos del sistema.
+Este documento proporciona una descripción técnica general de la arquitectura, funcionalidades y flujos del sistema.
+
+> [!TIP]
+> Para consultar la documentación técnica detallada con diagramas de relaciones y catálogo exhaustivo de servicios, revise:
+> - 📄 **[Diagrama ERD y Mapa de Arquitectura](docs/ARCHITECTURE.md)**: Modelos, relaciones, actores, flujos entre frontend/backend y diagramas Mermaid.
+> - 📄 **[Catálogo de Métodos, Helpers y Servicios](docs/METHODS_AND_SERVICES.md)**: Detalle exhaustivo con firmas y responsabilidades por capa.
 
 ## 1. Stack Tecnológico (TALL Stack)
 - **Framework PHP:** Laravel 11.x
