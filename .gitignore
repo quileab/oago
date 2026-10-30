@@ -37,3 +37,6 @@ postman/environments/
 .DS_Store
 **/.DS_Store
 desktop.ini
+
+# Screenshots locales
+/public/screenshots/
