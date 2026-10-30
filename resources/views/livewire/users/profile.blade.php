@@ -1,30 +1,29 @@
 <?php
 
 use App\Models\User;
-use Livewire\Volt\Component;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 use Livewire\Attributes\Rule;
+use Livewire\Volt\Component;
 use Mary\Traits\Toast;
 
-new class extends Component {
+new class extends Component
+{
     use Toast;
 
     public $user;
 
-    #[Rule('required|string|max:255')]
+    #[Rule('required|string|max:30')]
     public string $name = '';
 
-    #[Rule('required|string|max:255')]
+    #[Rule('required|string|max:30')]
     public string $lastname = '';
 
-    #[Rule('required|string|max:255')]
+    #[Rule('required|string|max:100')]
     public string $address = '';
 
-    #[Rule('required|string|max:255')]
+    #[Rule('required|string|max:30')]
     public string $city = '';
 
-    #[Rule('required|string|max:20')]
+    #[Rule('required|string|max:10')]
     public string $postal_code = '';
 
     #[Rule('required|string|max:50')]
@@ -33,7 +32,6 @@ new class extends Component {
     #[Rule('required|email|max:255')]
     public string $email = '';
 
-    // Optional for admins, required for users updating their own password
     public string $current_password = '';
 
     #[Rule('nullable|string|min:8|confirmed')]
@@ -48,8 +46,9 @@ new class extends Component {
     {
         $this->user = current_user();
 
-        if (!$this->user) {
+        if (! $this->user) {
             $this->redirect('/');
+
             return;
         }
 
@@ -67,21 +66,16 @@ new class extends Component {
      */
     public function updateProfile(): void
     {
-        $table = $this->user instanceof \App\Models\AltUser ? 'alt_users' : 'users';
+        $table = $this->user->getTable();
 
-        $validated = $this->validate([
-            'name' => 'required|string|max:255',
-            'lastname' => 'required|string|max:255',
-            'address' => 'required|string|max:255',
-            'city' => 'required|string|max:255',
-            'postal_code' => 'required|string|max:20',
-            'phone' => 'required|string|max:50',
-            'email' => 'required|email|max:255|unique:' . $table . ',email,' . $this->user->id,
-        ]);
+        $validated = $this->validate(
+            $this->user::getProfileRules($table, $this->user->id),
+            $this->user::getProfileMessages()
+        );
 
         $this->user->fill($validated);
 
-        if ($this->user->isDirty('email')) {
+        if ($this->user instanceof User && $this->user->isDirty('email')) {
             $this->user->email_verified_at = null;
         }
 
@@ -95,14 +89,15 @@ new class extends Component {
      */
     public function updatePassword(): void
     {
-        $currentUser = current_user();
-        $is_admin_editing = ($currentUser && $currentUser->role->value === 'admin') && $currentUser->id !== $this->user->id;
+        $realUser = real_user();
+        $isAdminEditing = ($realUser && $realUser->role->value === 'admin')
+            && ($realUser->id !== $this->user->id || get_class($realUser) !== get_class($this->user));
 
         $rules = [
             'password' => 'required|string|min:8|confirmed',
         ];
 
-        if (!$is_admin_editing) {
+        if (! $isAdminEditing) {
             $rules['current_password'] = 'required|current_password';
         }
 
@@ -127,12 +122,12 @@ new class extends Component {
             <h2 class="text-lg font-medium text-base-content">Información de tu cuenta</h2>
 
             <x-form wire:submit="updateProfile" class="mt-6 space-y-6">
-                <x-input label="Nombre / Empresa" wire:model="name" icon="o-user" inline />
-                <x-input label="Apellido" wire:model="lastname" icon="o-user" inline />
-                <x-input label="Dirección" wire:model="address" icon="o-map-pin" inline />
-                <x-input label="Ciudad" wire:model="city" icon="o-building-office" inline />
-                <x-input label="Código Postal" wire:model="postal_code" icon="o-envelope" inline />
-                <x-input label="Teléfono" wire:model="phone" icon="o-phone" inline />
+                <x-input label="Nombre / Empresa" wire:model="name" icon="o-user" maxlength="30" inline />
+                <x-input label="Apellido" wire:model="lastname" icon="o-user" maxlength="30" inline />
+                <x-input label="Dirección" wire:model="address" icon="o-map-pin" maxlength="100" inline />
+                <x-input label="Ciudad" wire:model="city" icon="o-building-office" maxlength="30" inline />
+                <x-input label="Código Postal" wire:model="postal_code" icon="o-envelope" maxlength="10" inline />
+                <x-input label="Teléfono" wire:model="phone" icon="o-phone" maxlength="50" inline />
                 <x-input label="Email" wire:model="email" icon="o-envelope" inline />
 
                 <div class="flex items-center gap-4">
@@ -148,7 +143,8 @@ new class extends Component {
 
             <x-form wire:submit="updatePassword" class="mt-6 space-y-6">
                 {{-- Only show Current Password if the user is editing their own profile --}}
-                @if(Auth::id() === $this->user->id)
+                @php $real = real_user(); @endphp
+                @if($real && $real->id === $this->user->id && get_class($real) === get_class($this->user))
                     <x-input label="Contraseña Actual" wire:model="current_password" type="password" icon="o-lock-closed" inline />
                 @endif
                 <x-input label="Nueva Contraseña" wire:model="password" type="password" icon="o-key" inline />

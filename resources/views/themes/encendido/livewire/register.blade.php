@@ -117,7 +117,10 @@ new #[Layout('components.layouts.clean')] #[Title('Registrarse - Encendido Recon
 
         $tempPassword = Str::random(8);
         $activationToken = Str::random(60);
-        $defaultList = \App\Helpers\SettingsHelper::settings('alt_user_default_price', 2);
+        $defaultListSetting = (int) \App\Helpers\SettingsHelper::settings('alt_user_default_price', 0);
+        $defaultList = ($defaultListSetting && \App\Models\ListName::where('id', $defaultListSetting)->exists())
+            ? $defaultListSetting
+            : null;
 
         $user = AltUser::create([
             'name' => $this->name, 'lastname' => $this->lastname, 'email' => $this->email,

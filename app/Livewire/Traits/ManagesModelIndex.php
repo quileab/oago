@@ -2,44 +2,41 @@
 
 namespace App\Livewire\Traits;
 
-use App\Models\AltUser;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 
-// NOTE: This trait assumes the component is using `Mary\Traits\Toast`
-// and `Livewire\WithPagination`.
 trait ManagesModelIndex
 {
-    public $search = '';
+    public string $search = '';
 
     protected string $deleteSuccessMessage = 'Registro eliminado.';
 
-    public function delete($id): void
+    public function delete(int|string $id): void
     {
         $this->modelClass::destroy($id);
         $this->success($this->deleteSuccessMessage, position: 'toast-bottom');
     }
 
-    public function getPaginatedData($paginate = 20)
+    public function getPaginatedRecords(array $sortBy = ['column' => 'id', 'direction' => 'asc'], int $paginate = 20): LengthAwarePaginator
     {
-        $query = $this->modelClass::query();
-
-        if ($this->search && ! empty($this->searchableColumns)) {
-            $query->where(function ($q) {
-                foreach ($this->searchableColumns as $column) {
-                    $q->orWhere($column, 'like', '%'.$this->search.'%');
-                }
-            });
-        }
-
-        // Order by role descending
-        if (property_exists($this, 'modelClass') && $this->modelClass === AltUser::class) {
-            $query->orderBy('role', 'desc');
-        }
-
-        return $query->paginate($paginate);
+        return $this->modelClass::query()
+            ->when(
+                $this->search,
+                fn ($q) => $q->where(DB::raw('concat(name, " ", lastname, " ", email)'), 'like', "%{$this->search}%")
+            )
+            ->orderBy(...array_values($sortBy))
+            ->paginate($paginate);
     }
 
-    public function updatingSearch(): void
+    public function getPaginatedData(int $paginate = 20): LengthAwarePaginator
     {
-        $this->resetPage();
+        return $this->getPaginatedRecords($this->sortBy ?? ['column' => 'id', 'direction' => 'asc'], $paginate);
+    }
+
+    public function updated(mixed $property): void
+    {
+        if (! is_array($property) && $property !== '') {
+            $this->resetPage();
+        }
     }
 }

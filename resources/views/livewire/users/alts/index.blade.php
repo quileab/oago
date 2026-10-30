@@ -1,23 +1,21 @@
 <?php
+
+use App\Livewire\Traits\ManagesModelIndex;
 use App\Models\AltUser;
 use Livewire\Volt\Component;
 use Livewire\WithPagination;
-use Illuminate\Pagination\LengthAwarePaginator;
 use Mary\Traits\Toast;
-use App\Livewire\Traits\ManagesModelIndex; // Import the new trait
 
-new class extends Component {
+new class extends Component
+{
+    use ManagesModelIndex;
     use Toast;
     use WithPagination;
-    use ManagesModelIndex; // Use the new trait
 
-    protected string $modelClass = AltUser::class; // Configure the model for the trait
+    protected string $modelClass = AltUser::class;
 
     public array $sortBy = ['column' => 'created_at', 'direction' => 'desc'];
 
-    // --- delete() is now handled by ManagesModelIndex trait ---
-
-    // Table headers
     public function headers(): array
     {
         return [
@@ -30,30 +28,12 @@ new class extends Component {
         ];
     }
 
-    public function altUsers(): LengthAwarePaginator //Collection
-    {
-        return AltUser::query()
-            ->when(
-                $this->search,
-                fn($q) => $q->where(DB::raw('concat(name, " ", lastname, " ", email)'), 'like', "%$this->search%")
-            )
-            ->orderBy(...array_values($this->sortBy))->paginate(20);
-    }
-
     public function with(): array
     {
         return [
-            'altUsers' => $this->altUsers(),
-            'headers' => $this->headers()
+            'altUsers' => $this->getPaginatedRecords($this->sortBy),
+            'headers' => $this->headers(),
         ];
-    }
-
-    // Reset pagination when any component property changes
-    public function updated($property): void
-    {
-        if (!is_array($property) && $property != "") {
-            $this->resetPage();
-        }
     }
 }; ?>
 

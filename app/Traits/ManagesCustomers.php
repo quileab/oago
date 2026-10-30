@@ -20,6 +20,12 @@ trait ManagesCustomers
 
     /**
      * Get the query for customers managed by this user/agent.
+     *
+     * TODO: Add dedicated feature — setting `sales_impersonate_all_customers`
+     *       (boolean, default 0) so sales agents can impersonate ALL customers
+     *       (global, all-or-nothing) instead of relying on `is_internal` as a
+     *       workaround. Until then, is_internal=true grants a sales agent the
+     *       full customer roster. See AGENTS.md "Deuda técnica > Abierto".
      */
     public function getManagedCustomersQuery(): Builder
     {

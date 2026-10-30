@@ -36,20 +36,24 @@
         @if(Auth::guest())
           <x-button label="INGRESAR" icon="o-lock-closed" class="btn btn-ghost ml-1" link="/login" />
         @else
-          @php $user = current_user(); @endphp
+          @php
+            $realUser = real_user();
+            $userRole = $realUser?->role?->value;
+            $userIcon = ($userRole === 'sales') ? 'o-users' : 'o-user';
+          @endphp
           <div class="flex items-center gap-2">
-            <x-dropdown label="{{ $user->name }}" class="btn-ghost" title="{{ $user->role->value }}">
+            <x-dropdown icon="{{ $userIcon }}" label="{{ $realUser->name }}" class="btn-ghost" title="{{ $userRole }}">
               <div class="text-base-content">
                 <x-menu-item title="Mi Perfil" icon="o-user" link="/user/profile" />
                 <x-menu-item title="Ordenes de Compra" icon="o-archive-box" link="/orders" />
-                @if($user->role->value === 'customer')
+                @if($userRole === 'customer')
                   <x-menu-item title="Mis Vendedores" icon="o-users" link="/my-sales-agents" />
                 @endif
                 <x-menu-item title="SALIR" icon="o-arrow-right-start-on-rectangle" link="/logout" no-wire-navigate />
               </div>
             </x-dropdown>
 
-            @if($user instanceof \App\Models\AltUser && isset($trial_days_remaining))
+            @if($realUser instanceof \App\Models\AltUser && isset($trial_days_remaining))
               <div class="tooltip tooltip-bottom tooltip-warning" data-tip="Días de prueba restantes">
                 <span class="badge badge-warning badge-sm font-bold cursor-help">{{ $trial_days_remaining }}</span>
               </div>

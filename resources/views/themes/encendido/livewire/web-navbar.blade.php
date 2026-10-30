@@ -41,13 +41,17 @@
           @if(Auth::guest())
             <x-button label="INGRESAR" icon="o-lock-closed" class="btn btn-sm btn-primary shadow-lg shadow-primary/20 font-black" link="/login" />
           @else
-            @php $user = current_user(); @endphp
+            @php
+              $realUser = real_user();
+              $userRole = $realUser?->role?->value;
+              $userIcon = ($userRole === 'sales') ? 'o-users' : 'o-user';
+            @endphp
             <div class="flex items-center gap-2">
-              <x-dropdown label="{{ $user->name }}" class="btn-sm btn-ghost hover:bg-white/10 text-neutral-content font-bold" title="{{ $user->role->value }}">
+              <x-dropdown icon="{{ $userIcon }}" label="{{ $realUser->name }}" class="btn-sm btn-ghost hover:bg-white/10 text-neutral-content font-bold" title="{{ $userRole }}">
                 <div class="bg-base-100 text-base-content rounded-lg shadow-xl border border-base-200">
                     <x-menu-item title="Mi Perfil" icon="o-user" link="/user/profile" class="hover:bg-base-200" />
                     <x-menu-item title="Ordenes de Compra" icon="o-archive-box" link="/orders" class="hover:bg-base-200" />
-                    @if($user->role->value === 'customer')
+                    @if($userRole === 'customer')
                       <x-menu-item title="Mis Vendedores" icon="o-users" link="/my-sales-agents" class="hover:bg-base-200" />
                     @endif
                     <div class="border-t border-base-200 my-1"></div>
@@ -55,7 +59,7 @@
                 </div>
               </x-dropdown>
 
-              @if($user instanceof \App\Models\AltUser && isset($trial_days_remaining))
+              @if($realUser instanceof \App\Models\AltUser && isset($trial_days_remaining))
                 <div class="tooltip tooltip-bottom tooltip-warning" data-tip="Días de prueba restantes">
                   <span class="badge badge-warning badge-sm font-bold cursor-help drop-shadow-md">{{ $trial_days_remaining }}</span>
                 </div>
