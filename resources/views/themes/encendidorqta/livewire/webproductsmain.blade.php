@@ -43,7 +43,9 @@ new class extends Component {
 
     public function mount(): void
     {
-        $this->displayMode = SettingsHelper::settings('catalog_display_mode', 'infinite_scroll');
+        // El setting es texto libre: cualquier valor que no sea exactamente "paginated" se toma como scroll infinito.
+        $mode = strtolower(trim((string) SettingsHelper::settings('catalog_display_mode', 'infinite_scroll')));
+        $this->displayMode = $mode === 'paginated' ? 'paginated' : 'infinite_scroll';
         $this->items = (int) SettingsHelper::settings('catalog_items_per_page', 30);
     }
 
@@ -221,17 +223,16 @@ new class extends Component {
                 @endforelse
             </div>
 
-            @if ($displayMode === 'infinite_scroll')
-                @if (count($products) >= $items)
-                    <div x-data x-intersect.full="$wire.loadMore()">
-                        <div wire:loading wire:target="loadMore" class="text-center w-full p-4">
-                            <p>Cargando más productos...</p>
-                        </div>
-                    </div>
-                @endif
-            @else
+            {{-- Paginar según lo que realmente devolvió la búsqueda, no según el setting: links() solo existe en un paginador. --}}
+            @if ($products instanceof \Illuminate\Contracts\Pagination\Paginator)
                 <div class="mt-6 flex justify-center">
                     {{ $products->links('livewire.pagination') }}
+                </div>
+            @elseif (count($products) >= $items)
+                <div x-data x-intersect.full="$wire.loadMore()">
+                    <div wire:loading wire:target="loadMore" class="text-center w-full p-4">
+                        <p>Cargando más productos...</p>
+                    </div>
                 </div>
             @endif
         </main>
