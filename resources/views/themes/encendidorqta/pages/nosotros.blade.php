@@ -335,7 +335,7 @@
                 <div class="absolute inset-0 opacity-[0.04] pointer-events-none grayscale"
                     style="background-image: url('{{ asset('themes/encendidorqta/images/patron_hex2.png') }}'); background-size: cover; background-position: center;">
                 </div>
-                <div class="absolute -right-10 -top-10 w-36 h-36 bg-gray-900/10"
+                <div class="absolute -right-10 -top-10 w-36 h-36 bg-black/10"
                     style="clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);"></div>
                 <div class="relative p-6 md:p-8">
                     <div class="flex items-center justify-between">
@@ -352,7 +352,7 @@
                         @foreach($llavesServices as $s)
                             <li class="flex items-start gap-3 text-sm font-medium text-gray-700">
                                 <span
-                                    class="mt-1 w-6 h-6 rounded-full bg-gray-900/10 text-gray-900 flex items-center justify-center shrink-0"><x-icon
+                                    class="mt-1 w-6 h-6 rounded-full bg-black/10 text-gray-900 flex items-center justify-center shrink-0"><x-icon
                                         name="o-check" class="w-3.5 h-3.5" /></span>
                                 <span>{{ $s }}</span>
                             </li>
