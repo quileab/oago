@@ -8,8 +8,8 @@ Este documento proporciona una descripción técnica general de la arquitectura,
 > - 📄 **[Catálogo de Métodos, Helpers y Servicios](docs/METHODS_AND_SERVICES.md)**: Detalle exhaustivo con firmas y responsabilidades por capa.
 
 ## 1. Stack Tecnológico (TALL Stack)
-- **Framework PHP:** Laravel 11.x
-- **Frontend Interactivo:** Livewire 3.x (incluyendo componentes Volt SFC)
+- **Framework PHP:** Laravel 13.x
+- **Frontend Interactivo:** Livewire 4.x (incluyendo componentes Volt SFC)
 - **Estilos:** Tailwind CSS con MaryUI
 - **Base de Datos:** MySQL / MariaDB
 - **Motor de Plantillas:** Blade

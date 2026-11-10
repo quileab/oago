@@ -1,6 +1,6 @@
 # Arquitectura Integral del Sistema OAGO: Tareas, Atributos, Métodos y Relaciones
 
-OAGO es una plataforma de comercio electrónico B2B (TALL Stack: Tailwind CSS, Alpine.js, Laravel 12, Livewire 3 / Volt SFC) con sincronización bidireccional ERP mediante API REST.
+OAGO es una plataforma de comercio electrónico B2B (TALL Stack: Tailwind CSS, Alpine.js, Laravel 13, Livewire 4 / Volt SFC) con sincronización bidireccional ERP mediante API REST.
 
 ---
 
