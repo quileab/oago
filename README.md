@@ -6,9 +6,14 @@ This is a web application built with Laravel, Livewire, and other modern web tec
 
 ## Project Overview and Documentation
 
-For a detailed breakdown of the project's architecture, technology stack, and conventions, please refer to the [Project Characteristics Document](project_characteristics.md).
-
-To review the changes and feature updates across different versions, consult the [Changelog](CHANGELOG.md).
+For a detailed breakdown of the project's architecture, technology stack, and conventions, please refer to:
+- [Technical Architecture](TECHNICAL_ARCHITECTURE.md)
+- [Architecture & Diagrams (Mermaid ERD)](docs/ARCHITECTURE.md)
+- [Catalog of Methods, Helpers and Services](docs/METHODS_AND_SERVICES.md)
+- [Sales Agents & Tags Guide](docs/GUIA_VENDEDORES_Y_TAGS.md) ([Visual Guide](docs/guia_visual.html))
+- [How to use additional media](docs/HOW_TO_USE_ADDITIONAL_MEDIA.md)
+- [Project Characteristics Document](project_characteristics.md)
+- [Changelog](CHANGELOG.md)
 
 
 ## Built With

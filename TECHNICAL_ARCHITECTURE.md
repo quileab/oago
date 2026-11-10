@@ -18,7 +18,8 @@ Este documento proporciona una descripción técnica general de la arquitectura,
 - **User:** Entidad principal para clientes, vendedores y administradores. Incluye lógica para roles (Enum `Role`), cálculo de precios personalizados y gestión de puntos (`achievements`).
 - **AltUser:** Usuarios invitados con lógica de tiempo de prueba limitado (10 días).
 - **Product:** Catálogo de productos.
-- **Order / OrderItem:** Gestión de pedidos y sus líneas de detalle.
+- **Order / OrderItem:** Gestión de pedidos y sus líneas de detalle. Incluye trazabilidad por canal con `OrderSource` (`web`, `mobile_api`). `Order` se asocia a `User` (`user_id`).
+- **AltOrder / AltOrderItem:** Gestión de pedidos para usuarios invitados (`AltUser`), asociado mediante `alt_user_id`.
 - **CustomerSalesAgent:** Tabla de relación que vincula clientes con sus respectivos agentes de venta (Vendedores).
 - **Setting:** Almacenamiento de configuraciones globales del sistema (Key-Value).
 

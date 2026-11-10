@@ -375,6 +375,8 @@ alt_users ─ same structure as users ─── alt_orders ── alt_order_item
 `Order` / `AltOrder`:
 - `Order::placeOrder(array $shipping)` → delegates to `OrderService::placeOrder()`
 - status cast to `OrderStatus` enum
+- `source` cast to `OrderSource` enum on `Order` (`web` o `mobile_api`).
+- **Diferencia Crítica de Foreign Key**: `Order` pertenece a `User` vía columna `user_id`, pero `AltOrder` pertenece a `AltUser` vía columna `alt_user_id`. Al consultar pedidos o carritos guardados para `AltUser`, **nunca** uses `where('user_id', ...)`; utiliza dinámicamente `$foreignKey = ($user instanceof AltUser) ? 'alt_user_id' : 'user_id'`.
 - `shipping()` → `HasOne(ShippingDetail)`
 
 `ListName`:
@@ -823,6 +825,9 @@ Notas de infraestructura de tests:
 - **Mail de invitación del admin reparado**: `users/alts/crud.blade.php::sendWelcomeEmail()` ahora genera y persiste `activation_token` y lo pasa a `AltUserWelcomeMail` (antes salía `/activate-account/` sin token → 404). Test: `AltUserWelcomeMailTest` (2 casos). Deployado a prod el 2026-10-20 (backup `/home/oagostini/backups/alts-welcome-mail-20261020/`).
 - **Estado `saved` (borrador) implementado**: "Guardar para después" crea el pedido con `OrderStatus::SAVED`, **no envía mail**, vacía el carrito (con toast y nº de pedido) y permite guardar sin stock. Confirmar un `saved` desde el checkout lo pasa a `pending` y recién ahí manda el mail. Editar un pedido existente **conserva su estado** (ya no lo pisa a `pending`). Se eliminó la normalización silenciosa a `on-hold`. Los `on-hold` históricos se mantienen y "Retomar" funciona para `saved` y `on-hold`. Tests: `OrderSavedStateTest` (8 casos). Deployado a prod el 2026-10-21 (backup `/home/oagostini/backups/orders-saved-state-20261021/`).
 - **Comparaciones enum en vistas corregidas**: `$order->status == 'on-hold'` comparaba un enum contra string y siempre daba false (el botón "Retomar Pedido" nunca aparecía); ahora se usa `->value` en `orderitems`, `alt-orderitems` (core y tema `encendido`).
+- **Persistencia atómica de carritos (`CartStorageService`)**: Fuente única de verdad para el JSON de carritos (`storage/app/private/{web|alt}_{id}_cart.json`). Rehidrata al iniciar sesión, montar componente `Cart` y al cambiar de cliente en impersonación de ventas. Carrito vacío borra el archivo JSON.
+- **Trazabilidad de origen de pedidos (`OrderSource`)**: Se añadió `orders.source` con enum `OrderSource::WEB` y `OrderSource::MOBILE_API`, métricas en el Dashboard de ventas por canal y tests de regresión (`OrderSourceTest`).
+- **Corrección de consultas `AltOrder` para usuarios invitados**: Se corrigió el error SQL 1054 (`Unknown column 'user_id'`) al consultar pedidos guardados en `WebNavbar` y `Cart` utilizando dinámicamente `alt_user_id` para instancias de `AltUser`.
 
 ### Abierto
 1. **Deploy del lote 2026-10-21 a prod (pendiente de autorización explícita).** Incluye: guard precio 0 (`f663b75`), carrito UI (`4fc4b87`), paletas dark (`3e941b3`, `751d62a`), suite de regresión (`cfa3b5e`) y resto de commits locales en `dev` (rama ~19 commits adelante). Checklist de deploy: backup + md5, `npm run build` en prod (CSS requiere build; `public/build` está en `.gitignore`), `optimize:clear`, `view:cache`, `queue:restart`.

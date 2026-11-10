@@ -146,9 +146,9 @@ erDiagram
 | Order / AltOrder (Tablas: orders / alt_orders)                                      |
 +-------------------------------------------------------------------------------------+
 | ATRIBUTOS:                                                                          |
-| - id: int                         - user_id / alt_user_id: int                      |
-| - status: OrderStatus             - total: decimal(12,2)   - notes: ?text           |
-| - is_paid: bool                   - payment_method: ?string                         |
+| - id: int                         - user_id (Order) / alt_user_id (AltOrder): int   |
+| - status: OrderStatus             - source: OrderSource (web, mobile_api) [Order]   |
+| - total_price: decimal(12,2)      - information: ?string   - payment_method: ?string|
 | METODOS Y RELACIONES:                                                               |
 | + items(): HasMany<OrderItem | AltOrderItem>                                        |
 | + shipping(): HasOne<ShippingDetail>                                                |

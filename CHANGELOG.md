@@ -3,7 +3,23 @@
 Este documento resume los cambios significativos entre la rama `v1` y la rama `main` del proyecto "oago", incluyendo las mejoras de seguridad y características recientes implementadas en el entorno de desarrollo actual.
 
 ## Cambios Recientes (Actualizaciones de Seguridad y Funcionalidad)
-### 🛒 Carritos persistentes (2026-11-06)
+### 🐛 Corrección en consultas de AltOrder y Mejoras de Pedidos / Etiquetas (2026-11-10)
+
+*   **Fix SQL 1054 en Producción (`alt_user_id` en `alt_orders`)**:
+    *   En `WebNavbar::getSavedOrdersCountProperty()`, `Cart::getSavedOrders()` y `Cart::resumeSavedOrder()`, se reemplazó la consulta fija `where('user_id', ...)` por la resolución dinámica de la clave foránea: `$isAlt ? 'alt_user_id' : 'user_id'`.
+    *   Previene el fallo `SQLSTATE[42S22] Column not found: 1054 Unknown column 'user_id' in 'where clause'` cuando usuarios de prueba/invitados (`AltUser`) navegan por el catálogo o abren el carrito.
+*   **Canal de Origen de Pedidos (`OrderSource`)**:
+    *   Nueva columna `orders.source` con Enum respaldado por string `App\Enums\OrderSource` (`web`, `mobile_api`).
+    *   `CustomerApiController::placeOrder()` marca automáticamente los pedidos con `OrderSource::MOBILE_API`.
+    *   `Dashboard` administrativo incorpora tarjetas estadísticas "PEDIDOS POR CANAL" en tiempo real con volumen y porcentaje de ventas.
+*   **Gestión Masiva de Etiquetas en Catálogo (`products/extras.blade.php`)**:
+    *   Barra de filtrado rápido y asignación masiva de etiquetas (`tags`).
+    *   Soporte para asignar y remover tags a múltiples productos seleccionados simultáneamente o por filtro activo.
+*   **UI y Portada**:
+    *   Tooltips institucionales con fondo azul (`#1d4ed8`) y texto blanco en DaisyUI y gráficos ApexCharts.
+    *   Actualización de diapositivas del slider de portada (`slider.json`).
+
+### 🛒 Carritos persistentes (2026-11-06)
 
 *   Nuevo `CartStorageService`: única fuente de verdad para el JSON del carrito (`web_{id}` / `alt_{id}`), con guardado atómico y borrado si el carrito queda vacío.
 *   El carrito se rehidrata al retomar una sesión nueva (`Cart::mount()`), en el login y al cambiar de cliente (vendedores). Antes solo se restauraba en el login y los vendedores lo perdían al cambiar de cliente.
