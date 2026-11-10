@@ -161,8 +161,11 @@ class MakeDeployZip extends Command
             'vendor', 'node_modules', '.git', '.env', 'public/hot',
             'storage/logs/*', 'storage/framework/cache/data/*',
             'storage/framework/sessions/*', 'storage/framework/views/*',
-            'storage/app/private/*', 'storage/app/livewire-tmp/*',
+            'storage/framework/testing/*',
+            'storage/app/private/*', 'storage/app/public/*', 'storage/app/livewire-tmp/*',
             'bootstrap/cache/*', 'public/storage',
+            'public/screenshots/*', 'public/imgs/slider/bak/*',
+            'chrome-profile/*', 'test-results/*',
             '*.zip', '*.sql', '*.sqlite',
             '.agents', '.claude', '.gemini', '.vscode', '.postman',
             'ignore.me', '.DS_Store', 'Thumbs.db',
@@ -235,11 +238,19 @@ class MakeDeployZip extends Command
                 Str::startsWith($zipPathInternal, 'node_modules/') ||
                 Str::startsWith($zipPathInternal, '.git/') ||
                 Str::startsWith($zipPathInternal, 'storage/logs/') ||
-                Str::startsWith($zipPathInternal, 'storage/framework/') ||
+                Str::startsWith($zipPathInternal, 'storage/framework/cache/data/') ||
+                Str::startsWith($zipPathInternal, 'storage/framework/sessions/') ||
+                Str::startsWith($zipPathInternal, 'storage/framework/views/') ||
+                Str::startsWith($zipPathInternal, 'storage/framework/testing/') ||
                 Str::startsWith($zipPathInternal, 'storage/app/private/') ||
+                Str::startsWith($zipPathInternal, 'storage/app/public/') ||
                 Str::startsWith($zipPathInternal, 'storage/app/livewire-tmp/') ||
                 Str::startsWith($zipPathInternal, 'bootstrap/cache/') ||
                 Str::startsWith($zipPathInternal, 'public/storage') ||
+                Str::startsWith($zipPathInternal, 'public/screenshots/') ||
+                Str::startsWith($zipPathInternal, 'public/imgs/slider/bak/') ||
+                Str::startsWith($zipPathInternal, 'chrome-profile/') ||
+                Str::startsWith($zipPathInternal, 'test-results/') ||
                 Str::endsWith($zipPathInternal, '.zip') ||
                 Str::endsWith($zipPathInternal, '.sql') ||
                 Str::endsWith($zipPathInternal, '.sqlite') ||

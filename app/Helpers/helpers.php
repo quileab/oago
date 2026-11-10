@@ -1,7 +1,7 @@
 <?php
 
-use App\Models\AltUser;
 use App\Models\User;
+use App\Services\CartStorageService;
 use Illuminate\Support\Facades\Auth;
 
 if (! function_exists('real_user')) {
@@ -54,8 +54,6 @@ if (! function_exists('current_user_cart_id')) {
             return null;
         }
 
-        $prefix = ($user instanceof AltUser) ? 'alt' : 'web';
-
-        return "{$prefix}_{$user->id}";
+        return app(CartStorageService::class)->key($user);
     }
 }

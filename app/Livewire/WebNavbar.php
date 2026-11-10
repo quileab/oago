@@ -2,9 +2,14 @@
 
 namespace App\Livewire;
 
+use App\Enums\OrderStatus;
 use App\Enums\Role;
 use App\Helpers\SettingsHelper;
+use App\Models\AltOrder;
 use App\Models\AltUser;
+use App\Models\Order;
+use App\Models\User;
+use App\Services\CartStorageService;
 use App\Services\ThemePageService;
 use Illuminate\Support\Collection;
 use Livewire\Component;
@@ -40,6 +45,7 @@ class WebNavbar extends Component
                     session(['sales_acting_as_customer_id' => $firstCustomer->id]);
                     session()->forget('cart');
                     session()->forget('updateOrder');
+                    app(CartStorageService::class)->restoreIntoSession($firstCustomer);
                 }
             }
 
@@ -116,11 +122,35 @@ class WebNavbar extends Component
         }
         session()->forget('cart'); // Clear cart on switch to avoid price conflicts
         session()->forget('updateOrder');
+
+        $targetUser = $id ? User::find($id) : $loggedInUser;
+        if ($targetUser) {
+            app(CartStorageService::class)->restoreIntoSession($targetUser);
+        }
+
         $this->redirect(request()->header('Referer'));
+    }
+
+    public function getSavedOrdersCountProperty(): int
+    {
+        $user = current_user();
+        if (! $user) {
+            return 0;
+        }
+
+        $isAlt = $user instanceof AltUser;
+        $orderModel = $isAlt ? AltOrder::class : Order::class;
+        $foreignKey = $isAlt ? 'alt_user_id' : 'user_id';
+
+        return $orderModel::where($foreignKey, $user->id)
+            ->where('status', OrderStatus::SAVED)
+            ->count();
     }
 
     public function render()
     {
-        return view('livewire.web-navbar');
+        return view('livewire.web-navbar', [
+            'savedOrdersCount' => $this->savedOrdersCount,
+        ]);
     }
 }

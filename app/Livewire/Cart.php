@@ -7,6 +7,7 @@ use App\Models\AltOrder;
 use App\Models\AltUser;
 use App\Models\Order;
 use App\Models\Product;
+use App\Services\CartStorageService;
 use App\Services\PriceListService;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Session;
@@ -31,6 +32,10 @@ class Cart extends Component
 
     public function mount()
     {
+        if ($user = current_user()) {
+            app(CartStorageService::class)->restoreIfMissing($user);
+        }
+
         $this->refreshCartData();
     }
 
@@ -202,11 +207,99 @@ class Cart extends Component
     public function render()
     {
         $data = $this->refreshCartData();
+        $savedOrders = $this->getSavedOrders();
 
         return view('livewire.cart', [
             'cart' => $data['items'],
             'total' => $data['total'],
+            'savedOrders' => $savedOrders,
+            'latestSavedOrder' => $savedOrders->first(),
         ]);
+    }
+
+    /**
+     * Obtiene los pedidos guardados (status = saved) del usuario actual.
+     */
+    public function getSavedOrders(): Collection
+    {
+        $user = current_user();
+        if (! $user) {
+            return new Collection;
+        }
+
+        $isAlt = $user instanceof AltUser;
+        $orderModel = $isAlt ? AltOrder::class : Order::class;
+        $foreignKey = $isAlt ? 'alt_user_id' : 'user_id';
+
+        return $orderModel::with(['items.product'])
+            ->where($foreignKey, $user->id)
+            ->where('status', OrderStatus::SAVED)
+            ->latest()
+            ->get();
+    }
+
+    /**
+     * Retoma un pedido guardado cargándolo al carrito de sesión.
+     */
+    public function resumeSavedOrder(int $orderId): void
+    {
+        $user = current_user();
+        if (! $user) {
+            $this->warning('Debe iniciar sesión para realizar esta acción.');
+
+            return;
+        }
+
+        $isAlt = $user instanceof AltUser;
+        $orderModel = $isAlt ? AltOrder::class : Order::class;
+        $order = $orderModel::with(['items.product'])->find($orderId);
+
+        $ownerId = $order ? ($isAlt ? $order->alt_user_id : $order->user_id) : null;
+
+        if (! $order || $ownerId !== $user->id || $order->status !== OrderStatus::SAVED) {
+            $this->error('No se encontró el carrito guardado o no tiene permisos.');
+
+            return;
+        }
+
+        $cartItems = [];
+        $priceService = app(PriceListService::class);
+        $listId = $priceService->resolveListId($user);
+
+        foreach ($order->items as $item) {
+            $product = $item->product ?? Product::find($item->product_id);
+            if (! $product || ! $priceService->isSellable($listId, $product)) {
+                continue;
+            }
+
+            $currentPrice = $user->getProductPrice($product);
+            $qttyPackage = max(1, (int) ($product->qtty_package ?? 1));
+
+            $cartItems[$item->product_id] = [
+                'product_id' => $item->product_id,
+                'name' => $product->description,
+                'quantity' => $item->quantity,
+                'price' => $currentPrice,
+                'bulkQuantity' => $qttyPackage,
+                'byBulk' => ($item->quantity % $qttyPackage) === 0,
+            ];
+        }
+
+        if (empty($cartItems)) {
+            $this->warning('Los productos de este carrito guardado ya no se encuentran disponibles.');
+
+            return;
+        }
+
+        Session::put('cart', $cartItems);
+        Session::put('updateOrder', $order->id);
+
+        app(CartStorageService::class)->persistSessionCart($user);
+
+        $this->refreshCartData();
+        $this->dispatch('cart-updated');
+
+        $this->success("¡Carrito guardado #{$order->id} retomado con éxito!", position: 'toast-bottom');
     }
 
     public function emptyCart()
@@ -222,16 +315,15 @@ class Cart extends Component
 
     public function jsonCartUpdate()
     {
-        if (current_user_cart_id()) {
-            $jsonCart = json_encode(Session::get('cart'));
-            file_put_contents(storage_path('app/private/'.current_user_cart_id().'_cart.json'), $jsonCart);
+        if ($user = current_user()) {
+            app(CartStorageService::class)->persistSessionCart($user);
         }
     }
 
     public function jsonCartDelete()
     {
-        if (current_user_cart_id() && file_exists(storage_path('app/private/'.current_user_cart_id().'_cart.json'))) {
-            unlink(storage_path('app/private/'.current_user_cart_id().'_cart.json'));
+        if ($user = current_user()) {
+            app(CartStorageService::class)->forget($user);
         }
     }
 

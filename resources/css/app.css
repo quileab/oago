@@ -144,6 +144,51 @@
     color: #ec8a00 !important;
 }
 
+/* TOOLTIPS: Fondo azul con letras blancas */
+
+/* DaisyUI Tooltips */
+.tooltip:before {
+    background-color: #1d4ed8 !important; /* Blue 700 */
+    color: #ffffff !important;
+}
+.tooltip:after {
+    border-top-color: #1d4ed8 !important; /* Flecha superior */
+}
+.tooltip-bottom:after {
+    border-bottom-color: #1d4ed8 !important;
+}
+.tooltip-left:after {
+    border-left-color: #1d4ed8 !important;
+}
+.tooltip-right:after {
+    border-right-color: #1d4ed8 !important;
+}
+
+/* ApexCharts Tooltips */
+.apexcharts-tooltip.apexcharts-theme-light,
+.apexcharts-tooltip.apexcharts-theme-dark,
+.apexcharts-tooltip {
+    background: #1d4ed8 !important;
+    border: 1px solid #1e40af !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -2px rgba(0, 0, 0, 0.2) !important;
+    border-radius: 0.375rem !important;
+}
+
+.apexcharts-tooltip-title {
+    background: #1e3a8a !important; /* Azul más oscuro para encabezado */
+    border-bottom: 1px solid #1e40af !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
+}
+
+.apexcharts-tooltip-text,
+.apexcharts-tooltip-text-y-value,
+.apexcharts-tooltip-text-y-label,
+.apexcharts-tooltip-y-group span {
+    color: #ffffff !important;
+}
+
 /* PRINT STYLES */
 @media print {
     /* Hide everything by default if needed, or just specific UI parts */

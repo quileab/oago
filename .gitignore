@@ -40,3 +40,7 @@ desktop.ini
 
 # Screenshots locales
 /public/screenshots/
+
+# Test results locales
+/test-results/
+

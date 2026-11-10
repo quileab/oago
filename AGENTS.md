@@ -323,7 +323,7 @@ OAGO is a **B2B e-commerce catalog** (TALL stack). Key actors:
 1. Sales logs in → `WebNavbar` auto-selects first assigned customer on mount.
 2. `setActingCustomer($id)` validates via `getManagedCustomersQuery()` → stores in session.
 3. `current_user()` returns the customer transparently.
-4. Cart is **cleared** on customer switch to prevent price conflicts.
+4. Cart is **cleared from session** on customer switch (price conflicts) and the new customer's persisted JSON cart is **restored** via `CartStorageService::restoreIntoSession()`.
 
 **Guest trial:**
 - `AltUser` with `role=guest` and `!is_internal` → `CheckGuestExpiration` middleware checks TTL.
@@ -530,7 +530,7 @@ Defined in `config/default_settings.php` and provisioned via `php artisan app:sy
 ### Cart
 
 - Session-based (`session('cart')` keyed by `product_id`).
-- Also persisted to `storage/app/private/{cart_id}_cart.json`.
+- Also persisted to `storage/app/private/{cart_id}_cart.json` vía `App\Services\CartStorageService` (única fuente de verdad: `key()`, `load()`, `save()` atómico, `forget()`, `restoreIntoSession()`, `restoreIfMissing()`). Carrito vacío = archivo borrado.
 - Cart ID = `current_user_cart_id()`.
 - **Cleared on customer switch** (sales impersonation) to prevent price conflicts.
 

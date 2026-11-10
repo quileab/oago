@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\OrderSource;
 use App\Enums\OrderStatus;
 use App\Services\OrderService;
 use Illuminate\Database\Eloquent\Collection;
@@ -16,6 +17,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property float $total_price
  * @property string|null $sending_method
  * @property OrderStatus $status
+ * @property OrderSource $source
  * @property-read User $user
  * @property-read Collection<int, OrderItem> $items
  */
@@ -35,6 +37,7 @@ class Order extends Model
         'payment_detail',
         'information',
         'status',
+        'source',
     ];
 
     public function user(): BelongsTo
@@ -61,6 +64,7 @@ class Order extends Model
     {
         return [
             'status' => OrderStatus::class,
+            'source' => OrderSource::class,
         ];
     }
 

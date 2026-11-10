@@ -164,6 +164,23 @@
             <div class="flex flex-col items-center justify-center h-full text-base-content/40 p-8 space-y-4 bg-base-100">
                 <x-icon name="o-shopping-cart" class="w-24 h-24 opacity-20" />
                 <p class="text-lg font-bold">El carrito está vacío.</p>
+
+                @if (isset($savedOrders) && $savedOrders->isNotEmpty() && isset($latestSavedOrder))
+                    <div class="card bg-warning/10 border border-warning/30 p-5 rounded-2xl text-center shadow-md max-w-sm mx-auto space-y-3 text-base-content">
+                        <div class="flex items-center justify-center gap-2 text-warning font-bold">
+                            <x-icon name="o-bookmark" class="w-5 h-5 text-warning" />
+                            <span>Tenés {{ $savedOrders->count() }} carrito{{ $savedOrders->count() > 1 ? 's' : '' }} guardado{{ $savedOrders->count() > 1 ? 's' : '' }}</span>
+                        </div>
+                        <p class="text-xs opacity-80 leading-relaxed">
+                            Guardaste un pedido con {{ $latestSavedOrder->items->count() }} producto{{ $latestSavedOrder->items->count() > 1 ? 's' : '' }} por un total de <strong>${{ number_format($latestSavedOrder->total_price, 2, ',', '.') }}</strong>.
+                        </p>
+                        <div class="flex flex-col gap-2 pt-1">
+                            <x-button label="Retomar Carrito Guardado" icon="o-arrow-path" class="btn-warning btn-sm font-bold shadow text-warning-content" wire:click="resumeSavedOrder({{ $latestSavedOrder->id }})" />
+                            <a href="/orders" class="text-xs opacity-75 hover:opacity-100 underline">Ver todos mis pedidos guardados</a>
+                        </div>
+                    </div>
+                @endif
+
                 <x-button label="Seguir Comprando" icon="o-arrow-left" class="btn-primary btn-outline mt-4" wire:click="$toggle('showCart')" />
             </div>
         @endif

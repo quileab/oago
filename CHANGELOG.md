@@ -3,6 +3,13 @@
 Este documento resume los cambios significativos entre la rama `v1` y la rama `main` del proyecto "oago", incluyendo las mejoras de seguridad y características recientes implementadas en el entorno de desarrollo actual.
 
 ## Cambios Recientes (Actualizaciones de Seguridad y Funcionalidad)
+### 🛒 Carritos persistentes (2026-11-06)
+
+*   Nuevo `CartStorageService`: única fuente de verdad para el JSON del carrito (`web_{id}` / `alt_{id}`), con guardado atómico y borrado si el carrito queda vacío.
+*   El carrito se rehidrata al retomar una sesión nueva (`Cart::mount()`), en el login y al cambiar de cliente (vendedores). Antes solo se restauraba en el login y los vendedores lo perdían al cambiar de cliente.
+*   `SESSION_LIFETIME` sube de 120 a 240 min.
+*   Se eliminaron los JSON huérfanos con el nombre legacy `{id}_cart.json` (entorno de desarrollo).
+
 
 ### 🧹 Refactorización KISS / DRY y Optimización Integral de Recursos (2026-10-24)
 

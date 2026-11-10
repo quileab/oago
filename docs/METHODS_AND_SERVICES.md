@@ -12,7 +12,7 @@ Este documento detalla cada uno de los servicios, funciones helper y métodos or
 | :--- | :--- | :--- |
 | `real_user()` | `real_user(): User\|AltUser\|null` | Obtiene el usuario autenticado real evaluando secuencialmente los guards `web` -> `sanctum` -> `alt`. **Nunca es alterado por impersonación.** |
 | `current_user()` | `current_user(): User\|AltUser\|null` | Obtiene el usuario en cuyo contexto se opera. Si el usuario real es `role=sales` y tiene una sesión activa de cliente (`sales_acting_as_customer_id`), **devuelve transparentemente la instancia de `User` del cliente suplantado**. |
-| `current_user_cart_id()` | `current_user_cart_id(): ?string` | Retorna el identificador de carrito en sesión prefijado con el guard (`web_{id}` o `alt_{id}`) para aislar completamente carritos entre clientes e invitados. |
+| `current_user_cart_id()` | `current_user_cart_id(): ?string` | Delega en ``CartStorageService::key()``. Retorna el identificador de carrito prefijado con el guard (`web_{id}` o `alt_{id}`) para aislar completamente carritos entre clientes e invitados. |
 
 ---
 
@@ -83,6 +83,22 @@ Servicio centralizado para la resolución jerárquica de precios (Base -> Lista 
 | :--- | :--- | :--- |
 | `processDirectory()` | `processDirectory(string $path, array $options): array` | Recorre una carpeta del servidor local, asocia imágenes a productos mediante expresiones regulares, las convierte a WebP (máx 1200px) y genera la ruta pública en caché hash (`storage/image_cache/{p1}/{p2}/{hash}.webp`). |
 
+### E. Servicio de Persistencia del Carrito (`app/Services/CartStorageService.php`)
+
+Fuente única de verdad del carrito en disco (`storage/app/private/{web|alt}_{id}_cart.json`). Reemplaza la lógica duplicada en `Cart`, `OrderService` y `login`.
+
+| Método | Firma | Descripción y Función |
+| :--- | :--- | :--- |
+| `key()` | `key(User\|AltUser $user): string` | `web_{id}` o `alt_{id}`. |
+| `load()` | `load(User\|AltUser $user): array` | Lee el JSON persistido (`[]` si no existe o es inválido). |
+| `save()` | `save(User\|AltUser $user, ?array $cart): void` | Escritura atómica (archivo temporal + `rename`). Carrito vacío elimina el archivo. |
+| `forget()` | `forget(User\|AltUser $user): void` | Borra el archivo. |
+| `persistSessionCart()` | `persistSessionCart(User\|AltUser $user): void` | Guarda `session('cart')`. |
+| `restoreIntoSession()` | `restoreIntoSession(User\|AltUser $user): void` | Carga el JSON en sesión, descarta productos no vendibles y recalcula precios. Se usa en login, y al cambiar de cliente (`WebNavbar`). |
+| `restoreIfMissing()` | `restoreIfMissing(User\|AltUser $user): void` | Restaura solo si la sesión no tiene `cart` (sesión nueva/expirada). Lo invoca `Cart::mount()`. |
+
+La sesión dura 240 min (`SESSION_LIFETIME`); al retomar una sesión nueva el carrito se rehidrata desde el JSON.
+
 ---
 
 ## 3. Capa Transaccional (Carrito, Checkout y Pedidos)
@@ -137,4 +153,4 @@ Compartido por `users/index.blade.php` y `users/alts/index.blade.php`:
 | :--- | :--- | :--- |
 | `mount()` | `mount(ThemePageService $themePageService): void` | Carga páginas del tema activo, detecta si el usuario es vendedor para autoseleccionar su primer cliente y calcula días de prueba para invitados. |
 | `loadCustomers()` | `loadCustomers(): void` | Ejecuta la consulta de clientes asignados (`getManagedCustomersQuery`) con soporte de búsqueda en tiempo real (`searchCustomer`). |
-| `setActingCustomer()` | `setActingCustomer($id): void` | Valida que el cliente pertenezca a la cartera del vendedor, lo almacena en sesión (`sales_acting_as_customer_id`), purga el carrito para evitar conflictos de precio y recarga la página. |
+| `setActingCustomer()` | `setActingCustomer($id): void` | Valida que el cliente pertenezca a la cartera del vendedor, lo almacena en sesión (`sales_acting_as_customer_id`), purga el carrito de sesión para evitar conflictos de precio, restaura el JSON del cliente elegido (``CartStorageService``) y recarga la página. |

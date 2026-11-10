@@ -49,20 +49,7 @@ new #[Layout('components.layouts.empty')]
             session()->regenerate();
             session()->forget(['is_alt_login', 'sales_acting_as_customer_id']);
 
-            if (file_exists($cartFile = storage_path("app/private/" . current_user_cart_id() . "_cart.json"))) {
-                $cart = json_decode(file_get_contents($cartFile), true) ?: [];
-                $priceService = app(\App\Services\PriceListService::class);
-                $listId = $priceService->resolveListId($user);
-                foreach ($cart as $key => $item) {
-                    $p = \App\Models\Product::find($item['product_id']);
-                    if (! $p || ! $priceService->isSellable($listId, $p)) {
-                        unset($cart[$key]);
-                        continue;
-                    }
-                    $cart[$key]['price'] = $user->getProductPrice($p);
-                }
-                session()->put('cart', $cart);
-            }
+            app(\App\Services\CartStorageService::class)->restoreIntoSession($user);
 
             $rateLimiter->clearFor('web-login', request());
 
@@ -83,20 +70,7 @@ new #[Layout('components.layouts.empty')]
             session()->forget('sales_acting_as_customer_id');
             session()->put('is_alt_login', true);
 
-            if (file_exists($cartFile = storage_path("app/private/" . current_user_cart_id() . "_cart.json"))) {
-                $cart = json_decode(file_get_contents($cartFile), true) ?: [];
-                $priceService = app(\App\Services\PriceListService::class);
-                $listId = $priceService->resolveListId($guest);
-                foreach ($cart as $key => $item) {
-                    $p = \App\Models\Product::find($item['product_id']);
-                    if (! $p || ! $priceService->isSellable($listId, $p)) {
-                        unset($cart[$key]);
-                        continue;
-                    }
-                    $cart[$key]['price'] = $guest->getProductPrice($p);
-                }
-                session()->put('cart', $cart);
-            }
+            app(\App\Services\CartStorageService::class)->restoreIntoSession($guest);
 
             $rateLimiter->clearFor('web-login', request());
 

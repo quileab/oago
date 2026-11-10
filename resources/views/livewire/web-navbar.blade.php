@@ -45,7 +45,13 @@
             <x-dropdown icon="{{ $userIcon }}" label="{{ $realUser->name }}" class="btn-ghost" title="{{ $userRole }}">
               <div class="text-base-content">
                 <x-menu-item title="Mi Perfil" icon="o-user" link="/user/profile" />
-                <x-menu-item title="Ordenes de Compra" icon="o-archive-box" link="/orders" />
+                <x-menu-item 
+                  title="Ordenes de Compra" 
+                  icon="o-archive-box" 
+                  link="/orders" 
+                  :badge="(isset($savedOrdersCount) && $savedOrdersCount > 0) ? (string) $savedOrdersCount : null"
+                  badge-classes="badge-warning font-bold"
+                />
                 @if($userRole === 'customer')
                   <x-menu-item title="Mis Vendedores" icon="o-users" link="/my-sales-agents" />
                 @endif

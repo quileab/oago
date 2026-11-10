@@ -23,9 +23,30 @@
         <div id="topProductsChart" wire:ignore></div>
     </div>
 
+    <div class="mt-8">
+        <h2 class="text-lg font-semibold mb-4">PEDIDOS POR CANAL</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            @foreach ($channelStats as $stat)
+                <x-stat
+                    :title="$stat['label']"
+                    :value="$stat['orders']"
+                    :description="$stat['percent'].'% del total de pedidos'"
+                    icon="{{ $loop->first ? 'o-globe-alt' : 'o-device-phone-mobile' }}"
+                    class="border-l-8 {{ $loop->first ? 'border-info' : 'border-success' }} bg-base-100 shadow-md"
+                />
+            @endforeach
+        </div>
+    </div>
+
     <div class="flex flex-wrap justify-end gap-2 mt-8 text-sm">
-        <span class="badge badge-soft">Laravel {{ app()->version() }}</span>
-        <span class="badge badge-soft">PHP {{ phpversion() }}</span>
-        <span class="badge badge-soft">Workers: {{ config('queue.default') }}</span>
+        <div class="tooltip tooltip-top" data-tip="Laravel">
+            <span class="badge badge-soft">🔺 {{ app()->version() }}</span>
+        </div>
+        <div class="tooltip tooltip-top" data-tip="PHP">
+            <span class="badge badge-soft">🐘 {{ phpversion() }}</span>
+        </div>
+        <div class="tooltip tooltip-top" data-tip="Queue Workers">
+            <span class="badge badge-soft">⚙️ {{ config('queue.default') }}</span>
+        </div>
     </div>
 </div>

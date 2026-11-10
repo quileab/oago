@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Enums\OrderSource;
 use App\Models\Order;
 use App\Models\OrderItem;
 use Carbon\Carbon;
@@ -20,6 +21,13 @@ class Dashboard extends Component
     public $selectedWeek;
 
     public $weekOptions = [];
+
+    /**
+     * Pedidos agrupados por canal de creación.
+     *
+     * @var array<int, array{label: string, orders: int, total: float, percent: float}>
+     */
+    public array $channelStats = [];
 
     public function mount()
     {
@@ -120,6 +128,32 @@ class Dashboard extends Component
             ->pluck('total', 'date');
 
         $this->totalWeeklySales = $weeklySales->sum();
+
+        // Chart 4: Orders by channel (creation source) for the selected range
+        $sourceTotals = Order::query()
+            ->selectRaw('source, COUNT(*) as orders_count')
+            ->whereBetween('created_at', [
+                Carbon::parse($this->dateFrom)->startOfDay(),
+                Carbon::parse($this->dateTo)->endOfDay(),
+            ])
+            ->groupBy('source')
+            ->get()
+            ->keyBy('source');
+
+        $totalOrders = (int) $sourceTotals->sum('orders_count');
+
+        $this->channelStats = collect(OrderSource::cases())
+            ->map(function (OrderSource $source) use ($sourceTotals, $totalOrders): array {
+                $row = $sourceTotals->get($source->value);
+                $orders = (int) ($row->orders_count ?? 0);
+
+                return [
+                    'label' => $source->label(),
+                    'orders' => $orders,
+                    'percent' => $totalOrders > 0 ? round($orders / $totalOrders * 100, 1) : 0.0,
+                ];
+            })
+            ->all();
 
         // Chart 3: Top 5 most sold products
         $topProducts = OrderItem::query()

@@ -147,7 +147,24 @@
             <div class="flex flex-col items-center justify-center h-full text-center p-8 text-slate-600">
                 <x-icon name="o-shopping-cart" class="w-20 h-20 text-slate-400 mb-4" />
                 <p class="text-lg font-bold text-slate-700 mb-4">El carrito está vacío.</p>
-                <x-button label="Seguir Comprando" icon="o-arrow-left" class="btn-primary btn-sm" wire:click="$toggle('showCart')" />
+
+                @if (isset($savedOrders) && $savedOrders->isNotEmpty() && isset($latestSavedOrder))
+                    <div class="card bg-amber-50 border border-amber-200 p-5 rounded-2xl text-center shadow-sm max-w-sm mx-auto my-4 space-y-3">
+                        <div class="flex items-center justify-center gap-2 text-amber-900 font-bold">
+                            <x-icon name="o-bookmark" class="w-5 h-5 text-amber-600" />
+                            <span>Tenés {{ $savedOrders->count() }} carrito{{ $savedOrders->count() > 1 ? 's' : '' }} guardado{{ $savedOrders->count() > 1 ? 's' : '' }}</span>
+                        </div>
+                        <p class="text-xs text-slate-600 leading-relaxed">
+                            Guardaste un pedido con {{ $latestSavedOrder->items->count() }} producto{{ $latestSavedOrder->items->count() > 1 ? 's' : '' }} por un total de <strong>${{ number_format($latestSavedOrder->total_price, 2, ',', '.') }}</strong>.
+                        </p>
+                        <div class="flex flex-col gap-2 pt-1">
+                            <x-button label="Retomar Carrito Guardado" icon="o-arrow-path" class="btn-warning btn-sm font-bold shadow text-amber-950" wire:click="resumeSavedOrder({{ $latestSavedOrder->id }})" />
+                            <a href="/orders" class="text-xs text-amber-800 hover:text-amber-950 underline">Ver todos mis pedidos guardados</a>
+                        </div>
+                    </div>
+                @endif
+
+                <x-button label="Seguir Comprando" icon="o-arrow-left" class="btn-primary btn-sm mt-2" wire:click="$toggle('showCart')" />
             </div>
         @endif
     </x-drawer>

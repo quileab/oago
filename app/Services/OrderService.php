@@ -369,13 +369,8 @@ class OrderService
      */
     protected function persistCartFile(): void
     {
-        $cartId = current_user_cart_id();
-
-        if ($cartId) {
-            file_put_contents(
-                storage_path('app/private/'.$cartId.'_cart.json'),
-                json_encode(Session::get('cart'))
-            );
+        if ($user = current_user()) {
+            app(CartStorageService::class)->persistSessionCart($user);
         }
     }
 
@@ -387,12 +382,8 @@ class OrderService
         Session::forget('cart');
         Session::forget('updateOrder');
 
-        $cartId = current_user_cart_id();
-        if ($cartId) {
-            $path = storage_path('app/private/'.$cartId.'_cart.json');
-            if (file_exists($path)) {
-                unlink($path);
-            }
+        if ($user = current_user()) {
+            app(CartStorageService::class)->forget($user);
         }
     }
 }

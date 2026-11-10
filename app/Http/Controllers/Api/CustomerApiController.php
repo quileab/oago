@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\OrderSource;
 use App\Enums\OrderStatus;
 use App\Enums\Role;
 use App\Helpers\SettingsHelper;
@@ -231,6 +232,7 @@ class CustomerApiController extends Controller
                     'payment_detail' => $shipping['payment_detail'] ?? null,
                     'information' => strip_tags($shipping['information'] ?? ''),
                     'status' => OrderStatus::PENDING,
+                    'source' => OrderSource::MOBILE_API,
                 ]);
 
                 // 3. Crear los Detalles de Envío
