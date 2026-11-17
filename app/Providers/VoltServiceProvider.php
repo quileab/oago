@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Services\ThemeService;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Volt\Volt;
@@ -52,6 +53,8 @@ class VoltServiceProvider extends ServiceProvider
     protected function themeComponentDirectories(): array
     {
         $directories = [];
+
+        app(ThemeService::class)->syncRuntimeConfig();
 
         $theme = config('app.theme', 'default');
         $variant = config('app.theme_variant');

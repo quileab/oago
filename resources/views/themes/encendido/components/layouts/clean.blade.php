@@ -15,6 +15,7 @@
 
 <body class="grid m-0 p-0 min-h-screen font-sans antialiased bg-base-200/50">
   <div class="scroll-progress" id="scrollProgress"></div>
+  <x-theme-zone name="topbar" />
   <livewire:web-navbar />
   <x-main>
     <x-slot:content>

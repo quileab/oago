@@ -49,7 +49,7 @@ new class extends Component
             $this->offer_price = $this->product->promo_price ?? 0;
             $this->qtty = $this->product->qtty_package;
             $this->media = $this->product->media ?? [];
-            $this->tags = $this->product->tags_array ?? [];
+            $this->tags = $this->product->commercial_tags_array ?? [];
         }
     }
 
@@ -87,22 +87,14 @@ new class extends Component
 
     public function stockBadge(): array
     {
-        if ($this->product->stock < 10) {
-            return ['label' => 'STOCK BAJO', 'class' => 'text-red-600 bg-red-50 border-red-100', 'icon' => 's-bolt'];
-        }
-
-        if ($this->product->stock < 100) {
-            return ['label' => 'STOCK MEDIO', 'class' => 'text-amber-600 bg-amber-50 border-amber-100', 'icon' => 's-bolt'];
-        }
-
-        return ['label' => 'EN STOCK', 'class' => 'text-green-600 bg-green-50 border-green-100', 'icon' => 's-check-circle'];
+        return $this->product->stockBadge();
     }
 
     public function canBuy(): bool
     {
         $basePrice = $this->offer_price > 0 ? $this->offer_price : $this->user_price;
         $currUser = current_user();
-        return $this->product->stock > 0 && $currUser && ! in_array($currUser->role->value, ['none', 'guest']) && $basePrice > 0;
+        return $this->product->hasAvailableStock() && $currUser && ! in_array($currUser->role->value, ['none', 'guest']) && $basePrice > 0;
     }
 
     public function unitPrice(): float
@@ -176,7 +168,7 @@ new class extends Component
                         <div class="relative group flex items-center justify-center min-h-[300px] md:min-h-[400px]" id="detail-img-{{ $product->id }}">
                             <template x-if="activeMedia.type === 'image'">
                                 <img :src="getProxiedUrl(activeMedia.url)"
-                                    class="max-h-[400px] w-auto object-contain transition-transform duration-700 group-hover:scale-105 {{ $product->stock == 0 ? 'opacity-40 grayscale' : '' }}"
+                                    class="max-h-[400px] w-auto object-contain transition-transform duration-700 group-hover:scale-105 {{ $product->isOutOfStock() ? 'opacity-40 grayscale' : '' }}"
                                     onerror="this.src='/imgs/fallback.webp'">
                             </template>
 
@@ -192,7 +184,7 @@ new class extends Component
                                 </div>
                             </template>
 
-                            @if($product->stock == 0)
+                            @if($product->isOutOfStock())
                                 <div class="absolute inset-0 flex items-center justify-center pointer-events-none backdrop-blur-sm bg-neutral-950/50">
                                     <span class="px-6 py-2 bg-red-600/90 text-white font-black rounded-lg border border-red-400/30 shadow-xl uppercase tracking-[0.2em]">Agotado</span>
                                 </div>
@@ -336,7 +328,9 @@ new class extends Component
             </h2>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 @foreach ($relatedItems as $rel_product)
-                    <livewire:web-product-card :product="$rel_product" :key="'rel-'.$rel_product->id" />
+                    <div wire:key="rel-{{ $rel_product->id }}">
+                        <x-product-card :product="$rel_product" />
+                    </div>
                 @endforeach
             </div>
         </div>

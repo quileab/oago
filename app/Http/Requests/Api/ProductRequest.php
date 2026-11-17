@@ -24,6 +24,7 @@ use Illuminate\Support\Facades\Log;
  * @property-read string|null $offer_end
  * @property-read string $tax_status
  * @property-read bool $in_stock
+ * @property-read bool|null $deduct_stock
  * @property-read int $stock
  * @property-read bool $allow_reservation
  * @property-read int $qtty_package
@@ -96,6 +97,7 @@ class ProductRequest extends FormRequest
             'offer_end' => 'nullable|date',
             'tax_status' => 'required|string|max:10',
             'in_stock' => 'required|boolean',
+            'deduct_stock' => 'sometimes|boolean',
             'stock' => 'required|integer|min:0',
             'allow_reservation' => 'required|boolean',
             'qtty_package' => 'required|integer|min:1',

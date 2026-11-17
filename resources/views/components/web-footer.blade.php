@@ -1,3 +1,5 @@
+<div class="w-full">
+<x-theme-zone name="footer" />
 <footer class="w-full bg-slate-900 text-slate-300 pt-10 pb-6 mt-12 border-t-4 border-orange-500">
     <div class="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-10">
         <!-- Columna 1: Marca -->
@@ -79,3 +81,4 @@
         </div>
     @endif
 </footer>
+</div>

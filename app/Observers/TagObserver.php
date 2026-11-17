@@ -2,6 +2,7 @@
 
 namespace App\Observers;
 
+use App\Models\Product;
 use App\Models\Tag;
 use Illuminate\Support\Facades\Cache;
 
@@ -29,5 +30,6 @@ class TagObserver
     protected function clearCaches(): void
     {
         Cache::forget('tags.all');
+        Product::clearCatalogFiltersCache();
     }
 }

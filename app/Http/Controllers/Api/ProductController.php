@@ -130,6 +130,12 @@ class ProductController extends Controller
     // Eliminar un producto
     public function destroy(Product $product): JsonResponse
     {
+        if ($product->isSystemProduct()) {
+            return response()->json([
+                'message' => 'No se puede eliminar un producto interno del sistema.',
+            ], 422);
+        }
+
         if ($product->image_url) {
             $this->deleteImageCache($product->image_url);
         }

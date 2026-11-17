@@ -67,6 +67,7 @@ new class extends Component
                 'featured' => false,
                 'visibility' => 'visible',
                 'in_stock' => true,
+                'deduct_stock' => true,
                 'allow_reservation' => false,
                 'by_bulk' => false,
                 'price' => 0,
@@ -230,6 +231,7 @@ new class extends Component
             'formData.bonus_amount' => 'nullable|integer',
             'formData.tax_status' => 'nullable|string|max:10',
             'formData.visibility' => 'required|string|max:10',
+            'formData.deduct_stock' => 'boolean',
             'selectedTags.*' => ['integer', Rule::exists('tags', 'id')],
             'photo' => 'nullable|image|max:10240',
             'extraPhotos.*' => 'image|max:10240',
@@ -291,6 +293,12 @@ new class extends Component
     public function delete()
     {
         if (! $this->product) {
+            return;
+        }
+
+        if ($this->product->isSystemProduct()) {
+            $this->error('Este producto es de uso interno del sistema y no puede ser eliminado.');
+
             return;
         }
 
@@ -478,6 +486,7 @@ new class extends Component
                             <x-checkbox label="Publicado" wire:model="formData.published" tight />
                             <x-checkbox label="Destacado" wire:model="formData.featured" tight />
                             <x-checkbox label="En Stock" wire:model="formData.in_stock" tight />
+                            <x-checkbox label="Descuenta Stock" wire:model="formData.deduct_stock" tight />
                             <x-checkbox label="Permitir Reserva" wire:model="formData.allow_reservation" tight />
                             <x-checkbox label="Venta por Bulto" wire:model="formData.by_bulk" tight />
                         </div>
@@ -674,7 +683,7 @@ new class extends Component
                                                 @endforeach
                                             </div>
                                             <div class="w-full text-center mt-4">
-                                                <x-badge value="{{ count($extraPhotos) }} fotos (Clic para reemplazar)" class="badge-success text-white font-bold text-[10px]" />
+                                                <x-badge value="{{ count($extraPhotos) }} fotos (Clic para reemplazar)" class="badge-success font-bold text-[10px]" />
                                             </div>
                                         @else
                                             <div class="flex flex-col items-center px-4 text-center py-6">
@@ -733,10 +742,14 @@ new class extends Component
         <div class="mt-8 flex justify-between items-center bg-base-100 p-4 sticky bottom-0 border-t z-10 rounded-t-xl shadow-2xl">
             <div>
                 @if($product)
-                    <x-dropdown label="Eliminar Producto" icon="o-trash" class="btn-error btn-outline btn-sm">
-                        <x-menu-item title="Confirmar Eliminación" icon="o-trash" wire:click="delete" class="text-error font-bold" />
-                        <x-menu-item title="Cancelar" icon="o-x-mark" />
-                    </x-dropdown>
+                    @if($product->isSystemProduct())
+                        <x-badge value="Producto de Sistema (No eliminable)" icon="o-lock-closed" class="badge-warning font-bold p-3" />
+                    @else
+                        <x-dropdown label="Eliminar Producto" icon="o-trash" class="btn-error btn-outline btn-sm">
+                            <x-menu-item title="Confirmar Eliminación" icon="o-trash" wire:click="delete" class="text-error font-bold" />
+                            <x-menu-item title="Cancelar" icon="o-x-mark" />
+                        </x-dropdown>
+                    @endif
                 @endif
             </div>
             <div class="flex gap-4">

@@ -29,14 +29,14 @@
         </div>
 
         <div class="flex flex-wrap items-center justify-start md:justify-center gap-2 mt-3">
-            @foreach (\App\Models\Product::getTags() as $tag)
-                <button wire:click="addTag('{{ $tag }}')" wire:key="tag-{{ $tag }}"
+            @foreach (\App\Models\Tag::commercialCached() as $tagItem)
+                <button wire:click="addTag('{{ $tagItem->slug }}')" wire:key="tag-{{ $tagItem->slug }}"
                     @class([
                         'badge badge-lg shadow-sm cursor-pointer transition-all hover:scale-105 font-black uppercase tracking-wider text-[10px] rounded-lg px-3 py-1',
-                        'border border-neutral-700/60 text-neutral-300 bg-neutral-900/60 hover:bg-neutral-800 hover:border-neutral-500' => $tag != session('tag'),
-                        'bg-gradient-to-r from-amber-500 to-orange-500 text-neutral-950 border-none shadow-[0_0_15px_rgba(245,158,11,0.5)] scale-105' => $tag == session('tag'),
+                        'border border-neutral-700/60 text-neutral-300 bg-neutral-900/60 hover:bg-neutral-800 hover:border-neutral-500' => $tag !== $tagItem->slug,
+                        'bg-gradient-to-r from-amber-500 to-orange-500 text-neutral-950 border-none shadow-[0_0_15px_rgba(245,158,11,0.5)] scale-105' => $tag === $tagItem->slug,
                     ])>
-                    <x-icon name="o-tag" class="w-3 h-3 mr-1" /> {{ $tag }}
+                    <x-icon name="o-tag" class="w-3 h-3 mr-1" /> {{ $tagItem->name }}
                 </button>
             @endforeach
             

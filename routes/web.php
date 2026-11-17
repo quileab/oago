@@ -155,6 +155,7 @@ Route::middleware(['auth', 'check_guest'])->group(function () {
     Volt::route('/settings', 'settings.crud')->middleware('is_admin');
     Volt::route('/tags', 'tags.index')->middleware('is_admin');
     Volt::route('/manage-themes', 'themes.index')->middleware('is_admin');
+    Volt::route('/manage-themes/builder', 'themes.builder')->name('themes.builder')->middleware('is_admin');
     Volt::route('/tags/create', 'tags.crud')->middleware('is_admin');
     Volt::route('/tags/{tag}', 'tags.crud')->middleware('is_admin');
     Volt::route('/logs', 'admin.logs')->middleware('is_admin');

@@ -97,6 +97,55 @@ return [
         'description' => 'IPs/CIDR confiables: límite alto en login/registro (no bypass). Solo de ellas se usa XFF.',
     ],
 
+    'default_freight_type' => [
+        'value' => 'percentage',
+        'type' => 'string',
+        'text' => 'Tipo de Flete por Defecto',
+        'description' => 'Modo de cálculo del flete: percentage (ej: 0.04) o fixed (ej: 2000).',
+    ],
+
+    'default_freight_value' => [
+        'value' => 0.04,
+        'type' => 'number',
+        'text' => 'Valor de Flete por Defecto',
+        'description' => 'Porcentaje decimal (ej: 0.04) o monto fijo en pesos (ej: 2000).',
+    ],
+
+    'freight_min_amount' => [
+        'value' => 0,
+        'type' => 'number',
+        'text' => 'Monto Mínimo de Flete ($)',
+        'description' => 'Piso mínimo en pesos a cobrar cuando aplica flete (0 = sin mínimo).',
+    ],
+
+    'free_freight_threshold' => [
+        'value' => 0,
+        'type' => 'number',
+        'text' => 'Monto Mínimo para Flete Bonificado ($)',
+        'description' => 'Bonifica el flete si la compra física supera este monto (0 = inactivo).',
+    ],
+
+    'freight_product_id' => [
+        'value' => null,
+        'type' => 'number',
+        'text' => 'ID de Producto para Flete',
+        'description' => 'ID del producto oculto usado para registrar el flete en pedidos.',
+    ],
+
+    'active_theme' => [
+        'value' => env('APP_THEME', 'default'),
+        'type' => 'string',
+        'text' => 'Tema Visual Activo',
+        'description' => 'Nombre del tema activo del catálogo (ej. default, corporativo, industrial).',
+    ],
+
+    'active_theme_variant' => [
+        'value' => env('APP_THEME_VARIANT', '') ?: '',
+        'type' => 'string',
+        'text' => 'Variante de Tema Activa',
+        'description' => 'Subcarpeta de variante dentro del tema activo (opcional).',
+    ],
+
     'copyright' => [
         'value' => '© InnoDesign - 2025',
         'type' => 'string',

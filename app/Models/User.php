@@ -40,6 +40,8 @@ class User extends Authenticatable
         'password',
         'list_id',
         'is_internal',
+        'freight_type',
+        'freight_value',
         'role',
     ];
 
@@ -65,6 +67,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'role' => Role::class,
             'is_internal' => 'boolean',
+            'freight_value' => 'float',
         ];
     }
 

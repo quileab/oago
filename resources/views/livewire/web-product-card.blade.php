@@ -1,4 +1,65 @@
-<div wire:key="prod-card-{{ $product->id }}" 
+@php
+    $pkg = max(1, (int) ($product->qtty_package ?? 1));
+    $initialMode = $pkg > 1 ? 'bulk' : 'unit';
+    $initialQtty = $pkg > 1 ? $pkg : 1;
+    $initialInCart = (int) ($cart[$product->id]['quantity'] ?? 0);
+@endphp
+<div wire:key="prod-card-{{ $product->id }}"
+    x-data="{
+        pkg: {{ $pkg }},
+        mode: '{{ $initialMode }}',
+        qtty: {{ $initialQtty }},
+        inCartQty: {{ $initialInCart }},
+        setMode(m) {
+            this.mode = m;
+            this.qtty = m === 'bulk' ? this.pkg : 1;
+        },
+        dec() {
+            const step = this.mode === 'bulk' ? this.pkg : 1;
+            const current = parseInt(this.qtty) || step;
+            this.qtty = current > step ? current - step : step;
+        },
+        inc() {
+            const step = this.mode === 'bulk' ? this.pkg : 1;
+            const current = parseInt(this.qtty) || 0;
+            this.qtty = current + step;
+        },
+        get subtitle() {
+            const q = parseInt(this.qtty) || 1;
+            if (this.mode === 'bulk') {
+                const b = +(q / this.pkg).toFixed(2);
+                return `${b} bulto${b !== 1 ? 's' : ''} · ${q} un.`;
+            }
+            return `${q} unidad${q !== 1 ? 'es' : ''}`;
+        },
+        addToCart() {
+            const qty = Math.max(1, parseInt(this.qtty) || 1);
+            if (window.Livewire) {
+                window.Livewire.dispatch('addToCart', { product: @js($cartPayload), quantity: qty });
+            }
+            this.qtty = this.mode === 'bulk' ? this.pkg : 1;
+        },
+        searchSimilar() {
+            if (window.Livewire) {
+                window.Livewire.dispatch('updateProducts', {
+                    filters: {
+                        category: null,
+                        brand: null,
+                        search: null,
+                        tag: null,
+                        similar: @js($product->model ?? ''),
+                        resetPage: true
+                    }
+                });
+            }
+        }
+    }"
+    x-on:cart-updated.window="
+        const qMap = Array.isArray($event.detail) ? $event.detail[0]?.quantities : $event.detail?.quantities;
+        if (qMap !== undefined) {
+            inCartQty = parseInt(qMap[{{ (int) $product->id }}] ?? 0);
+        }
+    "
     class="card bg-white shadow-md shadow-slate-400 overflow-hidden hover:shadow-lg transition-shadow duration-300 flex flex-col h-full">
     
     <a href="./?product_id={{ $product->id }}" class="flex-grow">
@@ -15,10 +76,10 @@
 
                 <div class="aspect-square w-full flex items-center justify-center" id="prod-img-{{ $product->id }}">
                     <x-image-proxy url="{{ $product->image_url }}"
-                        class="w-full h-full object-contain transition-transform duration-500 hover:scale-110 {{ $product->stock == 0 ? 'opacity-40' : '' }}" />
+                        class="w-full h-full object-contain transition-transform duration-500 hover:scale-110 {{ $isOutOfStock ? 'opacity-40' : '' }}" />
                 </div>
                 
-                @if($product->stock == 0)
+                @if($isOutOfStock)
                     <div class="absolute inset-0 flex items-center justify-center">
                         <span class="text-[8px] font-bold px-2 py-0.5 text-gray-500 uppercase tracking-widest border border-gray-300 rounded bg-white/80">Agotado</span>
                     </div>
@@ -28,7 +89,7 @@
             <!-- Columna Contenido (Ajustada al 55%) -->
             <div class="w-[55%] p-3 bg-white flex flex-col justify-start">
                 <div class="flex flex-wrap gap-1 mb-1.5">
-                    @foreach ($product->tags_array as $tagName)
+                    @foreach (($product->commercial_tags_array ?? $product->tags_array ?? []) as $tagName)
                         <span class="px-1.5 py-0.5 text-[9px] font-black bg-amber-600 text-white rounded shadow-sm uppercase tracking-wider">
                             {{ $tagName }}
                         </span>
@@ -89,7 +150,7 @@
         </div>
     </a>
 
-    @if(Auth::guest())
+    @if($isGuest)
         <div class="p-2 bg-slate-50 border-t border-slate-100 text-center text-[11px] text-slate-500 font-medium">
             <x-icon name="o-lock-closed" class="w-3 h-3 inline mr-1" /> {{ $guestMessage }}
         </div>
@@ -98,56 +159,29 @@
             {{-- Stock, Carrito y Bultos --}}
             <div class="grid grid-cols-3 items-center text-[10px] mb-2 px-1">
                 <div class="text-left">
-                    @if($product->stock < 10)
-                        <span class="text-red-600 font-bold"><x-icon name="s-bolt" class="w-3 h-3 inline" /> STOCK BAJO</span>
-                    @elseif($product->stock < 100)
-                        <span class="text-amber-600 font-bold"><x-icon name="s-bolt" class="w-3 h-3 inline" /> STOCK MEDIO</span>
-                    @else
-                        <span class="text-green-600 font-bold"><x-icon name="s-check-circle" class="w-3 h-3 inline" /> EN STOCK</span>
-                    @endif
+                    <span class="font-bold px-1.5 py-0.5 rounded border {{ $stockBadge['class'] }}">
+                        <x-icon :name="$stockBadge['icon']" class="w-3 h-3 inline" /> {{ $stockBadge['label'] }}
+                    </span>
                 </div>
 
                 <div class="text-center">
-                    @if(!empty($cart) && isset($cart[$product->id]))
-                        <span class="text-green-700 font-black bg-green-100 px-2 py-0.5 rounded-full border border-green-200" title="Cantidad en carrito">
-                            <x-icon name="o-shopping-cart" class="w-3 h-3 inline mr-0.5" />
-                            <span class="uppercase">en carrito:</span> {{ $cart[$product->id]['quantity'] }}
-                        </span>
-                    @endif
+                    <span
+                        class="{{ $initialInCart > 0 ? '' : 'hidden' }} text-green-700 font-black bg-green-100 px-2 py-0.5 rounded-full border border-green-200"
+                        :class="{ 'hidden': inCartQty <= 0 }"
+                        title="Cantidad en carrito"
+                    >
+                        <x-icon name="o-shopping-cart" class="w-3 h-3 inline mr-0.5" />
+                        <span class="uppercase">en carrito:</span> <span x-text="inCartQty">{{ $initialInCart }}</span>
+                    </span>
                 </div>
             </div>
 
             @php
                 $currUser = current_user();
-                $canBuy = $product->stock > 0 && $currUser && !in_array($currUser->role->value, ['none', 'guest']) && ($display_offer > 0 ? $display_offer : $display_price) > 0;
+                $canBuy = $hasAvailableStock && $currUser && !in_array($currUser->role->value, ['none', 'guest']) && ($display_offer > 0 ? $display_offer : $display_price) > 0;
             @endphp
             @if($canBuy)
-                <div x-data="{
-                    pkg: {{ (int) ($product->qtty_package ?? 1) }},
-                    get mode() { return $wire.buyMode },
-                    setMode(m) {
-                        $wire.buyMode = m;
-                        $wire.qtty = m === 'bulk' ? this.pkg : 1;
-                    },
-                    dec() {
-                        const step = this.mode === 'bulk' ? this.pkg : 1;
-                        const current = parseInt($wire.qtty) || step;
-                        $wire.qtty = current > step ? current - step : step;
-                    },
-                    inc() {
-                        const step = this.mode === 'bulk' ? this.pkg : 1;
-                        const current = parseInt($wire.qtty) || 0;
-                        $wire.qtty = current + step;
-                    },
-                    get subtitle() {
-                        const q = parseInt($wire.qtty) || 1;
-                        if (this.mode === 'bulk') {
-                            const b = +(q / this.pkg).toFixed(2);
-                            return `${b} bulto${b !== 1 ? 's' : ''} · ${q} un.`;
-                        }
-                        return `${q} unidad${q !== 1 ? 'es' : ''}`;
-                    }
-                }" class="space-y-2">
+                <div class="space-y-2">
 
                     {{-- Toggle Bulto / Unidad (solo si hay paquete) --}}
                     @if($product->qtty_package > 1)
@@ -184,7 +218,7 @@
                         >−</button>
 
                         <div class="flex-1 flex flex-col items-center justify-center bg-white">
-                            <input type="number" x-model.number="$wire.qtty"
+                            <input type="number" x-model.number="qtty"
                                 class="w-full text-center text-xl font-black bg-transparent focus:outline-none leading-none"
                                 min="1"
                             >
@@ -205,13 +239,11 @@
                     <div class="grid grid-cols-2 gap-2">
                         <x-button label="Similares" icon="o-magnifying-glass"
                             class="btn-sm bg-orange-500/80 text-white border-none hover:bg-orange-600/90 font-bold"
-                            wire:click="searchSimilar" />
+                            @click="searchSimilar()" />
 
                         <x-button label="AGREGAR" icon="o-shopping-cart"
                             class="btn-sm btn-primary shadow-md shadow-primary/20 font-bold"
-                            wire:click="buy"
-                            onclick="flyToCart('prod-img-{{ $product->id }}')"
-                            spinner="buy" />
+                            @click="addToCart(); flyToCart('prod-img-{{ $product->id }}')" />
                     </div>
                 </div>
             @endif

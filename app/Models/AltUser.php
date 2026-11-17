@@ -35,6 +35,8 @@ class AltUser extends Authenticatable
         'password',
         'list_id',
         'is_internal',
+        'freight_type',
+        'freight_value',
         'role',
         'remember_token',
         'activation_token',
@@ -62,6 +64,7 @@ class AltUser extends Authenticatable
             'password' => 'hashed',
             'role' => Role::class,
             'is_internal' => 'boolean',
+            'freight_value' => 'float',
         ];
     }
 

@@ -44,6 +44,10 @@ class ProductSearchService
             $query->where('featured', 1);
         }
 
+        if (! empty($params['division'])) {
+            $query->forDivision((string) $params['division']);
+        }
+
         if (! empty($params['tag'])) {
             $query->whereHas('tags', fn ($q) => $q->where('slug', $params['tag']));
         }
@@ -97,12 +101,15 @@ class ProductSearchService
 
     public function searchRelatedProducts(Product $product, int $limit = 9)
     {
+        $divisionSlug = $product->resolveDivision()['slug'];
+
         $products = Product::query()
             ->with('tags')
             ->where('published', 1)
             ->where('product_type', $product->product_type)
             ->where('visibility', '!=', 'hidden')
             ->where('products.id', '!=', $product->id)
+            ->forDivision($divisionSlug)
             ->inRandomOrder()
             ->limit($limit)
             ->get();

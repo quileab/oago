@@ -46,6 +46,13 @@ class StoreUserRequest extends FormRequest
         if (auth()->user()->role === Role::ADMIN) {
             $rules['role'] = ['required', 'string', Rule::in(array_map(fn ($role) => $role->value, Role::cases()))];
             $rules['list_id'] = 'nullable|exists:list_names,id';
+            $rules['freight_type'] = ['nullable', 'string', Rule::in(['percentage', 'fixed'])];
+            $rules['freight_value'] = [
+                'nullable',
+                'numeric',
+                'min:0',
+                Rule::when($this->input('freight_type') === 'percentage', ['max:1']),
+            ];
         }
 
         return $rules;
@@ -60,6 +67,21 @@ class StoreUserRequest extends FormRequest
             $this->merge([
                 'role' => Role::CUSTOMER->value,
                 'list_id' => null,
+            ]);
+
+            return;
+        }
+
+        if (! $this->has('freight_value') && ($this->has('freight_rate') || $this->has('flete'))) {
+            $this->merge([
+                'freight_value' => $this->input('freight_rate', $this->input('flete')),
+            ]);
+        }
+
+        if ($this->has('freight_value') && $this->input('freight_value') !== null && ! $this->filled('freight_type')) {
+            $val = (float) $this->input('freight_value');
+            $this->merge([
+                'freight_type' => $val <= 1 ? 'percentage' : 'fixed',
             ]);
         }
     }

@@ -6,6 +6,7 @@ use App\Enums\OrderStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\Product;
+use App\Services\FreightService;
 use App\Services\PriceListService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -109,8 +110,20 @@ class OrderController extends Controller
             DB::transaction(function () use ($request, $order) {
                 $order->items()->delete();
 
+                $freightService = app(FreightService::class);
+                $commercialItems = array_values(array_filter(
+                    $request->items,
+                    fn (array $item) => ! $freightService->isFreightProduct($item['product_id'] ?? null)
+                ));
+
+                if (empty($commercialItems)) {
+                    throw new \DomainException('El pedido debe contener al menos un producto.');
+                }
+
                 $total = 0;
-                $productIds = array_column($request->items, 'product_id');
+                $total = 0;
+                $freightableTotal = 0;
+                $productIds = array_column($commercialItems, 'product_id');
                 $products = Product::whereIn('id', $productIds)->get()->keyBy('id');
                 $orderUser = $order->user;
 
@@ -118,7 +131,7 @@ class OrderController extends Controller
                     throw new \DomainException('El pedido no tiene un cliente asociado.');
                 }
 
-                foreach ($request->items as $item) {
+                foreach ($commercialItems as $item) {
                     $product = $products->get($item['product_id']);
                     $orderedQuantity = (int) $item['quantity'];
 
@@ -140,6 +153,20 @@ class OrderController extends Controller
                         'price' => $line['unit_price'],
                     ]);
                     $total += $line['subtotal'];
+                    if ($product->tracksStock()) {
+                        $freightableTotal += $line['subtotal'];
+                    }
+                }
+
+                $freightAmount = $freightService->calculateFreightAmount((float) $freightableTotal, $orderUser, $order->sending_method);
+                if ($freightAmount > 0) {
+                    $freightProduct = $freightService->getOrCreateFreightProduct();
+                    $order->items()->create([
+                        'product_id' => $freightProduct->id,
+                        'quantity' => 1,
+                        'price' => $freightAmount,
+                    ]);
+                    $total = round($total + $freightAmount, 2);
                 }
 
                 $order->update(['total_price' => $total]);

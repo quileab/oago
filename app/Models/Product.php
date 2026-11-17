@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Services\FreightService;
 use App\Traits\HasTags;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -17,6 +19,15 @@ class Product extends Model
     protected $guarded = ['tags_string'];
 
     /**
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'in_stock' => true,
+        'deduct_stock' => true,
+        'allow_reservation' => false,
+    ];
+
+    /**
      * `tags_string` is appended to keep the API response shape stable
      * after the legacy `tags` column was dropped in favour of the pivot table.
      * It is also guarded so mass assignment cannot try to write it as a column.
@@ -24,6 +35,20 @@ class Product extends Model
      * @var array<int, string>
      */
     protected $appends = ['tags_string'];
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'in_stock' => 'boolean',
+            'deduct_stock' => 'boolean',
+            'allow_reservation' => 'boolean',
+            'published' => 'boolean',
+            'featured' => 'boolean',
+        ];
+    }
 
     protected static function booted(): void
     {
@@ -42,18 +67,111 @@ class Product extends Model
     {
         Cache::forget('catalog.categories');
         Cache::forget('catalog.brands');
+
+        foreach (Tag::divisionsCached()->keys() as $slug) {
+            Cache::forget("catalog.categories.{$slug}");
+            Cache::forget("catalog.brands.{$slug}");
+        }
+    }
+
+    /**
+     * Filter products belonging to a business division (`division` Tag slug or configured alias).
+     * Prioritizes division tags and uses Tag-configured fallback keywords for untagged products.
+     */
+    public function scopeForDivision(Builder $query, ?string $division): Builder
+    {
+        $slug = Tag::normalizeDivisionSlug($division);
+        if ($slug === null) {
+            return $query;
+        }
+
+        $divisions = Tag::divisionsCached();
+        $targetTag = $divisions->get($slug);
+        $targetKeywords = $targetTag ? $targetTag->fallbackMatchKeywords() : [];
+
+        $otherKeywords = [];
+        foreach ($divisions as $candidateSlug => $candidateTag) {
+            if ($candidateSlug === $slug) {
+                continue;
+            }
+            foreach ($candidateTag->fallbackMatchKeywords() as $kw) {
+                $otherKeywords[] = $kw;
+            }
+        }
+        $otherKeywords = array_values(array_unique($otherKeywords));
+
+        if ($targetKeywords !== []) {
+            return $query->where(function (Builder $outer) use ($slug, $targetKeywords) {
+                $outer->whereHas('tags', fn (Builder $q) => $q->where('slug', $slug))
+                    ->orWhere(function (Builder $fallback) use ($targetKeywords) {
+                        $fallback->whereDoesntHave('tags', fn (Builder $q) => $q->where('type', Tag::TYPE_DIVISION))
+                            ->where(function (Builder $heuristic) use ($targetKeywords) {
+                                foreach ($targetKeywords as $keyword) {
+                                    $heuristic->orWhere('products.brand', 'like', "%{$keyword}%")
+                                        ->orWhere('products.description', 'like', "%{$keyword}%");
+                                }
+                            });
+                    });
+            });
+        }
+
+        if ($targetTag !== null && $otherKeywords !== []) {
+            return $query->where(function (Builder $outer) use ($slug, $otherKeywords) {
+                $outer->whereHas('tags', fn (Builder $q) => $q->where('slug', $slug))
+                    ->orWhere(function (Builder $fallback) use ($otherKeywords) {
+                        $fallback->whereDoesntHave('tags', fn (Builder $q) => $q->where('type', Tag::TYPE_DIVISION));
+
+                        foreach ($otherKeywords as $keyword) {
+                            $fallback->where(function (Builder $brandGuard) use ($keyword) {
+                                $brandGuard->whereNull('products.brand')
+                                    ->orWhere('products.brand', 'not like', "%{$keyword}%");
+                            })->where(function (Builder $descGuard) use ($keyword) {
+                                $descGuard->whereNull('products.description')
+                                    ->orWhere('products.description', 'not like', "%{$keyword}%");
+                            });
+                        }
+                    });
+            });
+        }
+
+        return $query->whereHas('tags', fn (Builder $q) => $q->where('slug', $slug));
+    }
+
+    /**
+     * Resolve division appearance/metadata from either an Eloquent Product, stdClass, or raw array.
+     *
+     * @return array{slug: string, store_key: string, name: string, color: string, fallback_image: string}
+     */
+    public static function resolveDivisionFromRaw(object|array $product): array
+    {
+        if ($product instanceof self) {
+            return $product->resolveDivision();
+        }
+
+        $data = (array) $product;
+
+        return Tag::resolveProductDivision(
+            null,
+            (array) ($data['tags_array'] ?? []),
+            (string) ($data['brand'] ?? ''),
+            (string) ($data['description'] ?? '')
+        );
     }
 
     /**
      * @return array<int, string>
      */
-    public static function getCachedCategories(): array
+    public static function getCachedCategories(?string $division = null): array
     {
-        return Cache::remember('catalog.categories', 3600, function () {
+        $slug = Tag::normalizeDivisionSlug($division);
+        $cacheKey = $slug ? "catalog.categories.{$slug}" : 'catalog.categories';
+
+        return Cache::remember($cacheKey, 3600, function () use ($slug) {
             return self::query()
                 ->where('published', 1)
                 ->where('visibility', '!=', 'hidden')
                 ->where('category', '!=', '')
+                ->when($slug, fn (Builder $q) => $q->forDivision($slug))
                 ->distinct()
                 ->orderBy('category')
                 ->pluck('category')
@@ -66,13 +184,17 @@ class Product extends Model
     /**
      * @return array<int, string>
      */
-    public static function getCachedBrands(): array
+    public static function getCachedBrands(?string $division = null): array
     {
-        return Cache::remember('catalog.brands', 3600, function () {
+        $slug = Tag::normalizeDivisionSlug($division);
+        $cacheKey = $slug ? "catalog.brands.{$slug}" : 'catalog.brands';
+
+        return Cache::remember($cacheKey, 3600, function () use ($slug) {
             return self::query()
                 ->where('published', 1)
                 ->where('visibility', '!=', 'hidden')
                 ->where('brand', '!=', '')
+                ->when($slug, fn (Builder $q) => $q->forDivision($slug))
                 ->distinct()
                 ->orderBy('brand')
                 ->pluck('brand')
@@ -218,5 +340,62 @@ class Product extends Model
     public function setCategoryAttribute(?string $value): void
     {
         $this->attributes['category'] = $value ?? '';
+    }
+
+    public function tracksStock(): bool
+    {
+        return (bool) ($this->deduct_stock ?? true);
+    }
+
+    public function hasAvailableStock(int $quantity = 1): bool
+    {
+        if (! $this->tracksStock()) {
+            return true;
+        }
+
+        if ((bool) $this->allow_reservation) {
+            return true;
+        }
+
+        return (bool) ($this->in_stock ?? true) && $this->stock >= $quantity;
+    }
+
+    public function isOutOfStock(): bool
+    {
+        return ! $this->hasAvailableStock(1);
+    }
+
+    /**
+     * @return array{label: string, class: string, icon: string}
+     */
+    public function stockBadge(): array
+    {
+        if (! $this->tracksStock()) {
+            return ['label' => 'DISPONIBLE', 'class' => 'text-green-600 bg-green-50 border-green-100', 'icon' => 's-check-circle'];
+        }
+
+        if ($this->isOutOfStock()) {
+            return ['label' => 'AGOTADO', 'class' => 'text-red-600 bg-red-50 border-red-100', 'icon' => 's-x-circle'];
+        }
+
+        if ($this->stock <= 0 && (bool) $this->allow_reservation) {
+            return ['label' => 'A PEDIDO', 'class' => 'text-blue-600 bg-blue-50 border-blue-100', 'icon' => 's-clock'];
+        }
+
+        if ($this->stock < 10) {
+            return ['label' => 'STOCK BAJO', 'class' => 'text-red-600 bg-red-50 border-red-100', 'icon' => 's-bolt'];
+        }
+
+        if ($this->stock < 100) {
+            return ['label' => 'STOCK MEDIO', 'class' => 'text-amber-600 bg-amber-50 border-amber-100', 'icon' => 's-bolt'];
+        }
+
+        return ['label' => 'EN STOCK', 'class' => 'text-green-600 bg-green-50 border-green-100', 'icon' => 's-check-circle'];
+    }
+
+    public function isSystemProduct(): bool
+    {
+        return strcasecmp((string) $this->model, 'consumo interno') === 0
+            || app(FreightService::class)->isFreightProduct($this->id);
     }
 }

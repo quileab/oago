@@ -30,6 +30,10 @@ new class extends Component {
         $listId = $priceService->resolveListId($targetUser);
 
         foreach ($this->items as $item) {
+            if (app(\App\Services\FreightService::class)->isFreightProduct($item['product_id'] ?? null)) {
+                continue;
+            }
+
             // obtener el precio actualizado del producto según el usuario
             $prodModel = \App\Models\Product::find($item['product_id']);
             if ($prodModel) {

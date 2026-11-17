@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Enums\OrderSource;
+use App\Helpers\SettingsHelper;
 use App\Models\Order;
 use App\Models\OrderItem;
 use Carbon\Carbon;
@@ -155,12 +156,19 @@ class Dashboard extends Component
             })
             ->all();
 
-        // Chart 3: Top 5 most sold products
+        // Chart 3: Top 5 most sold products (excluding internal/system products like freight)
+        $freightProductId = (int) SettingsHelper::settings('freight_product_id', 0);
         $topProducts = OrderItem::query()
             ->selectRaw('product_id, SUM(quantity) as total_quantity')
             ->with('product')
             ->whereHas('order', function ($query) {
                 $query->where('status', 'completed');
+            })
+            ->whereHas('product', function ($query) use ($freightProductId) {
+                $query->whereRaw('LOWER(IFNULL(model, "")) != ?', ['consumo interno']);
+                if ($freightProductId > 0) {
+                    $query->where('id', '!=', $freightProductId);
+                }
             })
             ->whereBetween('created_at', [$this->dateFrom, $this->dateTo]) // Filter by date
             ->groupBy('product_id')
@@ -168,7 +176,7 @@ class Dashboard extends Component
             ->take(5)
             ->get()
             ->mapWithKeys(function ($item) {
-                return [$item->product->description => $item->total_quantity];
+                return [$item->product?->description ?? "Producto #{$item->product_id}" => $item->total_quantity];
             });
 
         // Chart 1: Yearly sales by week

@@ -1,0 +1,55 @@
+<div class="preview__inner-2" style="padding: 10px 25px 249px;"><div class="cl-preview-section"><h1 id="guía-de-funcionamiento">Guía de Funcionamiento</h1>
+</div><div class="cl-preview-section"><h3 id="gestión-de-fletes-servicios-y-disponibilidad-de-productos">Gestión de Fletes, Servicios y Disponibilidad de Productos</h3>
+</div><div class="cl-preview-section"><p>Implementamos una mejora integral en la tienda para resolver dos necesidades conectadas: el cobro automático de flete cuando el traslado corre por cuenta de la empresa y el manejo inteligente de productos especiales (como servicios, fletes o artículos a pedido) que no funcionan igual que la mercadería tradicional de depósito.</p>
+</div><div class="cl-preview-section"><h2 id="cómo-clasifica-ahora-la-tienda-a-los-productos">1. Cómo clasifica ahora la tienda a los productos</h2>
+</div><div class="cl-preview-section"><p>Hasta ahora, cualquier artículo con stock = 0 se bloqueaba automáticamente como “Agotado”. Con los nuevos atributos, cada producto se comporta según su verdadera naturaleza comercial:</p>
+</div><div class="cl-preview-section"><h3 id="a.-mercadería-física-estándar-descuenta-stock--sí--permitir-reserva--no">A. Mercadería Física Estándar (Descuenta Stock = Sí | Permitir Reserva = No)</h3>
+</div><div class="cl-preview-section"><p>Es el comportamiento habitual para los repuestos y productos de almacén:<br>
+• Solo permite comprar hasta la cantidad disponible en depósito.<br>
+• En el catálogo muestra EN STOCK, STOCK MEDIO o STOCK BAJO según las unidades disponibles.<br>
+• Si el stock llega a 0, aparece como AGOTADO y no permite agregarlo al carrito.</p>
+</div><div class="cl-preview-section"><h3 id="b.-mercadería-física-por-encargo-descuenta-stock--sí--permitir-reserva--sí">B. Mercadería Física por Encargo (Descuenta Stock = Sí | Permitir Reserva = Sí)</h3>
+</div><div class="cl-preview-section"><p>Pensado para artículos físicos que sí llevan inventario, pero que quieres seguir vendiendo aunque hoy no tengas unidades en estantería (preventa o reposición programada):<br>
+• Mientras haya unidades en depósito, muestra el stock normalmente.<br>
+• Si el stock llega a 0, no se bloquea: muestra la etiqueta “A PEDIDO” y permite que el cliente lo sume a su compra.</p>
+</div><div class="cl-preview-section"><h3 id="c.-servicios-e-intangibles-descuenta-stock--no">C. Servicios e Intangibles (Descuenta Stock = No)</h3>
+</div><div class="cl-preview-section"><p>Pensado para conceptos que no tienen stock físico en un galpón (por ejemplo: servicios técnicos, instalaciones, mano de obra, garantías o el propio Flete):<br>
+• Aunque su stock en el sistema sea 0, siempre están habilitados para la venta.<br>
+• En el catálogo muestran la etiqueta “DISPONIBLE” (nunca muestran “Stock Bajo” ni “Agotado”).<br>
+• <strong>No pagan flete:</strong> si un cliente compra repuestos y además contrata un servicio, el porcentaje de flete se calcula únicamente sobre la mercadería física, sin encarecer el servicio. Interruptor de pausa rápida (“En Stock”): Si en algún momento necesitan pausar la venta de un producto físico sin borrarlo ni ocultarlo del catálogo, basta con destildar “En Stock” y el artículo pasará inmediatamente a mostrarse como AGOTADO.</p>
+</div><div class="cl-preview-section"><h2 id="cómo-funciona-el-cobro-de-flete">2. Cómo funciona el cobro de Flete</h2>
+</div><div class="cl-preview-section"><p>El sistema calcula y agrega el flete de forma 100% automática en el momento del cierre del pedido (Checkout web y aplicación móvil).</p>
+</div><div class="cl-preview-section"><h3 id="¿cuándo-se-cobra">¿Cuándo se cobra?</h3>
+</div><div class="cl-preview-section"><p>• Se cobra flete únicamente cuando el cliente elige que la empresa lleve la mercadería:<br>
+• “Envío a cargo de la Empresa a Dirección Registrada”<br>
+• “Envío a cargo de la Empresa (Dirección Alternativa)”<br>
+• No se cobra flete ($0) cuando el cliente elige:<br>
+• “Retiro del Cliente / Transporte Propio”<br>
+• “Envío Tercerizado (A designar por el cliente)”</p>
+</div><div class="cl-preview-section"><h3 id="¿cómo-se-define-cuánto-cobrarle-a-cada-cliente">¿Cómo se define cuánto cobrarle a cada cliente?</h3>
+</div><div class="cl-preview-section"><p>El sistema cuenta con una <strong>regla general</strong> y permite excepciones <strong>por cliente</strong>:</p>
+</div><div class="cl-preview-section"><ol>
+<li>Valor general por defecto: Si el cliente no tiene una condición especial cargada en su ficha, se aplica el valor global configurado en Ajustes (por defecto, 4% —0.04— sobre el subtotal de mercadería física).</li>
+<li>Condición personalizada por cliente: En la ficha de cada cliente (o desde su sistema vía API) se puede elegir:<br>
+• Porcentaje personalizado: por ejemplo 0.06 (6%) o 0.02 (2%).<br>
+• Monto fijo en pesos: por ejemplo $2.000 fijos por envío, sin importar el tamaño de la compra.<br>
+• Cliente bonificado / sin flete: configurando el valor en 0, a ese cliente nunca se le cobra flete aunque elija envío a cargo de la empresa.</li>
+</ol>
+</div><div class="cl-preview-section"><h3 id="¿qué-ve-el-cliente-en-pantalla">¿Qué ve el cliente en pantalla?</h3>
+</div><div class="cl-preview-section"><p>En la pantalla de confirmación del pedido, a medida que el cliente cambia la forma de envío, el resumen se actualiza en vivo mostrando:<br>
+• Subtotal de productos<br>
+• Flete (4%) o Flete (Monto fijo) (aparece solo si eligió envío de la empresa)<br>
+• Total final a pagar</p>
+</div><div class="cl-preview-section"><h2 id="cómo-se-integra-con-su-sistema-administrativo-erp--api">3. Cómo se integra con su sistema administrativo (ERP / API)</h2>
+</div><div class="cl-preview-section"><p>Para que su sistema reciba los pedidos sin tener que cambiar su estructura actual, todo viaja de forma transparente:</p>
+</div><div class="cl-preview-section"><ol>
+<li>El flete viaja como un renglón más del pedido:<br>
+• Cuando un pedido lleva flete, se agrega automáticamente un ítem al pedido asociado a un producto interno oculto (SKU FLETE-INTERNO, cantidad 1, precio igual al flete calculado, y configurado con deduct_stock = false y stock = 0).<br>
+• Este producto interno nunca aparece en el buscador ni en el catálogo para los clientes, y si el cliente usa la opción “Repetir pedido”, el sistema ignora el flete viejo y lo vuelve a calcular con las condiciones vigentes del día.</li>
+<li>Sincronización de Clientes (POST/PUT /api/users):<br>
+• Pueden enviar el dato flete (por ejemplo “flete”: 0.04 para 4%, “flete”: 2000 para monto fijo de $2.000, o “flete”: 0 para bonificarlo), o bien los campos explícitos freight_type (“percentage” o “fixed”) y freight_value.</li>
+<li>Sincronización de Productos (POST/PUT /api/products):<br>
+• Pueden incluir el campo opcional “deduct_stock”: true/false (si no se envía, el sistema asume true por defecto para no afectar la sincronización actual).<br>
+• Cuando su sistema descarga los pedidos pendientes (GET /api/orders/pending), cada producto dentro del pedido incluye el dato “deduct_stock”: true/false, permitiéndoles identificar al instante qué renglones deben descontar stock físico y cuáles son servicios o flete.</li>
+</ol>
+</div></div>

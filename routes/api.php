@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\SliderController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\AuthController;
 use App\Models\User;
+use App\Services\FreightService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -26,6 +27,10 @@ Route::middleware('auth:sanctum')->group(function () {
         $user = current_user() ?? $request->user();
         if ($user instanceof User) {
             $user->loadMissing(['assignedSalesAgents.salesAgent']);
+        }
+
+        if ($user) {
+            $user->setAttribute('effective_freight', app(FreightService::class)->getEffectiveFreightMetadata($user));
         }
 
         return response()->json($user);

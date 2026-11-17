@@ -14,6 +14,31 @@ new class extends Component {
     public $perPage = 30;
     public string $search = '';
 
+    /** @var array<int, string> */
+    public array $searchFields = [
+        'product_type',
+        'brand',
+        'model',
+        'category',
+        'description',
+    ];
+
+    /**
+     * @return array<string, string>
+     */
+    public function availableSearchFields(): array
+    {
+        return [
+            'id' => 'ID',
+            'sku' => 'SKU',
+            'product_type' => 'Tipo',
+            'brand' => 'Marca',
+            'model' => 'Modelo',
+            'category' => 'Categoría',
+            'description' => 'Descripción',
+        ];
+    }
+
     public bool $drawer = false;
 
     public array $sortBy = ['column' => 'id', 'direction' => 'asc'];
@@ -21,6 +46,7 @@ new class extends Component {
     public array $tags_list = [
         ['name' => 'Publicado', 'value' => false, 'action' => 'nothing', 'slug' => null, 'is_tag' => false],
         ['name' => 'Destacado', 'value' => false, 'action' => 'nothing', 'slug' => null, 'is_tag' => false],
+        ['name' => 'Descuenta Stock', 'value' => false, 'action' => 'nothing', 'slug' => null, 'is_tag' => false],
     ];
 
     public array $actions = [
@@ -38,6 +64,7 @@ new class extends Component {
         $this->tags_list = [
             ['name' => 'Publicado', 'value' => false, 'action' => 'nothing', 'slug' => null, 'is_tag' => false],
             ['name' => 'Destacado', 'value' => false, 'action' => 'nothing', 'slug' => null, 'is_tag' => false],
+            ['name' => 'Descuenta Stock', 'value' => false, 'action' => 'nothing', 'slug' => null, 'is_tag' => false],
         ];
         foreach (Tag::allCached() as $tag) {
             $this->tags_list[] = [
@@ -55,11 +82,13 @@ new class extends Component {
     {
         return [
             ['key' => 'id', 'label' => '#', 'class' => 'w-1'],
+            ['key' => 'sku', 'label' => 'SKU'],
             ['key' => 'brand', 'label' => 'Marca'],
             ['key' => 'description_html', 'label' => 'Descripción'],
             ['key' => 'published', 'label' => 'Publicado'],
             ['key' => 'visibility', 'label' => 'Visibilidad'],
             ['key' => 'featured', 'label' => 'Destacado'],
+            ['key' => 'deduct_stock', 'label' => 'Desc. Stock'],
             ['key' => 'tags', 'label' => 'Etiquetas', 'sortable' => false],
         ];
     }
@@ -69,33 +98,40 @@ new class extends Component {
         return [
             'products' => $this->products(),
             'headers' => $this->headers(),
+            'availableFields' => $this->availableSearchFields(),
         ];
     }
 
     // Reset pagination when any component property changes
     public function updated($property): void
     {
-        if (in_array($property, ['search', 'sortBy', 'perPage'])) {
+        if (in_array($property, ['search', 'searchFields', 'sortBy', 'perPage']) || str_starts_with((string) $property, 'searchFields')) {
             $this->resetPage();
         }
     }
 
     public function products()//: LengthAwarePaginator //Collection
     {
+        $allowed = array_keys($this->availableSearchFields());
+        $activeFields = array_values(array_intersect($this->searchFields, $allowed));
+
+        if (empty($activeFields)) {
+            $activeFields = ['product_type', 'brand', 'model', 'category', 'description'];
+        }
+
         $query = Product::query()->with('tags');
-        // split search string into words
-        $search_multiple = explode(' ', $this->search);
+        $search_multiple = array_filter(explode(' ', trim($this->search)), fn ($w) => $w !== '');
 
+        if (! empty($search_multiple)) {
+            $concatParts = array_map(
+                fn (string $field) => "ifnull(products.{$field}, '')",
+                $activeFields
+            );
+            $concatSql = 'concat('.implode(', " ", ', $concatParts).')';
 
-        if ($this->search) {
-            //$query->where(DB::raw('concat(brand," ",ifnull(model,"")," ",description)'), 'like', "%$this->search%");
-            $query->where(function ($query) use ($search_multiple) {
+            $query->where(function ($query) use ($search_multiple, $concatSql) {
                 foreach ($search_multiple as $word) {
-                    $query->where(
-                        DB::raw('concat(brand," ",ifnull(model,"")," ",description, " ",product_type," ",category)'),
-                        'like',
-                        '%' . $word . '%'
-                    );
+                    $query->whereRaw("{$concatSql} like ?", ["%{$word}%"]);
                 }
             });
         }
@@ -129,6 +165,7 @@ new class extends Component {
         $tagsToRemove = [];
         $publishedAction = 'nothing';
         $featuredAction = 'nothing';
+        $deductStockAction = 'nothing';
 
         foreach ($this->tags_list as $tag) {
             if (! $tag['is_tag']) {
@@ -136,6 +173,8 @@ new class extends Component {
                     $publishedAction = $tag['action'];
                 } elseif ($tag['name'] === 'Destacado') {
                     $featuredAction = $tag['action'];
+                } elseif ($tag['name'] === 'Descuenta Stock') {
+                    $deductStockAction = $tag['action'];
                 }
             } else {
                 if ($tag['action'] === 'apply') {
@@ -150,14 +189,14 @@ new class extends Component {
         $bonusThreshold = $this->bonus_threshold;
         $bonusAmount = $this->bonus_amount;
 
-        Product::withoutEvents(function () use ($tagsToApply, $tagsToRemove, $publishedAction, $featuredAction, $htmldescription, $bonusThreshold, $bonusAmount) {
+        Product::withoutEvents(function () use ($tagsToApply, $tagsToRemove, $publishedAction, $featuredAction, $deductStockAction, $htmldescription, $bonusThreshold, $bonusAmount) {
             foreach ($this->selected as $productId) {
                 $product = Product::find($productId);
                 if (! $product) {
                     continue;
                 }
 
-                // Handle Published/Featured boolean actions
+                // Handle Published/Featured/DeductStock boolean actions
                 if ($publishedAction === 'apply') {
                     $product->published = true;
                 } elseif ($publishedAction === 'remove') {
@@ -168,6 +207,12 @@ new class extends Component {
                     $product->featured = true;
                 } elseif ($featuredAction === 'remove') {
                     $product->featured = false;
+                }
+
+                if ($deductStockAction === 'apply') {
+                    $product->deduct_stock = true;
+                } elseif ($deductStockAction === 'remove') {
+                    $product->deduct_stock = false;
                 }
 
                 // Handle tags via pivot
@@ -258,11 +303,27 @@ new class extends Component {
     <div class="sticky top-0 z-50">
         <x-header title="Productos" separator progress-indicator class="backdrop-blur-xl py-1">
             <x-slot:middle class="!justify-end">
-                <x-input placeholder="Search..." wire:model.live.debounce="search" clearable
-                    icon="o-magnifying-glass" />
+                <div class="flex flex-col items-end gap-1">
+                    <x-input placeholder="Buscar..." wire:model.live.debounce="search" clearable
+                        icon="o-magnifying-glass" class="input-sm w-64 sm:w-80" />
+                    <div class="flex flex-wrap items-center justify-end gap-2 text-xs">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-base-content/60 flex items-center gap-1">
+                            Buscar en:
+                        </span>
+                        @foreach ($availableFields as $fieldKey => $fieldLabel)
+                            <x-checkbox
+                                :label="$fieldLabel"
+                                wire:model.live="searchFields"
+                                :value="$fieldKey"
+                                wire:key="theme-extra-search-field-{{ $fieldKey }}"
+                                class="checkbox-xs checkbox-primary text-xs"
+                            />
+                        @endforeach
+                    </div>
+                </div>
             </x-slot:middle>
             <x-slot:actions>
-                <x-button label="Opciones" wire:click="openDrawer()" responsive icon="o-bars-3" />
+                <x-button label="Opciones" wire:click="openDrawer()" responsive icon="o-bars-3" class="btn-sm" />
             </x-slot:actions>
         </x-header>
     </div>
@@ -272,6 +333,9 @@ new class extends Component {
         wire:model.live.debounce="selected" row-key="id">
         @scope('cell_brand', $product)
         {{ $product->brand . ' » ' . $product->model . ' » ' . $product->description }}
+        @if($product->isSystemProduct())
+            <x-badge value="Sistema" class="badge-warning badge-xs font-bold uppercase ml-1" />
+        @endif
         @endscope
         @scope('cell_description_html', $product)
         {!! $product->description_html !!}
@@ -281,6 +345,9 @@ new class extends Component {
         @endscope
         @scope('cell_featured', $product)
         {{ $product->featured ? 'Si' : 'No' }}
+        @endscope
+        @scope('cell_deduct_stock', $product)
+        {{ $product->deduct_stock ? 'Si' : 'No' }}
         @endscope
         @scope('cell_tags', $product)
         {{ collect($product->tags_array)->join(' ') ?: 'N/A' }}
@@ -297,7 +364,7 @@ new class extends Component {
                             <span class="font-bold text-sm">{{ $tag['name'] }}</span>
                             <x-button wire:click="cycleTagAction({{ $loop->index }})"
                                 :label="$tag['action'] === 'nothing' ? 'Ignorar' : ($tag['action'] === 'apply' ? 'Aplicar' : 'Remover')"
-                                :class="$tag['action'] === 'nothing' ? 'btn-ghost btn-xs' : ($tag['action'] === 'apply' ? 'btn-success text-white btn-xs' : 'btn-error text-white btn-xs')"
+                                :class="$tag['action'] === 'nothing' ? 'btn-ghost btn-xs' : ($tag['action'] === 'apply' ? 'btn-success btn-xs' : 'btn-error btn-xs')"
                                 :icon="$tag['action'] === 'nothing' ? 'o-minus' : ($tag['action'] === 'apply' ? 'o-plus' : 'o-trash')" />
                         </div>
                     @endforeach

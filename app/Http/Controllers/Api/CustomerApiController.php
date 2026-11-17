@@ -16,6 +16,7 @@ use App\Models\Product;
 use App\Models\ShippingDetail;
 use App\Models\Tag;
 use App\Models\User;
+use App\Services\FreightService;
 use App\Services\PriceListService;
 use App\Services\ProductSearchService;
 use App\Services\SliderService;
@@ -179,6 +180,7 @@ class CustomerApiController extends Controller
         try {
             $order = DB::transaction(function () use ($items, $shipping, $user) {
                 $total = 0;
+                $freightableSubtotal = 0;
                 $productIds = array_column($items, 'product_id');
                 $products = Product::whereIn('id', $productIds)->get()->keyBy('id');
 
@@ -199,7 +201,7 @@ class CustomerApiController extends Controller
                         throw new \Exception("El producto {$product->description} no está disponible para la venta.");
                     }
 
-                    if ($product->stock < $item['quantity']) {
+                    if (! $product->hasAvailableStock((int) $item['quantity'])) {
                         throw new \Exception("Stock insuficiente para {$product->description}. Disponible: {$product->stock}.");
                     }
 
@@ -216,16 +218,34 @@ class CustomerApiController extends Controller
                     ];
 
                     $total += $line['subtotal'];
+                    if ($product->tracksStock()) {
+                        $freightableSubtotal += $line['subtotal'];
+                    }
                 }
 
                 if ($total == 0) {
                     throw new \Exception('El total del pedido no puede ser 0.');
                 }
 
+                $freightService = app(FreightService::class);
+                $freightAmount = $freightService->calculateFreightAmount((float) $freightableSubtotal, $user, $shipping['sending_method'] ?? null);
+                $grandTotal = round($total + $freightAmount, 2);
+
+                if ($freightAmount > 0) {
+                    $freightProduct = $freightService->getOrCreateFreightProduct();
+                    $itemsData[] = [
+                        'product_id' => $freightProduct->id,
+                        'quantity' => 1,
+                        'price' => $freightAmount,
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
+                }
+
                 // 2. Crear la Orden
                 $order = Order::create([
                     'user_id' => $user->id,
-                    'total_price' => $total,
+                    'total_price' => $grandTotal,
                     'sending_method' => $shipping['sending_method'] ?? null,
                     'transport_detail' => $shipping['transport_detail'] ?? null,
                     'payment_method' => $shipping['payment_method'] ?? null,

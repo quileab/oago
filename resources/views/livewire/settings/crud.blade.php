@@ -250,7 +250,7 @@ new class extends Component
             @if($currentType === 'boolean')
                 <x-toggle label="Valor" wire:model="formData.value" />
             @elseif($currentType === 'number')
-                <x-input label="Valor" wire:model="formData.value" type="number" />
+                <x-input label="Valor" wire:model="formData.value" type="number" step="any" />
             @else
                 <x-textarea
                     label="Valor"

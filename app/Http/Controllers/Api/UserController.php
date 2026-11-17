@@ -68,6 +68,18 @@ class UserController extends Controller
             'list_id' => $validatedData['list_id'] ?? null,
         ];
 
+        if (auth()->user()->role === Role::ADMIN) {
+            if (array_key_exists('freight_type', $validatedData)) {
+                $userData['freight_type'] = $validatedData['freight_type'];
+            }
+            if (array_key_exists('freight_value', $validatedData)) {
+                $userData['freight_value'] = $validatedData['freight_value'];
+                if ($userData['freight_value'] === null) {
+                    $userData['freight_type'] = null;
+                }
+            }
+        }
+
         if (! empty($validatedData['password'])) {
             $userData['password'] = Hash::make($validatedData['password']);
         } elseif (! $existingUser) {
@@ -122,8 +134,28 @@ class UserController extends Controller
         ];
 
         if (auth()->user()->role === Role::ADMIN) {
+            if (! $request->has('freight_value') && ($request->has('freight_rate') || $request->has('flete'))) {
+                $request->merge([
+                    'freight_value' => $request->input('freight_rate', $request->input('flete')),
+                ]);
+            }
+
+            if ($request->has('freight_value') && $request->input('freight_value') !== null && ! $request->filled('freight_type')) {
+                $val = (float) $request->input('freight_value');
+                $request->merge([
+                    'freight_type' => $val <= 1 ? 'percentage' : 'fixed',
+                ]);
+            }
+
             $rules['role'] = ['string', Rule::in(array_map(fn ($role) => $role->value, Role::cases()))];
             $rules['list_id'] = 'nullable|exists:list_names,id';
+            $rules['freight_type'] = ['nullable', 'string', Rule::in(['percentage', 'fixed'])];
+            $rules['freight_value'] = [
+                'nullable',
+                'numeric',
+                'min:0',
+                Rule::when($request->input('freight_type') === 'percentage', ['max:1']),
+            ];
         }
 
         $validatedData = $request->validate($rules);
@@ -144,8 +176,12 @@ class UserController extends Controller
         }
 
         $dataToUpdate = array_intersect_key($validatedData, array_flip([
-            'name', 'lastname', 'address', 'city', 'postal_code', 'phone', 'email', 'list_id', 'role',
+            'name', 'lastname', 'address', 'city', 'postal_code', 'phone', 'email', 'list_id', 'role', 'freight_type', 'freight_value',
         ]));
+
+        if (array_key_exists('freight_value', $dataToUpdate) && $dataToUpdate['freight_value'] === null) {
+            $dataToUpdate['freight_type'] = null;
+        }
 
         if (isset($validatedData['password'])) {
             $dataToUpdate['password'] = Hash::make($validatedData['password']);

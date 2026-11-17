@@ -95,6 +95,7 @@ new class extends Component {
             $this->cart_content[$productId]['billable_quantity'] = $billableQuantity;
             $this->cart_content[$productId]['subtotal'] = $itemSubtotal;
             $this->cart_content[$productId]['is_bonus_applied'] = $orderedQuantity > $billableQuantity;
+            $this->cart_content[$productId]['deduct_stock'] = $product ? $product->tracksStock() : true;
 
             $this->total += $itemSubtotal;
         }
@@ -105,6 +106,59 @@ new class extends Component {
         
         // set default payment method
         $this->data['payment_method'] = 'Contado / Efectivo';
+    }
+
+    public function resolveOrderUser()
+    {
+        $currentUser = current_user();
+        if (session()->has('updateOrder')) {
+            $isAlt = \Illuminate\Support\Facades\Auth::guard('alt')->check();
+            $orderModel = $isAlt ? \App\Models\AltOrder::class : \App\Models\Order::class;
+            $existingOrder = $orderModel::find(session()->get('updateOrder'));
+            if ($existingOrder && $existingOrder->user) {
+                $currentUser = $existingOrder->user;
+            }
+        }
+
+        return $currentUser;
+    }
+
+    public function getFreightableSubtotal(): float
+    {
+        if (! is_array($this->cart_content)) {
+            return (float) $this->total;
+        }
+
+        $subtotal = 0.0;
+        foreach ($this->cart_content as $item) {
+            if ($item['deduct_stock'] ?? true) {
+                $subtotal += (float) ($item['subtotal'] ?? 0);
+            }
+        }
+
+        return round($subtotal, 2);
+    }
+
+    public function getFreightAmountProperty(): float
+    {
+        return app(\App\Services\FreightService::class)->calculateFreightAmount(
+            $this->getFreightableSubtotal(),
+            $this->resolveOrderUser(),
+            $this->data['sending_method'] ?? null
+        );
+    }
+
+    public function getFreightLabelProperty(): string
+    {
+        return app(\App\Services\FreightService::class)->formatFreightLabel(
+            $this->resolveOrderUser(),
+            $this->getFreightableSubtotal()
+        );
+    }
+
+    public function getGrandTotalProperty(): float
+    {
+        return round((float) $this->total + $this->freightAmount, 2);
     }
 
     public function save()
@@ -182,11 +236,29 @@ new class extends Component {
                 @endforeach
             </tbody>
             <tfoot class="border-b bg-gray-200/10">
-                <tr>
-                    <td colspan="4" class="text-right font-bold">Total</td>
-                    <td class="text-right font-bold">
-                        ${{ number_format($total, 2) }}</td>
-                </tr>
+                @if ($this->freightAmount > 0)
+                    <tr>
+                        <td colspan="4" class="text-right font-semibold">Subtotal</td>
+                        <td class="text-right font-semibold">
+                            ${{ number_format($total, 2) }}</td>
+                    </tr>
+                    <tr>
+                        <td colspan="4" class="text-right font-semibold text-primary">{{ $this->freightLabel }}</td>
+                        <td class="text-right font-semibold text-primary">
+                            ${{ number_format($this->freightAmount, 2) }}</td>
+                    </tr>
+                    <tr>
+                        <td colspan="4" class="text-right font-bold">Total</td>
+                        <td class="text-right font-bold">
+                            ${{ number_format($this->grandTotal, 2) }}</td>
+                    </tr>
+                @else
+                    <tr>
+                        <td colspan="4" class="text-right font-bold">Total</td>
+                        <td class="text-right font-bold">
+                            ${{ number_format($total, 2) }}</td>
+                    </tr>
+                @endif
             </tfoot>
         </table>
 

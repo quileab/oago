@@ -21,6 +21,8 @@
     $whatsappUrl = ! empty($whatsapp['url']) ? $whatsapp['url'] : 'https://wa.me/5493482415931';
     $redes = $redes->reject(fn ($red) => $red['platform'] === 'WhatsApp');
 @endphp
+<div class="w-full">
+<x-theme-zone name="footer" />
 <footer class="relative w-full text-white pt-20 pb-6 mt-32 rounded-t-[3rem] shadow-[0_-20px_50px_rgba(0,0,0,0.6)] border-t border-white/10 overflow-hidden" style="background: linear-gradient(to bottom, #374151, #030712);">
     
     <div class="relative z-10 max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-10">
@@ -104,3 +106,4 @@
         </a>
     </div>
 </footer>
+</div>

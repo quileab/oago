@@ -51,13 +51,13 @@
         <!-- Tags / Filtros extra -->
         <div class="w-full flex justify-center">
             @php
-                $isCibat = request('store') === 'cibat';
+                $isCibat = \App\Models\Tag::normalizeDivisionSlug($store ?? request('store')) === 'cibat';
                 $brandBgClass = $isCibat ? 'bg-[#3d548f]' : 'bg-[#a6282e]';
                 $brandHoverBgClass = $isCibat ? 'hover:bg-[#3d548f]' : 'hover:bg-[#a6282e]';
                 $brandHoverBorderClass = $isCibat ? 'hover:border-[#3d548f]' : 'hover:border-[#a6282e]';
             @endphp
             <div class="join flex-wrap gap-2 justify-center">
-                @foreach (\App\Models\Tag::allCached() as $tagItem)
+                @foreach (\App\Models\Tag::commercialCached() as $tagItem)
                     <button type="button" wire:click="addTag('{{ $tagItem->slug }}')" wire:key="tag-{{ $tagItem->slug }}"
                         class="btn btn-sm join-item rounded-full transition-colors {{ $tag === $tagItem->slug ? $brandBgClass . ' text-white border-transparent' : 'btn-outline border-gray-300 text-gray-600 ' . $brandHoverBgClass . ' hover:text-white ' . $brandHoverBorderClass }}">
                         <x-icon name="o-tag" class="w-4 h-4 mr-1 inline" /> {{ $tagItem->name }}

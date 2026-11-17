@@ -1,7 +1,7 @@
 <?php
+use App\Helpers\SettingsHelper;
 use App\Models\Product;
 use App\Services\ProductSearchService;
-use Illuminate\Support\Facades\Auth;
 use Livewire\Volt\Component;
 use Mary\Traits\Toast;
 
@@ -48,7 +48,7 @@ new class extends Component
             $this->offer_price = $this->product->promo_price ?? 0;
             $this->qtty = $this->product->qtty_package;
             $this->media = $this->product->media ?? [];
-            $this->tags = $this->product->tags_array ?? [];
+            $this->tags = $this->product->commercial_tags_array ?? [];
             $this->related_products = app(ProductSearchService::class)
                 ->searchRelatedProducts($this->product, 12);
         }
@@ -72,22 +72,15 @@ new class extends Component
 
     public function stockBadge(): array
     {
-        if ($this->product->stock < 10) {
-            return ['label' => 'STOCK BAJO', 'class' => 'text-red-600 bg-red-50 border-red-100', 'icon' => 's-bolt'];
-        }
-
-        if ($this->product->stock < 100) {
-            return ['label' => 'STOCK MEDIO', 'class' => 'text-amber-600 bg-amber-50 border-amber-100', 'icon' => 's-bolt'];
-        }
-
-        return ['label' => 'EN STOCK', 'class' => 'text-green-600 bg-green-50 border-green-100', 'icon' => 's-check-circle'];
+        return $this->product->stockBadge();
     }
 
     public function canBuy(): bool
     {
         $basePrice = $this->offer_price > 0 ? $this->offer_price : $this->user_price;
         $currUser = current_user();
-        return $this->product->stock > 0 && $currUser && ! in_array($currUser->role->value, ['none', 'guest']) && $basePrice > 0;
+
+        return $this->product->hasAvailableStock() && $currUser && ! in_array($currUser->role->value, ['none', 'guest'], true) && $basePrice > 0;
     }
 
     public function unitPrice(): float
@@ -99,22 +92,28 @@ new class extends Component
 
     public function showPrices(): bool
     {
-        return ! Auth::guest() || \App\Helpers\SettingsHelper::settings('show_prices_to_guests', false);
+        return current_user() !== null || (bool) SettingsHelper::settings('show_prices_to_guests', false);
     }
 
     public function guestMessage(): string
     {
-        return \App\Helpers\SettingsHelper::settings('show_prices_to_guests', false)
+        return (bool) SettingsHelper::settings('show_prices_to_guests', false)
             ? 'Inicie sesión para comprar'
             : 'Inicie sesión para ver precios y comprar';
     }
 }; ?>
 
 <div class="max-w-7xl mx-auto p-4 lg:p-6">
+    @php
+        $division = $product->resolveDivision();
+        $isCibat = ($division['slug'] ?? '') === 'cibat';
+        $brandColor = $division['color'];
+        $fallbackLogo = asset('themes/' . config('app.theme') . '/images/' . ltrim($division['fallback_image'], '/'));
+    @endphp
     <!-- Migas de pan (Breadcrumbs) -->
     <div class="text-xs text-slate-500 mb-6 font-medium">
-        <a href="/" class="hover:text-blue-600 transition-colors">Inicio</a> > 
-        <a href="/?brand={{ $product->brand }}" class="hover:text-blue-600 transition-colors">{{ $product->brand ?: 'Productos' }}</a> > 
+        <a href="/?store={{ $division['store_key'] }}" class="hover:text-blue-600 transition-colors">Inicio ({{ $division['name'] }})</a> > 
+        <a href="/?store={{ $division['store_key'] }}{{ $product->brand ? '&brand=' . urlencode((string) $product->brand) : '' }}" class="hover:text-blue-600 transition-colors">{{ $product->brand ?: 'Productos' }}</a> > 
         <span class="font-bold text-slate-800">{{ $product->description }}</span>
     </div>
 
@@ -126,11 +125,6 @@ new class extends Component
             <div class="w-full md:w-[45%] flex flex-col items-center">
                 @php
                     $primaryMedia = $this->primaryMedia();
-                    $divisionTags = array_intersect(['CIBAT', 'ENCENDIDO'], array_map('strtoupper', (array) ($product->tags_array ?? [])));
-                    $isCibat = $divisionTags
-                        ? in_array('CIBAT', $divisionTags, true)
-                        : (stripos($product->brand ?? '', 'CIBAT') !== false || stripos($product->description ?? '', 'BATERIA') !== false);
-                    $fallbackLogo = asset('themes/' . config('app.theme') . '/images/fallback-' . ($isCibat ? 'cibat' : 'encendido') . '.webp');
                 @endphp
 
                 <div x-data="{
@@ -178,7 +172,7 @@ new class extends Component
                                 <!-- Normal Product Image -->
                                 <template x-if="!activeMedia.isFallback && activeMedia.url">
                                     <img :src="getProxiedUrl(activeMedia.url)"
-                                        class="max-w-full max-h-full object-contain transition-transform duration-700 hover:scale-105 {{ $product->stock == 0 ? 'opacity-40 grayscale' : '' }}"
+                                        class="max-w-full max-h-full object-contain transition-transform duration-700 hover:scale-105 {{ $product->isOutOfStock() ? 'opacity-40 grayscale' : '' }}"
                                         x-on:load="window.erIsProxyFallback($el).then((isFallback) => { if (isFallback) activeMedia.isFallback = true; })"
                                         x-on:error="activeMedia.isFallback = true;">
                                 </template>
@@ -202,7 +196,7 @@ new class extends Component
                             </div>
                         </template>
 
-                        @if($product->stock == 0)
+                        @if($product->isOutOfStock())
                             <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
                                 <span class="px-6 py-2 bg-white/90 backdrop-blur text-gray-500 font-black rounded-xl border-2 border-gray-200 shadow-xl uppercase tracking-[0.2em]">Agotado</span>
                             </div>
@@ -216,9 +210,10 @@ new class extends Component
                                 <button @click="activeMedia = item; activeMedia.isFallback = item.isFallback"
                                     class="w-16 h-16 rounded-lg overflow-hidden border-2 transition-all p-0 flex-shrink-0 relative"
                                     :class="[
-                                        activeMedia.url === item.url ? 'border-blue-600 shadow-sm' : 'border-slate-200 hover:border-slate-400 opacity-70 hover:opacity-100',
+                                        activeMedia.url === item.url ? 'shadow-sm' : 'border-slate-200 hover:border-slate-400 opacity-70 hover:opacity-100',
                                         item.isFallback || !item.url ? 'bg-gray-100' : 'bg-white'
-                                    ]">
+                                    ]"
+                                    :style="activeMedia.url === item.url ? 'border-color: {{ $brandColor }}' : ''">
 
                                     <template x-if="!item.isFallback && item.url">
                                         <img :src="getProxiedUrl(item.thumb)" class="w-full h-full object-contain rounded-md"
@@ -253,7 +248,7 @@ new class extends Component
                         {{ $product->description }}
                     </h1>
                     @if($product->brand)
-                        <div class="shrink-0 font-black text-red-600 flex items-center gap-1 text-lg md:text-xl border px-2 py-1 rounded bg-slate-50">
+                        <div class="shrink-0 font-black flex items-center gap-1 text-lg md:text-xl border px-2 py-1 rounded bg-slate-50" style="color: {{ $brandColor }};">
                             {{ strtoupper($product->brand) }}
                         </div>
                     @endif
@@ -319,7 +314,7 @@ new class extends Component
                 @endif
 
                 <!-- Acciones de Compra -->
-                @if(!Auth::guest())
+                @if(current_user() !== null)
                     @if($this->canBuy())
                         <div x-data="{
                             qtty: @entangle('qtty'),
@@ -414,7 +409,9 @@ new class extends Component
             </div>
             <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
                 @foreach ($related_products as $rel_product)
-                    <livewire:web-product-card :product="$rel_product" :key="'rel-'.$rel_product->id" />
+                    <div wire:key="rel-{{ $rel_product->id }}">
+                        <x-product-card :product="$rel_product" />
+                    </div>
                 @endforeach
             </div>
         </div>

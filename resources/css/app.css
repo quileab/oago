@@ -272,3 +272,32 @@
 .cropper-view-box, .cropper-face {
     border-radius: 0% !important;
 }
+
+/*
+ * MaryUI <x-group> renders <div><fieldset><div class="join">. The fieldset already fills
+ * its parent, but the inner .join is inline-flex and shrinks to its content, so the control
+ * doesn't line up with the sibling <x-select> fields. This is the only child selector we
+ * need to reach from outside the vendor component.
+ */
+.oago-group-fill .join {
+    width: 100%;
+}
+
+/*
+ * MaryUI <x-group> hardcodes `[&:checked]:btn-neutral`, which paints the selected option
+ * near-black (daisyUI neutral is oklch(14%) in both themes). The builder's segmented
+ * controls use the brand accent instead; this scoped rule wins on specificity, no !important.
+ */
+.oago-segmented input.btn:checked {
+    --btn-color: #8a053c;
+    --btn-fg: #ffffff;
+    --btn-border: #8a053c;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .oago-segmented input.btn:checked {
+        --btn-color: #ffb3ce;
+        --btn-fg: #4a001c;
+        --btn-border: #ffb3ce;
+    }
+}

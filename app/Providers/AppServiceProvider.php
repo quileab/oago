@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Models\Tag;
 use App\Observers\TagObserver;
 use App\Services\RateLimitService;
+use App\Services\ThemeService;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -43,6 +44,8 @@ class AppServiceProvider extends ServiceProvider
 
             return Limit::perMinute($max)->by($key);
         });
+
+        app(ThemeService::class)->syncRuntimeConfig();
 
         $theme = config('app.theme', 'default');
         $variant = config('app.theme_variant');

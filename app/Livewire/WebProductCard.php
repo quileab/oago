@@ -2,11 +2,10 @@
 
 namespace App\Livewire;
 
-use App\Helpers\SettingsHelper;
 use App\Models\Product;
 use App\Services\PriceListService;
+use App\View\Components\ProductCard as ProductCardComponent;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Mary\Traits\Toast;
@@ -14,6 +13,9 @@ use Mary\Traits\Toast;
 class WebProductCard extends Component
 {
     use Toast;
+
+    #[On('cart-updated')]
+    public function handleCartUpdated(): void {}
 
     public array $local_product;
 
@@ -26,13 +28,6 @@ class WebProductCard extends Component
 
     public $offer_price = 0;
 
-    // Escuchamos el evento para que el card refresque el badge de "En Carrito"
-    #[On('cart-updated')]
-    public function refreshCard(): void
-    {
-        // Calling this listener re-renders the component with the updated cart session
-    }
-
     public function mount($product)
     {
         $productModel = $product instanceof Model ? $product : null;
@@ -40,6 +35,10 @@ class WebProductCard extends Component
         if ($productModel) {
             $raw = $productModel->toArray();
             $raw['tags_array'] = $productModel->tags_array;
+            $raw['commercial_tags_array'] = $productModel->commercial_tags_array ?? $productModel->tags_array;
+            $raw['division'] = method_exists($productModel, 'resolveDivision')
+                ? $productModel->resolveDivision()
+                : Product::resolveDivisionFromRaw($productModel);
             $attributes = $productModel->getAttributes();
 
             if (isset($product->description_html)) {
@@ -60,8 +59,9 @@ class WebProductCard extends Component
             $raw,
             array_flip([
                 'id', 'brand', 'model', 'description', 'description_html', 'stock',
+                'in_stock', 'deduct_stock', 'allow_reservation',
                 'qtty_package', 'qtty_unit', 'featured', 'image_url', 'tags_array',
-                'base_price', 'promo_price', 'price',
+                'commercial_tags_array', 'division', 'base_price', 'promo_price', 'price',
             ])
         );
 
@@ -114,21 +114,12 @@ class WebProductCard extends Component
 
     public function render()
     {
-        $productObj = (object) $this->local_product;
+        $data = ProductCardComponent::resolveViewData($this->local_product);
+        $data['display_price'] = $this->user_price;
+        $data['display_offer'] = $this->offer_price;
+        $data['cartPayload']['user_price'] = $this->offer_price > 0 ? $this->offer_price : $this->user_price;
 
-        // Ensure id exists to avoid Blade errors
-        if (! isset($productObj->id)) {
-            $productObj->id = 0;
-        }
-
-        return view('livewire.web-product-card', [
-            'product' => $productObj,
-            'display_price' => $this->user_price,
-            'display_offer' => $this->offer_price,
-            'cart' => session()->get('cart', []), // Pasamos el carrito actual para el badge visual
-            'showPrices' => ! Auth::guest() || SettingsHelper::settings('show_prices_to_guests', false),
-            'guestMessage' => SettingsHelper::settings('show_prices_to_guests', false) ? 'Regístrese para comprar' : 'Regístrese para ver precios',
-        ]);
+        return view('livewire.web-product-card', $data);
     }
 
     public function setBuyMode(string $mode): void

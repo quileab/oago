@@ -1,5 +1,5 @@
 <?php
-use App\Models\Product;
+use App\Services\ProductSearchService;
 use Livewire\Volt\Component;
 
 new class extends Component {
@@ -11,31 +11,36 @@ new class extends Component {
     {
         $this->type = $type;
         $this->title = $title;
-        
-        // Fetch 6 random ER products
-        $erProducts = Product::where('published', 1)
-            ->where(function($q) {
-                $q->where('brand', 'not like', '%CIBAT%')
-                  ->orWhereNull('brand');
-            })
-            ->where('description', 'not like', '%BATERIA%')
-            ->inRandomOrder()
-            ->take(6)
-            ->get();
-            
-        // Fetch 6 random CIBAT products
-        $cibatProducts = Product::where('published', 1)
-            ->where(function($q) {
-                $q->where('brand', 'like', '%CIBAT%')
-                  ->orWhere('description', 'like', '%BATERIA%');
-            })
-            ->inRandomOrder()
-            ->take(6)
-            ->get();
-            
-        // Combine and shuffle
+
+        $searchService = app(ProductSearchService::class);
+        $featuredOnly = $type === 'featured';
+
+        $erProducts = $searchService
+            ->searchProducts(['division' => 'encendido'], 18, featured: $featuredOnly, paginate: false)
+            ->shuffle()
+            ->take(6);
+
+        if ($featuredOnly && $erProducts->count() < 6) {
+            $erProducts = $searchService
+                ->searchProducts(['division' => 'encendido'], 18, featured: false, paginate: false)
+                ->shuffle()
+                ->take(6);
+        }
+
+        $cibatProducts = $searchService
+            ->searchProducts(['division' => 'cibat'], 18, featured: $featuredOnly, paginate: false)
+            ->shuffle()
+            ->take(6);
+
+        if ($featuredOnly && $cibatProducts->count() < 6) {
+            $cibatProducts = $searchService
+                ->searchProducts(['division' => 'cibat'], 18, featured: false, paginate: false)
+                ->shuffle()
+                ->take(6);
+        }
+
         $combined = $erProducts->merge($cibatProducts)->shuffle();
-        
+
         $this->products = $combined->map(function ($product) {
             $product->qtty = $product->qtty_package;
             return $product;
@@ -107,11 +112,11 @@ new class extends Component {
         <div x-ref="slider" class="flex overflow-x-auto gap-4 pb-6 snap-x scroll-smooth" style="scrollbar-width: none;">
             @forelse ($products as $product)
                 <!-- Mobile: 1 card a pantalla completa. md+: fixed width so ~4 cards fit in ~1200px (1200 / 4 = 300) -->
-                <div class="snap-start w-full md:w-[280px] lg:w-[295px] shrink-0">
+                <div wire:key="slider-{{ $type }}-{{ $product->id }}" class="snap-start w-full md:w-[280px] lg:w-[295px] shrink-0">
                     @php
                         $product->description_html = str_replace('\n', '', $product->description_html);
                     @endphp
-                    <livewire:web-product-card :$product wire:key="slider-{{ $type }}-{{ $product->id }}" />
+                    <x-product-card :product="$product" />
                 </div>
             @empty
                 <p class="text-gray-500">No hay productos para mostrar en esta sección.</p>

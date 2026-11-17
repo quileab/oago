@@ -40,7 +40,9 @@ new class extends Component {
 
     public function mount(): void
     {
-        $this->displayMode = SettingsHelper::settings('catalog_display_mode', 'infinite_scroll');
+        // El setting es texto libre: cualquier valor que no sea exactamente "paginated" se toma como scroll infinito.
+        $mode = strtolower(trim((string) SettingsHelper::settings('catalog_display_mode', 'infinite_scroll')));
+        $this->displayMode = $mode === 'paginated' ? 'paginated' : 'infinite_scroll';
         $this->items = (int) SettingsHelper::settings('catalog_items_per_page', 30);
     }
 
@@ -116,30 +118,28 @@ new class extends Component {
     @endif
     <div wire:ignore.self class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         @forelse ($products as $product)
-            <div>
+            <div wire:key="prod-{{ $product->id }}">
                 @php
                     // remove \n from description 
                     $product->description_html = str_replace('\n', '', $product->description_html);
                 @endphp
-                {{-- <livewire:web-product-card :$product wire:key="{{ $product->id }}" /> --}}
-                <livewire:web-product-card :$product wire:key="prod-{{ $product->id }}" />
+                <x-product-card :product="$product" />
             </div>
         @empty
             <h1 class="text-2xl">No existen productos</h1>
         @endforelse
     </div>
 
-    @if ($displayMode === 'infinite_scroll')
-        @if (count($products) >= $items)
-            <div x-data x-intersect.full="$wire.loadMore()">
-                <div wire:loading wire:target="loadMore" class="text-center w-full p-4">
-                    <p>Cargando más productos...</p>
-                </div>
-            </div>
-        @endif
-    @else
+    {{-- Paginar según lo que realmente devolvió la búsqueda, no según el setting: links() solo existe en un paginador. --}}
+    @if ($products instanceof \Illuminate\Contracts\Pagination\Paginator)
         <div class="mt-6 flex justify-center">
             {{ $products->links('livewire.pagination') }}
+        </div>
+    @elseif (count($products) >= $items)
+        <div x-data x-intersect.full="$wire.loadMore()">
+            <div wire:loading wire:target="loadMore" class="text-center w-full p-4">
+                <p>Cargando más productos...</p>
+            </div>
         </div>
     @endif
 </div>

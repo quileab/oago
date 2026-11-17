@@ -40,11 +40,11 @@ new class extends Component {
     </h2>
     <div class="flex overflow-x-auto gap-6 pb-6 snap-x" style="scrollbar-width: thin;">
         @forelse ($products as $product)
-            <div class="snap-start min-w-[280px] lg:min-w-[320px] shrink-0">
+            <div wire:key="slider-{{ $type }}-{{ $product->id }}" class="snap-start min-w-[280px] lg:min-w-[320px] shrink-0">
                 @php
                     $product->description_html = str_replace('\n', '', $product->description_html);
                 @endphp
-                <livewire:web-product-card :$product wire:key="slider-{{ $type }}-{{ $product->id }}" />
+                <x-product-card :product="$product" />
             </div>
         @empty
             <p class="text-gray-500">No hay productos para mostrar en esta sección.</p>

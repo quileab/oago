@@ -8,6 +8,13 @@ use Illuminate\Support\Facades\Cache;
 class SettingsHelper
 {
     /**
+     * Per-request in-memory cache to avoid redundant cache store lookups.
+     *
+     * @var array<string, mixed>
+     */
+    private static array $memo = [];
+
+    /**
      * Get a setting value from the database, using cache for performance.
      *
      * @param  string  $key  The key of the setting.
@@ -16,7 +23,11 @@ class SettingsHelper
      */
     public static function settings($key, $default = null)
     {
-        return Cache::rememberForever('settings.'.$key, function () use ($key, $default) {
+        if (array_key_exists($key, self::$memo)) {
+            return self::$memo[$key];
+        }
+
+        return self::$memo[$key] = Cache::rememberForever('settings.'.$key, function () use ($key, $default) {
             $setting = Setting::where('key', $key)->first();
             if (! $setting) {
                 return $default;
@@ -57,6 +68,38 @@ class SettingsHelper
             ['value' => $value]
         );
 
+        unset(self::$memo[$key]);
         Cache::forget('settings.'.$key);
+    }
+
+    /**
+     * Clear cached setting value(s).
+     */
+    public static function clearCache(?string $key = null): void
+    {
+        if ($key !== null) {
+            unset(self::$memo[$key]);
+            Cache::forget('settings.'.$key);
+
+            return;
+        }
+
+        self::flushMemo();
+
+        foreach (['active_theme', 'active_theme_variant'] as $themeKey) {
+            Cache::forget('settings.'.$themeKey);
+        }
+    }
+
+    /**
+     * Drop the in-memory memo without touching the shared cache store.
+     *
+     * The memo is static, so it survives across app instances (test suite, queue workers
+     * running several jobs in one process). Reset it whenever the database state changes
+     * underneath the process.
+     */
+    public static function flushMemo(): void
+    {
+        self::$memo = [];
     }
 }

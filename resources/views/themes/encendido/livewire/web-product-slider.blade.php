@@ -54,11 +54,11 @@ new class extends Component {
         <div class="swiper product-swiper overflow-hidden rounded-xl px-1 py-4">
             <div class="swiper-wrapper flex items-stretch">
                 @foreach ($products as $product)
-                    <div class="swiper-slide h-auto flex flex-col">
+                    <div wire:key="slider-{{ $this->type }}-{{ $product->id }}" class="swiper-slide h-auto flex flex-col">
                         @php
                             $product->description_html = str_replace('\n', '', $product->description_html ?? '');
                         @endphp
-                        <livewire:web-product-card :$product wire:key="slider-{{ $this->type }}-{{ $product->id }}" />
+                        <x-product-card :product="$product" />
                     </div>
                 @endforeach
             </div>

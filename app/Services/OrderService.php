@@ -74,8 +74,13 @@ class OrderService
 
             // Un borrador no exige stock: es solo un carrito aparcado.
             $validatedData = $this->validateCart($cart, $user, enforceStock: ! $isDraft, checkPriceDrift: $actorIsOwner);
-            $total = $validatedData['total'];
+            $itemsSubtotal = (float) $validatedData['total'];
+            $freightableSubtotal = (float) $validatedData['freightable_total'];
             $products = $validatedData['products'];
+
+            $freightService = app(FreightService::class);
+            $freightAmount = $freightService->calculateFreightAmount($freightableSubtotal, $user, $shippingData['sending_method'] ?? null);
+            $total = round($itemsSubtotal + $freightAmount, 2);
 
             $status = $this->resolveStatusForPersistence($existingOrder, $requestedStatus);
 
@@ -83,7 +88,7 @@ class OrderService
             $shippingData['user_id'] = $user->id;
             $shippingData['status'] = $status->value;
 
-            $orderCreated = DB::transaction(function () use ($isAlt, $updateOrderId, $shippingData, $cart, $user, $products) {
+            $orderCreated = DB::transaction(function () use ($isAlt, $updateOrderId, $shippingData, $cart, $user, $products, $freightAmount, $freightService) {
                 // 1. Crear/Actualizar la Orden
                 $orderModel = $isAlt ? AltOrder::class : Order::class;
                 $userIdField = $isAlt ? 'alt_user_id' : 'user_id';
@@ -135,6 +140,18 @@ class OrderService
                             'updated_at' => now(),
                         ];
                     }
+                }
+
+                if ($freightAmount > 0) {
+                    $freightProduct = $freightService->getOrCreateFreightProduct();
+                    $itemsToInsert[] = [
+                        $orderIdField => $order->id,
+                        'product_id' => $freightProduct->id,
+                        'quantity' => 1,
+                        'price' => $freightAmount,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
                 }
 
                 if (! empty($itemsToInsert)) {
@@ -249,11 +266,12 @@ class OrderService
      * Valida el stock y los precios de los productos del carrito.
      *
      * @param  array<int, array<string, mixed>>  $cart
-     * @return array{total: float, products: Collection}
+     * @return array{total: float, freightable_total: float, products: Collection}
      */
     public function validateCart(array $cart, $user, bool $enforceStock = true, bool $checkPriceDrift = true): array
     {
         $total = 0;
+        $freightableTotal = 0;
         $drifted = [];
         $productIds = array_column($cart, 'product_id');
         $products = Product::whereIn('id', $productIds)->get()->keyBy('id');
@@ -270,7 +288,7 @@ class OrderService
                 throw ValidationException::withMessages(['cart' => "El producto {$item['name']} no está disponible para la venta."]);
             }
 
-            if ($enforceStock && $product->stock < $item['quantity']) {
+            if ($enforceStock && ! $product->hasAvailableStock((int) $item['quantity'])) {
                 throw ValidationException::withMessages(['cart' => "Stock insuficiente para {$item['name']}. Disponible: {$product->stock}."]);
             }
 
@@ -291,6 +309,9 @@ class OrderService
                 $orderedQuantity
             );
             $total += $line['subtotal'];
+            if ($product->tracksStock()) {
+                $freightableTotal += $line['subtotal'];
+            }
         }
 
         if ($drifted) {
@@ -313,7 +334,7 @@ class OrderService
             throw ValidationException::withMessages(['cart' => 'El total del pedido no puede ser 0.']);
         }
 
-        return ['total' => $total, 'products' => $products];
+        return ['total' => $total, 'freightable_total' => $freightableTotal, 'products' => $products];
     }
 
     /**

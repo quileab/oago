@@ -19,7 +19,7 @@
             :options="$brands" option-label="brand" option-value="brand" class="bg-white text-black shadow-sm">
         </x-select>
         <div class="join flex-wrap gap-y-1 justify-center">
-            @foreach (\App\Models\Tag::allCached() as $tagItem)
+            @foreach (\App\Models\Tag::commercialCached() as $tagItem)
                 <x-button label="{{ $tagItem->name }}" icon="o-tag" wire:click="addTag('{{ $tagItem->slug }}')" wire:key="tag-{{ $tagItem->slug }}"
                     @class([
                         'join-item',

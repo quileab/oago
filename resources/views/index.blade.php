@@ -17,6 +17,7 @@
 </script>
 
 <body class="min-h-screen font-sans antialiased bg-gray-200 text-gray-900">
+    <x-theme-zone name="topbar" />
     <livewire:web-navbar />
 
     <livewire:cart />
@@ -25,6 +26,7 @@
         <livewire:webslider />
     @endif
     <livewire:web-search-filter />
+    <x-theme-zone name="home_before_catalog" />
     <div class="my-4">
         @php
             $prod_id = request()->query('product_id');
@@ -35,6 +37,7 @@
             <livewire:webproductsmain :filter="['published' => true]" />
         @endif
     </div>
+    <x-theme-zone name="home_after_catalog" />
     <x-web-footer />
     <x-toast />
 </body>

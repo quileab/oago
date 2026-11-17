@@ -1,0 +1,41 @@
+{
+    "schema_version": 1,
+    "target": "page",
+    "slug": "nosotros",
+    "title": "Nosotros",
+    "blocks": [
+        {
+            "id": "blk_df7c8ae1",
+            "type": "rich_text",
+            "enabled": true,
+            "props": {
+                "badge": "Información Institucional",
+                "title": "Conocé más sobre {{ company.name }}",
+                "html": "<p>Escribí aquí el contenido de tu sección utilizando formato enriquecido e incorporando datos vivos como <strong>{{ company.name }}</strong> o <strong>{{ company.phone }}</strong>.</p>",
+                "max_width": "medium",
+                "background_color": "#ffffff",
+                "text_color": "#1e293b",
+                "accent_color": "#a6282e"
+            }
+        },
+        {
+            "id": "blk_bc7e6602",
+            "type": "single_image",
+            "enabled": true,
+            "props": {
+                "image": "{{ theme.image('isoER50.png') }}",
+                "alt": "Imagen destacada de {{ company.name }}",
+                "title": "",
+                "caption": "{{ company.name }}",
+                "link_url": "",
+                "max_width": "md",
+                "align": "center",
+                "aspect_ratio": "1-1",
+                "rounded": true,
+                "shadow": true,
+                "background_color": "#ffffff"
+            }
+        }
+    ],
+    "updated_at": "2026-11-16T09:22:09-03:00"
+}

@@ -58,6 +58,8 @@ trait HasProfileData
             'password',
             'list_id',
             'is_internal',
+            'freight_type',
+            'freight_value',
             'role',
         ];
     }

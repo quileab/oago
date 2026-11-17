@@ -18,6 +18,7 @@ uses(RefreshDatabase::class);
 function fakeCatalogSearch(bool $alwaysCollection = false): void
 {
     mock(ProductSearchService::class)
+        ->shouldIgnoreMissing()
         ->shouldReceive('searchProducts')
         ->andReturnUsing(fn ($params, $items, $featured, $paginate) => ($paginate && ! $alwaysCollection)
             ? new LengthAwarePaginator([], 0, $items)
@@ -25,6 +26,10 @@ function fakeCatalogSearch(bool $alwaysCollection = false): void
 }
 
 beforeEach(function () {
+    // La regresión se da con el tema real de producción: no dependemos del APP_THEME
+    // del .env de cada máquina (el tema activo sale de settings/config).
+    config(['app.theme' => 'encendidorqta', 'app.theme_variant' => null]);
+
     expect(config('app.theme'))->toBe('encendidorqta');
 });
 

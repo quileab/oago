@@ -32,7 +32,7 @@ new class extends Component {
     public $similar = null;
 
     #[Url(history: true)]
-    public $store = 'er';
+    public $store = null;
 
     protected ProductSearchService $productSearchService;
 
@@ -47,6 +47,7 @@ new class extends Component {
         $mode = strtolower(trim((string) SettingsHelper::settings('catalog_display_mode', 'infinite_scroll')));
         $this->displayMode = $mode === 'paginated' ? 'paginated' : 'infinite_scroll';
         $this->items = (int) SettingsHelper::settings('catalog_items_per_page', 30);
+        $this->store = $this->store ?? request()->query('store');
     }
 
     public function products()
@@ -63,8 +64,8 @@ new class extends Component {
             'tag' => $this->tag,
         ];
 
-        if ($this->store === 'cibat') {
-            $params['brand'] = 'CIBAT';
+        if (! empty($this->store)) {
+            $params['division'] = $this->store;
         }
 
         // if there's a filter, merge it with params
@@ -91,6 +92,7 @@ new class extends Component {
     public function with($filters = [], $resetPage = false)
     {
         // Update local properties from filters passed in event
+        if (array_key_exists('store', $filters)) $this->store = $filters['store'];
         if (array_key_exists('search', $filters)) $this->search = $filters['search'];
         if (array_key_exists('category', $filters)) $this->category = $filters['category'];
         if (array_key_exists('brand', $filters)) $this->brand = $filters['brand'];
@@ -111,24 +113,17 @@ new class extends Component {
     }
 }; ?>
 
-<div class="max-w-7xl mx-auto px-4 z-10 {{ request('store') ? 'bg-white py-12' : 'bg-gray-200' }}">
+<div class="max-w-7xl mx-auto px-4 z-10 {{ $this->store ? 'bg-white py-12' : 'bg-gray-200' }}">
     @php
-        $isCibat = $this->store === 'cibat';
+        $isCibat = \App\Models\Tag::normalizeDivisionSlug($this->store) === 'cibat';
         $brandBg = $isCibat ? 'bg-[#3d548f]' : 'bg-[#a6282e]';
         $brandText = $isCibat ? 'text-[#3d548f]' : 'text-[#a6282e]';
-        
-        $categories = \Illuminate\Support\Facades\DB::table('products')
-            ->select('category')
-            ->where('published', 1)
-            ->where('category', '!=', '')
-            ->distinct()
-            ->orderBy('category')
-            ->pluck('category');
+        $categories = \App\Models\Product::getCachedCategories($this->store);
     @endphp
 
     <div class="flex flex-col lg:flex-row lg:gap-12">
         
-        @if(request('store'))
+        @if($this->store)
             <!-- Sidebar -->
             <aside class="hidden lg:block w-[280px] shrink-0">
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 sticky top-28">
@@ -142,7 +137,7 @@ new class extends Component {
                     <ul class="flex flex-col gap-3">
                         @foreach($categories as $cat)
                             <li>
-                                <button type="button" wire:click="$set('category', '{{ $cat }}'); $dispatch('updateProducts', {category: '{{ $cat }}', resetPage: true})" 
+                                <button type="button" wire:click="$set('category', '{{ $cat }}'); $dispatch('updateProducts', {store: '{{ $this->store }}', category: '{{ $cat }}', resetPage: true})" 
                                     class="w-full text-left py-2.5 text-xs md:text-sm font-black tracking-wider uppercase transition-all duration-300 {{ $category === $cat ? $brandText . ' pl-2 border-l-2 ' . ( $isCibat ? 'border-[#3d548f]' : 'border-[#a6282e]' ) : 'text-gray-400 hover:text-gray-700 hover:pl-1' }}">
                                     {{ $cat }}
                                 </button>
@@ -156,7 +151,7 @@ new class extends Component {
         <!-- Main Content -->
         <main class="w-full flex-1">
             
-            @if(request('store'))
+            @if($this->store)
                 <!-- Header simple de tienda -->
                 <div class="mb-10 border-b border-gray-100 pb-6 flex flex-col justify-end min-h-[80px]">
                     <h1 class="text-3xl md:text-4xl font-black text-gray-400 tracking-wide uppercase">
@@ -209,14 +204,14 @@ new class extends Component {
                 @endif
             @endif
 
-            <div wire:ignore.self class="grid grid-cols-1 md:grid-cols-3 {{ request('store') ? 'lg:grid-cols-3' : 'lg:grid-cols-4' }} gap-6">
+            <div wire:ignore.self class="grid grid-cols-1 md:grid-cols-3 {{ $this->store ? 'lg:grid-cols-3' : 'lg:grid-cols-4' }} gap-6">
                 @forelse ($products as $product)
-                    <div>
+                    <div wire:key="prod-{{ $product->id }}">
                         @php
                             // remove \n from description 
                             $product->description_html = str_replace('\n', '', $product->description_html);
                         @endphp
-                        <livewire:web-product-card :$product wire:key="prod-{{ $product->id }}" />
+                        <x-product-card :product="$product" />
                     </div>
                 @empty
                     <h1 class="text-2xl col-span-full">No existen productos</h1>

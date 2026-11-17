@@ -1,28 +1,37 @@
 @php
-    $divisionTags = array_intersect(['CIBAT', 'ENCENDIDO'], array_map('strtoupper', (array) ($product->tags_array ?? [])));
-    $isCibat = $divisionTags
-        ? in_array('CIBAT', $divisionTags, true)
-        : (stripos($product->brand ?? '', 'CIBAT') !== false || stripos($product->description ?? '', 'BATERIA') !== false);
-    $brandColor = $isCibat ? '#1b365d' : '#cc0000'; // CIBAT = blue, ER = red
-    $fallbackSrc = asset('themes/' . config('app.theme') . '/images/fallback-' . ($isCibat ? 'cibat' : 'encendido') . '.webp');
+    $division = is_array($product->division ?? null)
+        ? $product->division
+        : \App\Models\Product::resolveDivisionFromRaw($product);
+    $isCibat = ($division['slug'] ?? '') === 'cibat';
+    $brandColor = (string) ($division['color'] ?? ($isCibat ? '#1b365d' : '#cc0000'));
+    $fallbackFile = (string) ($division['fallback_image'] ?? ($isCibat ? 'fallback-cibat.webp' : 'fallback-encendido.webp'));
+    $fallbackSrc = asset('themes/' . config('app.theme') . '/images/' . ltrim($fallbackFile, '/'));
     $hoverTextBrand = $isCibat ? 'hover:text-[#1b365d]' : 'hover:text-[#cc0000]';
+    $commercialTags = (array) ($product->commercial_tags_array ?? []);
+    $pkg = max(1, (int) ($product->qtty_package ?? 1));
 @endphp
 
-<div wire:key="prod-card-{{ $product->id }}" 
+<div wire:key="prod-card-{{ $product->id }}"
+    x-data="{
+        qtty: {{ $pkg }},
+        addToCart() {
+            if (window.Livewire) {
+                window.Livewire.dispatch('addToCart', { product: @js($cartPayload), quantity: this.qtty });
+            }
+        }
+    }"
     class="card bg-white rounded-2xl overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col h-full border border-gray-100 shadow-md">
     
     <a href="./?product_id={{ $product->id }}" class="flex-grow flex flex-col relative">
         
         <!-- Badges Superiores -->
         <div class="absolute top-3 left-3 z-10 flex flex-col gap-1.5">
-            @if(is_array($product->tags_array))
-                @foreach($product->tags_array as $tagName)
-                    <span class="text-[10px] font-black px-2 py-1 text-white rounded-md tracking-wider shadow-sm uppercase" style="background-color: {{ $brandColor }}">
-                        {{ $tagName }}
-                    </span>
-                @endforeach
-            @endif
-            @if($display_offer > 0 && (!is_array($product->tags_array) || !in_array('OFERTA', $product->tags_array)))
+            @foreach($commercialTags as $tagName)
+                <span class="text-[10px] font-black px-2 py-1 text-white rounded-md tracking-wider shadow-sm uppercase" style="background-color: {{ $brandColor }}">
+                    {{ $tagName }}
+                </span>
+            @endforeach
+            @if($display_offer > 0 && !in_array('OFERTA', array_map('strtoupper', $commercialTags), true))
                 <span class="text-[10px] font-black px-2 py-1 text-white rounded-md tracking-wider shadow-sm uppercase" style="background-color: {{ $brandColor }}">
                     OFERTA
                 </span>
@@ -41,9 +50,9 @@
                 fallback="{{ $fallbackSrc }}"
                 data-fallback="{{ $fallbackSrc }}"
                 alt="{{ $product->description }}"
-                class="w-full h-full object-contain mix-blend-multiply transition-transform duration-500 hover:scale-110 {{ $product->stock == 0 ? 'opacity-40' : '' }}" />
+                class="w-full h-full object-contain mix-blend-multiply transition-transform duration-500 hover:scale-110 {{ $isOutOfStock ? 'opacity-40' : '' }}" />
             
-            @if($product->stock == 0)
+            @if($isOutOfStock)
                 <div class="absolute inset-0 flex items-center justify-center bg-white/40">
                     <span class="text-[10px] font-black px-3 py-1 text-gray-600 uppercase tracking-widest border-2 border-gray-400 rounded-lg bg-white shadow-lg">Agotado</span>
                 </div>
@@ -67,7 +76,7 @@
             <!-- Separador -->
             <hr class="border-gray-200 w-full mb-3">
 
-            @if(!Auth::guest() || $showPrices)
+            @if(!$isGuest || $showPrices)
                 <div class="flex flex-col mt-auto">
                     @if(($display_offer > 0 ? $display_offer : $display_price) <= 0)
                         <span class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Muy pronto</span>
@@ -104,13 +113,13 @@
 
         @php
             $currUser = current_user();
-            $canBuy = $product->stock > 0 && $currUser && !in_array($currUser->role->value, ['none', 'guest']) && ($display_offer > 0 ? $display_offer : $display_price) > 0;
+            $canBuy = $hasAvailableStock && $currUser && !in_array($currUser->role->value, ['none', 'guest']) && ($display_offer > 0 ? $display_offer : $display_price) > 0;
         @endphp
         
-        <button wire:click="buy" onclick="flyToCart('prod-img-{{ $product->id }}')"
-                class="w-full flex items-center justify-center gap-2 py-2.5 text-white text-[11px] font-black rounded-lg transition-all uppercase shadow-md hover:brightness-110 active:scale-95 @if(Auth::guest() || !$showPrices || !$canBuy) opacity-50 cursor-not-allowed pointer-events-none @endif"
+        <button type="button" @click="addToCart(); flyToCart('prod-img-{{ $product->id }}')"
+                class="w-full flex items-center justify-center gap-2 py-2.5 text-white text-[11px] font-black rounded-lg transition-all uppercase shadow-md hover:brightness-110 active:scale-95 @if($isGuest || !$showPrices || !$canBuy) opacity-50 cursor-not-allowed pointer-events-none @endif"
                 style="background-color: {{ $brandColor }};"
-                @if(Auth::guest() || !$showPrices || !$canBuy) disabled @endif>
+                @if($isGuest || !$showPrices || !$canBuy) disabled @endif>
             <x-icon name="o-shopping-cart" class="w-4 h-4" /> AGREGAR AL CARRITO
         </button>
     </div>

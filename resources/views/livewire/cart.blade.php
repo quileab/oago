@@ -108,7 +108,7 @@
                 <div class="shrink-0 bg-slate-200 border-t border-slate-300 px-4 py-3 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.08)]">
                     <div class="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 sm:gap-3">
                         <div class="flex items-center gap-2 w-full sm:w-auto flex-1">
-                            <x-button link="{{ route('checkout') }}" label="Confirmar Pedido" icon="o-check" class="btn-success text-white flex-1 text-xs sm:text-sm" />
+                            <x-button link="{{ route('checkout') }}" label="Confirmar Pedido" icon="o-check" class="btn-success flex-1 text-xs sm:text-sm" />
 
                             <x-dropdown>
                                 <x-slot:trigger>
@@ -125,7 +125,7 @@
 
                             <x-dropdown>
                                 <x-slot:trigger>
-                                    <x-button icon="o-trash" label="Vaciar" class="btn-error text-white text-xs sm:text-sm px-3" />
+                                    <x-button icon="o-trash" label="Vaciar" class="btn-error text-xs sm:text-sm px-3" />
                                 </x-slot:trigger>
                                 <div class="text-slate-700">
                                     <x-menu-item title="Confirmar Vaciar" icon="o-check" wire:click="emptyCart" class="text-red-600 font-semibold" />

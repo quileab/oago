@@ -103,13 +103,12 @@ new class extends Component {
     @endif
     <div wire:ignore.self class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
         @forelse ($products as $product)
-            <div>
+            <div wire:key="prod-{{ $product->id }}">
                 @php
                     // remove \n from description 
                     $product->description_html = str_replace('\n', '', $product->description_html);
                 @endphp
-                {{-- <livewire:web-product-card :$product wire:key="{{ $product->id }}" /> --}}
-                <livewire:web-product-card :$product wire:key="prod-{{ $product->id }}" />
+                <x-product-card :product="$product" />
             </div>
         @empty
             <h1 class="text-2xl">No existen productos</h1>

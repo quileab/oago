@@ -35,6 +35,13 @@
                 <div class="lg:col-span-2 flex items-center pt-4">
                     <x-toggle label="Personal Interno" wire:model="formData.is_internal" hint="Acceso a todos los clientes" class="toggle-primary" />
                 </div>
+
+                <div class="lg:col-span-3">
+                    <x-select label="Tipo de Flete" icon="o-truck" wire:model.live="formData.freight_type" :options="$this->freightTypes" option-value="id" option-label="name" placeholder="Por defecto (Configuración general)" />
+                </div>
+                <div class="lg:col-span-3">
+                    <x-input label="Valor de Flete" icon="o-currency-dollar" type="number" step="0.0001" min="0" wire:model="formData.freight_value" :disabled="empty($formData['freight_type'])" :hint="($formData['freight_type'] ?? '') === 'percentage' ? 'Formato decimal: 0.04 equivale a 4% (0 = exento)' : (($formData['freight_type'] ?? '') === 'fixed' ? 'Importe fijo en pesos (ej: 2000, 0 = exento)' : 'Usa el valor global definido en Configuraciones')" />
+                </div>
             </div>
 
             <x-slot:actions>

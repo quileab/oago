@@ -28,7 +28,7 @@ if (! function_exists('current_user')) {
             return null;
         }
 
-        if ($user->role->value === 'sales') {
+        if ($user->role?->value === 'sales') {
             $actingId = session('sales_acting_as_customer_id');
             if ($actingId) {
                 static $cachedCustomers = [];

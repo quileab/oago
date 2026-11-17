@@ -30,16 +30,29 @@ class WebSearchFilter extends Component
     #[Url(history: true)]
     public $similar = null;
 
+    #[Url(history: true)]
+    public $store = null;
+
     public function mount()
+    {
+        $this->loadOptions();
+    }
+
+    public function updatedStore(): void
+    {
+        $this->loadOptions();
+    }
+
+    private function loadOptions(): void
     {
         $this->categories = array_map(
             fn (string $category) => ['id' => $category, 'category' => $category],
-            Product::getCachedCategories()
+            Product::getCachedCategories($this->store)
         );
 
         $this->brands = array_map(
             fn (string $brand) => ['id' => $brand, 'brand' => $brand],
-            Product::getCachedBrands()
+            Product::getCachedBrands($this->store)
         );
     }
 
@@ -66,6 +79,7 @@ class WebSearchFilter extends Component
         }
 
         $params = array_filter([
+            'store' => $this->store,
             'search' => $this->search,
             'category' => $this->category,
             'brand' => $this->brand,
@@ -82,6 +96,7 @@ class WebSearchFilter extends Component
         $this->similar = null;
         session()->forget('similar');
         $this->dispatch('updateProducts', filters: [
+            'store' => $this->store,
             'search' => null,
             'similar' => null,
             'resetPage' => true,
@@ -94,6 +109,7 @@ class WebSearchFilter extends Component
         $this->similar = null;
         session()->forget('similar');
         $this->dispatch('updateProducts', filters: [
+            'store' => $this->store,
             'category' => $this->category,
             'brand' => $this->brand,
             'search' => $this->search,
@@ -150,6 +166,7 @@ class WebSearchFilter extends Component
         $this->similar = null;
         session()->forget('similar');
         $this->dispatch('updateProducts', filters: [
+            'store' => $this->store,
             'search' => $this->search,
             'category' => $this->category,
             'brand' => $this->brand,

@@ -8,6 +8,7 @@ use App\Models\AltUser;
 use App\Models\Order;
 use App\Models\Product;
 use App\Services\CartStorageService;
+use App\Services\FreightService;
 use App\Services\PriceListService;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Session;
@@ -123,11 +124,28 @@ class Cart extends Component
         Session::put('cart', $cart);
         $this->refreshCartData();
 
-        // Notificar cambios para que la UI reaccione
-        $this->dispatch('cart-updated');
+        // Notificar cambios para que la UI reaccione con mapa ligero de cantidades
+        $this->dispatch('cart-updated', quantities: $this->getCartQuantities($cart));
 
         // Guardar temporalmente el carrito en un JSON
         $this->jsonCartUpdate();
+    }
+
+    /**
+     * Build a compact map of product IDs to quantities for client-side card badges.
+     *
+     * @param  array<int|string, array<string, mixed>>  $cart
+     * @return array<int, int>
+     */
+    protected function getCartQuantities(array $cart): array
+    {
+        $quantities = [];
+
+        foreach ($cart as $id => $item) {
+            $quantities[(int) $id] = (int) ($item['quantity'] ?? 0);
+        }
+
+        return $quantities;
     }
 
     /**
@@ -184,7 +202,8 @@ class Cart extends Component
                     $orderedQuantity
                 );
                 $item['total_price'] = $line['subtotal'];
-                $item['is_stock_insufficient'] = $product->stock < $item['quantity'];
+                $item['is_stock_insufficient'] = ! $product->hasAvailableStock((int) $item['quantity']);
+                $item['deduct_stock'] = $product->tracksStock();
                 $item['available_stock'] = $product->stock;
             } else {
                 $item['total_price'] = (float) $item['price'] * $billableQuantity;
@@ -266,7 +285,13 @@ class Cart extends Component
         $priceService = app(PriceListService::class);
         $listId = $priceService->resolveListId($user);
 
+        $freightService = app(FreightService::class);
+
         foreach ($order->items as $item) {
+            if ($freightService->isFreightProduct($item->product_id)) {
+                continue;
+            }
+
             $product = $item->product ?? Product::find($item->product_id);
             if (! $product || ! $priceService->isSellable($listId, $product)) {
                 continue;
@@ -297,7 +322,7 @@ class Cart extends Component
         app(CartStorageService::class)->persistSessionCart($user);
 
         $this->refreshCartData();
-        $this->dispatch('cart-updated');
+        $this->dispatch('cart-updated', quantities: $this->getCartQuantities($cartItems));
 
         $this->success("¡Carrito guardado #{$order->id} retomado con éxito!", position: 'toast-bottom');
     }
@@ -308,7 +333,7 @@ class Cart extends Component
         Session::forget('updateOrder');
         $this->total = 0;
         $this->showCart = false;
-        $this->dispatch('cart-updated');
+        $this->dispatch('cart-updated', quantities: []);
         $this->info('Carrito vacío');
         $this->jsonCartDelete();
     }
@@ -349,7 +374,7 @@ class Cart extends Component
         }
 
         $this->refreshCartData();
-        $this->dispatch('cart-updated');
+        $this->dispatch('cart-updated', quantities: $this->getCartQuantities(Session::get('cart', [])));
 
         $this->success(
             "Carrito guardado como pedido #{$order->id}. Lo encontrás en Mis pedidos.",

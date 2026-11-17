@@ -2,6 +2,7 @@
 
 namespace App\Traits;
 
+use App\Models\Product;
 use App\Models\Tag;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
@@ -57,6 +58,9 @@ trait HasTags
 
         $this->tags()->sync($tagIds);
         Tag::clearCache();
+        if ($this instanceof Product) {
+            Product::clearCatalogFiltersCache();
+        }
 
         if ($this->exists) {
             $this->touch();
@@ -100,6 +104,9 @@ trait HasTags
 
         $this->tags()->sync($tagIds);
         Tag::clearCache();
+        if ($this instanceof Product) {
+            Product::clearCatalogFiltersCache();
+        }
 
         return $this;
     }
@@ -114,6 +121,62 @@ trait HasTags
         }
 
         return $this->getRelation('tags')->pluck('name')->all();
+    }
+
+    /**
+     * Accessor: commercial/promotional tag names only (excludes business divisions).
+     *
+     * @return array<int, string>
+     */
+    public function getCommercialTagsArrayAttribute(): array
+    {
+        if (! $this->relationLoaded('tags')) {
+            $this->load('tags');
+        }
+
+        return $this->getRelation('tags')
+            ->filter(fn (Tag $tag): bool => ! $tag->isDivision())
+            ->pluck('name')
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Accessor: associated business division Tag model if assigned.
+     */
+    public function getDivisionTagAttribute(): ?Tag
+    {
+        if (! $this->relationLoaded('tags')) {
+            $this->load('tags');
+        }
+
+        return $this->getRelation('tags')
+            ->first(fn (Tag $tag): bool => $tag->isDivision());
+    }
+
+    /**
+     * Resolve business division metadata for this model, prioritizing division tags over fallback heuristics.
+     *
+     * @return array{slug: string, store_key: string, name: string, color: string, fallback_image: string}
+     */
+    public function resolveDivision(): array
+    {
+        return Tag::resolveProductDivision(
+            $this->division_tag,
+            $this->tags_array,
+            (string) ($this->brand ?? ''),
+            (string) ($this->description ?? '')
+        );
+    }
+
+    /**
+     * Accessor: resolved business division metadata.
+     *
+     * @return array{slug: string, store_key: string, name: string, color: string, fallback_image: string}
+     */
+    public function getDivisionAttribute(): array
+    {
+        return $this->resolveDivision();
     }
 
     /**

@@ -1,3 +1,5 @@
+<div class="w-full">
+<x-theme-zone name="footer" />
 <footer class="relative w-full bg-gradient-to-b from-base-100 via-neutral to-neutral text-neutral-content pt-20 pb-6 mt-32 rounded-t-[3rem] shadow-[0_-20px_50px_rgba(0,0,0,0.6)] border-t border-white/10 overflow-hidden">
     <!-- Background Pattern -->
     <div class="absolute inset-0 z-0 opacity-40 mix-blend-lighten" style="background-image: url('{{ asset('images/footer-bg.jpg') }}'); background-repeat: repeat; background-size: 300px;"></div>
@@ -81,3 +83,4 @@
         </a>
     </div>
 </footer>
+</div>

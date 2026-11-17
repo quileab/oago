@@ -26,6 +26,10 @@ new class extends Component {
         $listId = $priceService->resolveListId($targetUser);
 
         foreach ($this->items as $item) {
+            if (app(\App\Services\FreightService::class)->isFreightProduct($item['product_id'] ?? null)) {
+                continue;
+            }
+
             $prodModel = \App\Models\Product::find($item['product_id']);
             if ($prodModel) {
                 $item['price'] = $targetUser?->getProductPrice($prodModel) ?? $item['price'];

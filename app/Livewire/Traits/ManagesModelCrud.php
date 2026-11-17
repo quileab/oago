@@ -10,6 +10,7 @@ use App\Models\ListName;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Mary\Traits\Toast;
 
@@ -63,6 +64,8 @@ trait ManagesModelCrud
             'role' => Role::CUSTOMER->value,
             'list_id' => $defaultListId,
             'is_internal' => false,
+            'freight_type' => null,
+            'freight_value' => null,
         ];
 
         if ($this->isAltUser()) {
@@ -82,6 +85,15 @@ trait ManagesModelCrud
         return ListName::all()->map(fn ($l) => ['id' => $l->id, 'name' => $l->name])->toArray();
     }
 
+    #[Computed]
+    public function freightTypes(): array
+    {
+        return [
+            ['id' => 'percentage', 'name' => 'Porcentaje (ej: 0.04 = 4%)'],
+            ['id' => 'fixed', 'name' => 'Monto Fijo ($)'],
+        ];
+    }
+
     protected function rules(): array
     {
         $table = (new $this->modelClass)->getTable();
@@ -93,6 +105,13 @@ trait ManagesModelCrud
                 'formData.list_id' => 'nullable|exists:list_names,id',
                 'formData.role' => 'required|string',
                 'formData.is_internal' => 'boolean',
+                'formData.freight_type' => 'nullable|in:percentage,fixed',
+                'formData.freight_value' => [
+                    'nullable',
+                    'numeric',
+                    'min:0',
+                    Rule::when(($this->formData['freight_type'] ?? null) === 'percentage', ['max:1']),
+                ],
             ]
         );
     }
@@ -104,6 +123,8 @@ trait ManagesModelCrud
             [
                 'formData.list_id.exists' => 'La lista de precios seleccionada no es válida.',
                 'formData.role.required' => 'El rol es requerido.',
+                'formData.freight_value.min' => 'El valor del flete no puede ser negativo.',
+                'formData.freight_value.max' => 'Cuando el flete es por porcentaje, el valor debe estar entre 0 y 1 (ej: 0.04 para 4%).',
             ]
         );
     }
@@ -114,6 +135,14 @@ trait ManagesModelCrud
 
         $data = $validated['formData'];
         $data['list_id'] = ! empty($data['list_id']) ? (int) $data['list_id'] : null;
+        $data['freight_type'] = ! empty($data['freight_type']) ? $data['freight_type'] : null;
+        $data['freight_value'] = ($data['freight_type'] !== null && isset($data['freight_value']) && $data['freight_value'] !== '')
+            ? (float) $data['freight_value']
+            : null;
+
+        if ($data['freight_value'] === null) {
+            $data['freight_type'] = null;
+        }
 
         $recordId = $this->formData['id'] ?? null;
 

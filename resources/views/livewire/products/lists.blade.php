@@ -143,7 +143,7 @@ new class extends Component
                 <div class="p-4 space-y-3">
                     <div class="flex gap-2 justify-end items-center">
                         @if($promoListId === $list->id)
-                            <span class="badge badge-success badge-sm font-bold text-white mr-auto">OFERTAS</span>
+                            <span class="badge badge-success badge-sm font-bold mr-auto">OFERTAS</span>
                             <x-button icon="o-x-mark" class="btn-sm btn-ghost btn-circle text-error"
                                       wire:click="clearPromo"
                                       wire:confirm="¿Desactivar la lista de ofertas?"

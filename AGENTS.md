@@ -490,6 +490,11 @@ Defined in `config/default_settings.php` and provisioned via `php artisan app:sy
 | `csv_separator` | string | , | Column separator for CSV files |
 | `trusted_rate_limit_ips` | json | [] | Trusted IPs/CIDRs for auth rate limiting (high limit, not full bypass); X-Forwarded-For only honored for them |
 | `image_proxy_allowed_hosts` | json | [] | SSRF whitelist for image proxy |
+| `default_freight_type` | string | percentage | Default freight mode (`percentage` or `fixed`) |
+| `default_freight_value` | number | 0.04 | Default freight value (`0.04` = 4% or fixed ARS amount) |
+| `freight_min_amount` | number | 0 | Minimum freight floor in ARS when freight applies (0 = disabled) |
+| `free_freight_threshold` | number | 0 | Physical subtotal threshold for free freight (0 = disabled) |
+| `freight_product_id` | number | null | Auto-managed internal Product ID for freight order item |
 | `company_name` | string | 'Distribuidora Agostini' | Company title |
 | `company_phone` | string | '+54 9 342 463-8925' | Main company phone |
 | `company_email` | string | 'contacto@oagostini.com.ar' | Main company email |
@@ -545,6 +550,38 @@ Defined in `config/default_settings.php` and provisioned via `php artisan app:sy
 3. Queued `OrderMail` sent (user + optional admin CC from `order_placed_mail` setting).
 4. Session + JSON cart file cleared.
 5. Redirect to `route('ordersuccess')`.
+
+---
+
+### Política de Stock, Reservas y Servicios (`Product`)
+
+OAGO delega el descuento físico al ERP externo, pero controla centralizadamente la disponibilidad comercial en [Product.php](app/Models/Product.php) usando `deduct_stock` (default `true`), `in_stock` (default `true`) y `allow_reservation` (default `false`):
+
+- `Product::tracksStock()`: indica si el ítem lleva inventario físico (`deduct_stock`). Servicios y Flete usan `deduct_stock = false`.
+- `Product::hasAvailableStock(int $quantity = 1)`:
+  - `deduct_stock = false` (Servicios / Flete) → siempre `true` (vendible con `stock = 0`).
+  - `allow_reservation = true` (A pedido) → siempre `true` (vendible con `stock = 0`).
+  - Producto físico estándar → exige `in_stock = true` y `stock >= $quantity`.
+- `Product::isOutOfStock()`: `! hasAvailableStock(1)` — controla el cartel `"Agotado"` en catálogo y detalle (core y temas `encendido` / `encendidorqta`).
+- `Product::stockBadge()`: devuelve el badge centralizado (`DISPONIBLE` para servicios, `A PEDIDO` para reserva con `stock <= 0`, `AGOTADO`, `STOCK BAJO`, `STOCK MEDIO`, `EN STOCK`).
+- API (`POST/PUT /api/products`): acepta `deduct_stock` como booleano opcional (`sometimes|boolean`, default `true`).
+
+---
+
+### Sistema de Flete (`FreightService`)
+
+Cuando el método de envío comienza con `'Envío a cargo de la Empresa'` (dirección registrada o alternativa), se calcula un cargo automático de flete y se persiste como un renglón `OrderItem` / `AltOrderItem` usando un producto interno oculto (`sku = 'FLETE-INTERNO'`, `model = 'consumo interno'`, `visibility = 'hidden'`, `published = false`, `deduct_stock = false`, `stock = 0`):
+
+- **Resolución de configuración (`FreightService::resolveFreightConfig()`)**:
+  - Prioriza `freight_type` (`percentage` | `fixed`) y `freight_value` del cliente (`users` / `alt_users`), y hace fallback a los settings `default_freight_type` y `default_freight_value`. Un valor `0` exime al cliente del flete.
+  - Aplica `free_freight_threshold` (bonifica flete a `$0` si el subtotal físico alcanza el tope) y `freight_min_amount` (piso mínimo en `$` cuando aplica flete), ambos configurables en `Settings` (`0` = desactivados).
+  - En la API de usuarios (`StoreUserRequest` / `UserController`) también se aceptan los alias `freight_rate` y `flete` (infiriendo `percentage` si `<= 1` y `fixed` si `> 1`).
+  - `GET /api/user` expone `effective_freight` (`FreightService::getEffectiveFreightMetadata()`) para la App Móvil.
+- **Protección contra borrado (`Product::isSystemProduct()`)**:
+  - Los productos de sistema (`model = 'consumo interno'` o `freight_product_id`) permanecen visibles en `/products` y `/products/extras` con badge `Sistema`, pero tienen bloqueada su eliminación en `products/crud`, `DELETE /api/products/{id}` (422) y están excluidos del Top 5 Productos en `Dashboard`.
+- **Base de cálculo (`deduct_stock = true`)**:
+  - En `OrderService`, `CustomerApiController`, `OrderController` y `checkout.blade.php`, la base del flete (`$freightableSubtotal`) suma únicamente ítems cuyo producto tiene `deduct_stock = true`, excluyendo servicios e intangibles tanto del cálculo porcentual como de compras exclusivamente de servicios.
+- **Reanudación de carrito**: `orderitems`, `alt-orderitems` (core y tema `encendido`) y `Cart::resumeSavedOrder()` filtran el producto de flete mediante `FreightService::isFreightProduct()` para evitar duplicados al retomar/copiar pedidos.
 
 ---
 
@@ -700,6 +737,7 @@ new #[Layout('components.layouts.clean')] #[Title('Mi Página')] class extends C
 
 | Service | Key Methods |
 |---------|-------------|
+| `FreightService` | `isCompanyShipping()`, `resolveFreightConfig()`, `calculateFreightAmount()`, `getOrCreateFreightProduct()`, `isFreightProduct()` |
 | `OrderService` | `placeOrder()`, `validateCart()` |
 | `PriceListService` | `getEffectivePrice()`, `calculateItemPrice()` |
 | `ProductSearchService` | `hydratePrices()` (N+1 prevention for catalog) |
@@ -749,7 +787,7 @@ new #[Layout('components.layouts.clean')] #[Title('Mi Página')] class extends C
 ### Test Coverage (`tests/Feature/`)
 
 Existing tests (do **not** delete without approval):
-`ApiOrderUpdateTest`, `AltUserWelcomeMailTest`, `AuthSecurityTest`, `CartDeepTest`, `CartPersistenceTest`, `CheckoutTest`, `ComponentTest`, `CustomerSalesAgentTest`, `ImageProxySecurityTest`, `ImpersonationPricingTest`, `OnHoldResumeTest`, `OrderAdminEditTest`, `OrderApiGuardsTest`, `OrderAuthorizationTest`, `OrderMailContentTest`, `OrderSavedStateTest`, `OrderStatusValidationTest`, `OrderTotalConsistencyTest`, `OrderValidationTest`, `PermissionsTest`, `PriceDriftTest`, `PricingConsistencyTest`, `PrintRouteTest`, `ProductSearchServiceTest`, `RateLimitingTest`, `SellableGuardTest`, `SessionIsolationTest`, `ThemePageTest`, `UserControllerEscalationTest`, `WebProductsMainTest` + `tests/Feature/Api/` (171 tests / 460 assertions, 2026-10-21).
+`ApiOrderUpdateTest`, `AltUserWelcomeMailTest`, `AuthSecurityTest`, `CartDeepTest`, `CartPersistenceTest`, `CheckoutTest`, `ComponentTest`, `CustomerSalesAgentTest`, `FreightTest`, `ImageProxySecurityTest`, `ImpersonationPricingTest`, `OnHoldResumeTest`, `OrderAdminEditTest`, `OrderApiGuardsTest`, `OrderAuthorizationTest`, `OrderMailContentTest`, `OrderSavedStateTest`, `OrderStatusValidationTest`, `OrderTotalConsistencyTest`, `OrderValidationTest`, `PermissionsTest`, `PriceDriftTest`, `PricingConsistencyTest`, `PrintRouteTest`, `ProductSearchServiceTest`, `RateLimitingTest`, `SellableGuardTest`, `SessionIsolationTest`, `ThemePageTest`, `UserControllerEscalationTest`, `WebProductsMainTest` + `tests/Feature/Api/` (171 tests / 460 assertions, 2026-10-21).
 
 Notas de infraestructura de tests:
 - Helpers globales en `tests/Pest.php`: `makeProduct()`, `draftShipping()`, `draftCartItem()`.

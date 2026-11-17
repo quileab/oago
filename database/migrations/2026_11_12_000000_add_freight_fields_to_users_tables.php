@@ -1,0 +1,38 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::table('users', function (Blueprint $table) {
+            $table->string('freight_type', 20)->nullable()->after('is_internal');
+            $table->decimal('freight_value', 12, 4)->nullable()->after('freight_type');
+        });
+
+        Schema::table('alt_users', function (Blueprint $table) {
+            $table->string('freight_type', 20)->nullable()->after('is_internal');
+            $table->decimal('freight_value', 12, 4)->nullable()->after('freight_type');
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropColumn(['freight_type', 'freight_value']);
+        });
+
+        Schema::table('alt_users', function (Blueprint $table) {
+            $table->dropColumn(['freight_type', 'freight_value']);
+        });
+    }
+};

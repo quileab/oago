@@ -1,20 +1,35 @@
+@php
+    $pkg = max(1, (int) ($product->qtty_package ?? 1));
+@endphp
 <div wire:key="prod-card-{{ $product->id }}"
     x-data="{
+        pkg: {{ $pkg }},
+        qtty: {{ $pkg }},
         init() {
-            gsap.fromTo($el,
-                { opacity: 0, y: 20 },
-                { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' }
-            );
+            if (typeof gsap !== 'undefined') {
+                gsap.fromTo($el,
+                    { opacity: 0, y: 20 },
+                    { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' }
+                );
+            }
+        },
+        addToCart() {
+            const qty = Math.max(1, parseInt(this.qtty) || 1);
+            if (window.Livewire) {
+                window.Livewire.dispatch('addToCart', { product: @js($cartPayload), quantity: qty });
+            }
+            this.qtty = this.pkg;
         }
     }"
     class="prod-card-item h-full">
 
     @php
-        // Verificar si el producto tiene el tag de cibat o encendido
-        $tagsLower = array_map('strtolower', $product->tags_array ?? []);
-        $isCibat = in_array('cibat', $tagsLower);
-        
-        // Asignar colores específicos
+        $division = is_array($product->division ?? null)
+            ? $product->division
+            : \App\Models\Product::resolveDivisionFromRaw($product);
+        $isCibat = ($division['slug'] ?? '') === 'cibat';
+
+        // Asignar colores específicos del tema Encendido
         $bgBrand = $isCibat ? 'bg-[#002b6b]' : 'bg-[#e60000]';
         $textBrand = $isCibat ? 'text-[#002b6b]' : 'text-[#e60000]';
         $hoverBgBrand = $isCibat ? 'hover:bg-[#001f4d]' : 'hover:bg-[#cc0000]';
@@ -44,7 +59,7 @@
             @if($product->image_url)
                 <x-image-proxy url="{{ $product->image_url }}"
                     fallback="{{ $encendidoFallback }}"
-                    class="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105 {{ $product->stock == 0 ? 'opacity-30 grayscale' : '' }}" />
+                    class="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105 {{ $isOutOfStock ? 'opacity-30 grayscale' : '' }}" />
             @else
                 <div class="flex flex-col items-center justify-center text-gray-400 opacity-50 select-none">
                     @if($isCibat)
@@ -56,7 +71,7 @@
                 </div>
             @endif
 
-            @if($product->stock == 0)
+            @if($isOutOfStock)
                 <div class="absolute inset-0 flex items-center justify-center bg-black/40">
                     <span class="text-[10px] font-black px-3 py-1 text-white bg-red-600 uppercase tracking-widest rounded">Agotado</span>
                 </div>
@@ -102,7 +117,7 @@
 
             {{-- Controls / Buttons --}}
             <div class="mt-2 flex flex-col gap-1.5">
-                @if(Auth::guest())
+                @if($isGuest)
                     <a href="/registrate" class="w-full bg-gray-400 hover:bg-gray-500 text-white text-[10px] font-bold py-2 rounded-md flex items-center justify-center gap-1.5 transition-colors tracking-wide uppercase">
                         <x-icon name="s-lock-closed" class="w-3.5 h-3.5" /> REGISTRARSE
                     </a>
@@ -113,22 +128,20 @@
                     {{-- Qtty Control & Buy for Logged In Users --}}
                     @php
                         $currUser = current_user();
-                        $canBuy = $product->stock > 0 && $currUser && !in_array($currUser->role->value, ['none', 'guest']) && ($display_offer > 0 ? $display_offer : $display_price) > 0;
+                        $canBuy = $hasAvailableStock && $currUser && !in_array($currUser->role->value, ['none', 'guest']) && ($display_offer > 0 ? $display_offer : $display_price) > 0;
                     @endphp
                     @if($canBuy)
                         <div class="flex items-stretch h-8 rounded-md overflow-hidden border border-gray-300 bg-gray-50 mb-1.5">
-                            <button type="button" @click="$wire.qtty = Math.max(1, (parseInt($wire.qtty) || 1) - 1)" class="w-8 bg-gray-200 hover:bg-gray-300 text-gray-600 font-bold transition-colors shrink-0">-</button>
-                            <input type="number" x-model.number="$wire.qtty" class="flex-grow min-w-0 text-center text-xs font-bold bg-transparent text-black focus:outline-none" min="1">
-                            <button type="button" @click="$wire.qtty = (parseInt($wire.qtty) || 0) + 1" class="w-8 bg-gray-200 hover:bg-gray-300 text-gray-600 font-bold transition-colors shrink-0">+</button>
+                            <button type="button" @click="qtty = Math.max(1, (parseInt(qtty) || 1) - 1)" class="w-8 bg-gray-200 hover:bg-gray-300 text-gray-600 font-bold transition-colors shrink-0">-</button>
+                            <input type="number" x-model.number="qtty" class="flex-grow min-w-0 text-center text-xs font-bold bg-transparent text-black focus:outline-none" min="1">
+                            <button type="button" @click="qtty = (parseInt(qtty) || 0) + 1" class="w-8 bg-gray-200 hover:bg-gray-300 text-gray-600 font-bold transition-colors shrink-0">+</button>
                         </div>
                         
-                        <button wire:click="buy" onclick="flyToCart('prod-img-{{ $product->id }}')"
-                            class="w-full {{ $bgBrand }} {{ $hoverBgBrand }} text-white text-[10px] font-bold py-2 rounded-md flex items-center justify-center gap-1.5 transition-colors tracking-wide uppercase"
-                            wire:loading.class="opacity-70 pointer-events-none">
-                            <span wire:loading.remove wire:target="buy" class="flex items-center gap-1.5">
+                        <button type="button" @click="addToCart(); flyToCart('prod-img-{{ $product->id }}')"
+                            class="w-full {{ $bgBrand }} {{ $hoverBgBrand }} text-white text-[10px] font-bold py-2 rounded-md flex items-center justify-center gap-1.5 transition-colors tracking-wide uppercase">
+                            <span class="flex items-center gap-1.5">
                                 <x-icon name="s-shopping-cart" class="w-3.5 h-3.5" /> AGREGAR AL CARRITO
                             </span>
-                            <span wire:loading wire:target="buy" class="loading loading-spinner loading-xs"></span>
                         </button>
                     @endif
                 @endif

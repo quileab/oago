@@ -1,6 +1,10 @@
 <?php
 
-use Illuminate\Support\Facades\Artisan;
+use App\Services\ThemeBuilderCompilerService;
+use App\Services\ThemeCatalogComponentRegistry;
+use App\Services\ThemePackageService;
+use App\Services\ThemeService;
+use App\Services\ThemeWidgetRegistry;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Validate;
@@ -38,10 +42,17 @@ new class extends Component
     #[Validate('required|file|mimes:zip|max:51200')]
     public $importFile = null;
 
+    /** @var array<int, string>|null */
+    private ?array $scannedBaseViews = null;
+
+    /** @var array<string, bool> */
+    private array $studioMarkerCache = [];
+
     public function mount()
     {
-        $this->selectedTheme = config('app.theme', 'default');
-        $this->selectedVariant = config('app.theme_variant') ?: '';
+        $themeService = app(ThemeService::class);
+        $this->selectedTheme = $themeService->activeTheme();
+        $this->selectedVariant = $themeService->activeVariant();
         $this->loadThemes();
         $this->loadVariants();
     }
@@ -80,7 +91,7 @@ new class extends Component
         }
 
         $directories = File::directories($themePath);
-        $exclude = ['livewire', 'components', 'layouts', 'vendor', 'emails', 'auth', 'errors'];
+        $exclude = ['livewire', 'components', 'layouts', 'vendor', 'emails', 'auth', 'errors', 'pages', 'partials', 'builder'];
 
         foreach ($directories as $dir) {
             $name = basename($dir);
@@ -179,7 +190,7 @@ CSS;
             return;
         }
 
-        $exclude = ['livewire', 'components', 'layouts', 'vendor', 'emails', 'auth', 'errors'];
+        $exclude = ['livewire', 'components', 'layouts', 'vendor', 'emails', 'auth', 'errors', 'pages', 'partials', 'builder'];
         if (in_array(strtolower($name), $exclude)) {
             $this->error('Ese nombre está reservado para directorios de vistas.');
 
@@ -200,7 +211,7 @@ CSS;
         $this->selectedVariant = $name;
     }
 
-    public function activateTheme()
+    public function activateTheme(): void
     {
         if (empty($this->selectedTheme)) {
             $this->error('Selecciona un tema primero.');
@@ -208,32 +219,12 @@ CSS;
             return;
         }
 
-        $envPath = base_path('.env');
-        if (! File::exists($envPath)) {
-            $this->error('El archivo .env no existe.');
-
-            return;
+        try {
+            app(ThemeService::class)->activateTheme($this->selectedTheme, $this->selectedVariant);
+            $this->success('Tema activado exitosamente en la base de datos.');
+        } catch (InvalidArgumentException $e) {
+            $this->error($e->getMessage());
         }
-
-        $env = File::get($envPath);
-
-        // Update APP_THEME
-        if (preg_match('/^APP_THEME=.*$/m', $env)) {
-            $env = preg_replace('/^APP_THEME=.*$/m', 'APP_THEME='.$this->selectedTheme, $env);
-        } else {
-            $env .= "\nAPP_THEME=".$this->selectedTheme;
-        }
-
-        // Update APP_THEME_VARIANT
-        if (preg_match('/^APP_THEME_VARIANT=.*$/m', $env)) {
-            $env = preg_replace('/^APP_THEME_VARIANT=.*$/m', 'APP_THEME_VARIANT='.$this->selectedVariant, $env);
-        } else {
-            $env .= "\nAPP_THEME_VARIANT=".$this->selectedVariant;
-        }
-
-        File::put($envPath, $env);
-        Artisan::call('config:clear');
-        $this->success('Tema activado exitosamente. Se limpió la caché de config.');
     }
 
     private function getCurrentOverridePrefix()
@@ -313,10 +304,19 @@ CSS;
         $this->success('Vista revertida. Ahora usa el fallback.');
     }
 
+    private function isIgnoredThemeView(string $relativePath): bool
+    {
+        return str_starts_with($relativePath, 'themes/')
+            || str_starts_with($relativePath, 'builder/')
+            || str_starts_with($relativePath, 'livewire/themes/')
+            || str_starts_with($relativePath, 'components/theme-catalog/')
+            || $relativePath === 'components/layouts/studio.blade.php';
+    }
+
     private function categorizeView(string $path): array
     {
         if (str_starts_with($path, 'errors/')) {
-            return ['id' => 'errors', 'label' => 'Error', 'icon' => 'o-exclamation-triangle', 'bg' => 'bg-error/5 hover:bg-error/10'];
+            return ['id' => 'errors', 'label' => 'Pág. HTTP', 'icon' => 'o-shield-exclamation', 'bg' => 'bg-base-200/30 hover:bg-base-200/60'];
         }
         if (str_starts_with($path, 'emails/')) {
             return ['id' => 'emails', 'label' => 'Email', 'icon' => 'o-envelope', 'bg' => 'bg-info/5 hover:bg-info/10'];
@@ -334,24 +334,38 @@ CSS;
         return ['id' => 'root', 'label' => 'Base / Página', 'icon' => 'o-document-text', 'bg' => 'bg-base-200/30 hover:bg-base-200/60'];
     }
 
+    /**
+     * @return array<int, string>
+     */
+    private function getScannedBaseViews(): array
+    {
+        if ($this->scannedBaseViews !== null) {
+            return $this->scannedBaseViews;
+        }
+
+        $views = [];
+        foreach (File::allFiles(resource_path('views')) as $file) {
+            $relativePath = str_replace('\\', '/', $file->getRelativePathname());
+            if ($this->isIgnoredThemeView($relativePath)) {
+                continue;
+            }
+
+            $views[] = $relativePath;
+        }
+
+        return $this->scannedBaseViews = $views;
+    }
+
     public function getStatusCountsProperty(): array
     {
         if (empty($this->selectedTheme)) {
             return ['all' => 0, 'overridden' => 0, 'fallback' => 0];
         }
 
-        $basePath = resource_path('views');
-        $allFiles = File::allFiles($basePath);
         $prefix = $this->getCurrentOverridePrefix();
-
         $counts = ['all' => 0, 'overridden' => 0, 'fallback' => 0];
 
-        foreach ($allFiles as $file) {
-            $relativePath = str_replace('\\', '/', $file->getRelativePathname());
-            if (str_starts_with($relativePath, 'themes/') || str_starts_with($relativePath, 'livewire/themes/')) {
-                continue;
-            }
-
+        foreach ($this->getScannedBaseViews() as $relativePath) {
             $counts['all']++;
             $themePath = resource_path("views/themes/{$prefix}/{$relativePath}");
             if (File::exists($themePath)) {
@@ -370,9 +384,6 @@ CSS;
             return [];
         }
 
-        $basePath = resource_path('views');
-        $allFiles = File::allFiles($basePath);
-
         $counts = [
             'all' => 0,
             'store' => 0,
@@ -383,12 +394,7 @@ CSS;
             'root' => 0,
         ];
 
-        foreach ($allFiles as $file) {
-            $relativePath = str_replace('\\', '/', $file->getRelativePathname());
-            if (str_starts_with($relativePath, 'themes/') || str_starts_with($relativePath, 'livewire/themes/')) {
-                continue;
-            }
-
+        foreach ($this->getScannedBaseViews() as $relativePath) {
             $counts['all']++;
             $category = $this->categorizeView($relativePath);
             if (isset($counts[$category['id']])) {
@@ -405,21 +411,10 @@ CSS;
             return [];
         }
 
-        $basePath = resource_path('views');
-        $allFiles = File::allFiles($basePath);
-
         $viewsList = [];
         $prefix = $this->getCurrentOverridePrefix();
 
-        foreach ($allFiles as $file) {
-            $relativePath = $file->getRelativePathname();
-            $relativePath = str_replace('\\', '/', $relativePath);
-
-            // Ignore files that are inside themes/ or the theme manager itself
-            if (str_starts_with($relativePath, 'themes/') || str_starts_with($relativePath, 'livewire/themes/')) {
-                continue;
-            }
-
+        foreach ($this->getScannedBaseViews() as $relativePath) {
             $category = $this->categorizeView($relativePath);
 
             if ($this->selectedCategory !== 'all' && $category['id'] !== $this->selectedCategory) {
@@ -451,10 +446,89 @@ CSS;
                 'theme_path' => $themeRelativePath,
                 'category' => $category,
                 'overridden' => $isOverridden,
+                'source' => $isOverridden ? ($this->isStudioGeneratedOverride($themePath) ? 'studio' : 'manual') : 'core',
+                'studio_url' => $isOverridden ? $this->studioUrlFor($relativePath) : null,
             ];
         }
 
+        usort(
+            $viewsList,
+            fn (array $a, array $b): int => ($b['overridden'] <=> $a['overridden']) ?: strcmp($a['file'], $b['file'])
+        );
+
         return $viewsList;
+    }
+
+    /**
+     * Determine whether a theme override file was generated by Studio (block compiler)
+     * instead of being a hand-written Blade file.
+     */
+    private function isStudioGeneratedOverride(string $themePath): bool
+    {
+        if (! array_key_exists($themePath, $this->studioMarkerCache)) {
+            $this->studioMarkerCache[$themePath] = File::exists($themePath)
+                && str_contains((string) File::get($themePath), ThemeBuilderCompilerService::COMPILED_MARKER);
+        }
+
+        return $this->studioMarkerCache[$themePath];
+    }
+
+    /**
+     * Builder URL for overrides that Studio can actually edit (static pages and theme zones).
+     */
+    private function studioUrlFor(string $relativePath): ?string
+    {
+        $compiler = app(ThemeBuilderCompilerService::class);
+
+        if (preg_match('#^pages/([A-Za-z0-9_-]+)\.blade\.php$#', $relativePath, $matches) === 1) {
+            $slug = $matches[1];
+
+            if ($compiler->isPageManagedByBuilder($this->selectedTheme, $this->selectedVariant, $slug)) {
+                return route('themes.builder', [
+                    'theme' => $this->selectedTheme,
+                    'variant' => $this->selectedVariant,
+                    'target' => 'page',
+                    'slug' => $slug,
+                ]);
+            }
+
+            return null;
+        }
+
+        if (preg_match('#^partials/zones/([A-Za-z0-9_-]+)\.blade\.php$#', $relativePath, $matches) === 1) {
+            $zone = $matches[1];
+            $zones = app(ThemeWidgetRegistry::class)->zones();
+
+            if (isset($zones[$zone])) {
+                return route('themes.builder', [
+                    'theme' => $this->selectedTheme,
+                    'variant' => $this->selectedVariant,
+                    'target' => 'zone',
+                    'zone' => $zone,
+                ]);
+            }
+        }
+
+        $catalogMap = [];
+
+        foreach (app(ThemeCatalogComponentRegistry::class)->components() as $componentKey => $meta) {
+            $catalogMap[$meta['target_view']] = $componentKey;
+        }
+
+        if (isset($catalogMap[$relativePath])) {
+            $componentKey = $catalogMap[$relativePath];
+
+            if ($compiler->isCatalogComponentCompiled($this->selectedTheme, $this->selectedVariant, $componentKey)) {
+                return route('themes.builder', [
+                    'theme' => $this->selectedTheme,
+                    'variant' => $this->selectedVariant,
+                    'target' => 'catalog',
+                    'component' => $componentKey,
+                ]);
+            }
+        }
+
+        return null;
     }
 
     public function getThemePagesProperty()
@@ -470,7 +544,9 @@ CSS;
             return [];
         }
 
+        $compiler = app(ThemeBuilderCompilerService::class);
         $pages = [];
+
         foreach (File::files($pagesPath) as $file) {
             if (Str::endsWith($file->getFilename(), '.blade.php')) {
                 $slug = Str::before($file->getFilename(), '.blade.php');
@@ -479,11 +555,82 @@ CSS;
                     'file' => $file->getRelativePathname(),
                     'title' => Str::headline($slug),
                     'url' => route('theme.page', ['slug' => $slug]),
+                    'is_managed' => $compiler->isPageManagedByBuilder($this->selectedTheme, $this->selectedVariant, $slug),
+                    'builder_url' => route('themes.builder', [
+                        'theme' => $this->selectedTheme,
+                        'variant' => $this->selectedVariant,
+                        'target' => 'page',
+                        'slug' => $slug,
+                    ]),
                 ];
             }
         }
 
         return $pages;
+    }
+
+    public function getThemeZonesProperty(): array
+    {
+        if (empty($this->selectedTheme)) {
+            return [];
+        }
+
+        $registry = app(ThemeWidgetRegistry::class);
+        $compiler = app(ThemeBuilderCompilerService::class);
+        $zones = [];
+
+        foreach ($registry->zones() as $zoneKey => $zoneMeta) {
+            $zones[] = [
+                'key' => $zoneKey,
+                'label' => $zoneMeta['label'],
+                'description' => $zoneMeta['description'],
+                'badge' => $zoneMeta['badge'],
+                'is_compiled' => $compiler->isZoneCompiled($this->selectedTheme, $this->selectedVariant, $zoneKey),
+                'has_active' => $compiler->zoneHasActiveBlocks($this->selectedTheme, $this->selectedVariant, $zoneKey),
+                'builder_url' => route('themes.builder', [
+                    'theme' => $this->selectedTheme,
+                    'variant' => $this->selectedVariant,
+                    'target' => 'zone',
+                    'zone' => $zoneKey,
+                ]),
+            ];
+        }
+
+        return $zones;
+    }
+
+    public function getThemeCatalogComponentsProperty(): array
+    {
+        if (empty($this->selectedTheme)) {
+            return [];
+        }
+
+        $registry = app(ThemeCatalogComponentRegistry::class);
+        $compiler = app(ThemeBuilderCompilerService::class);
+        $components = [];
+
+        foreach ($registry->components() as $componentKey => $meta) {
+            $blueprint = $compiler->getCatalogComponentBlueprint($this->selectedTheme, $this->selectedVariant, $componentKey);
+
+            $components[] = [
+                'key' => $componentKey,
+                'label' => $meta['label'],
+                'short_label' => $meta['short_label'],
+                'description' => $meta['description'],
+                'target_view' => $meta['target_view'],
+                'is_compiled' => $compiler->isCatalogComponentCompiled($this->selectedTheme, $this->selectedVariant, $componentKey),
+                'has_native_file' => (bool) ($blueprint['has_native_file'] ?? false),
+                'has_backup' => (bool) ($blueprint['has_backup'] ?? false),
+                'builder_url' => route('themes.builder', [
+                    'theme' => $this->selectedTheme,
+                    'variant' => $this->selectedVariant,
+                    'target' => 'catalog',
+                    'component' => $componentKey,
+                ]),
+            ];
+        }
+
+        return $components;
     }
 
     public function createThemePage()
@@ -517,9 +664,27 @@ CSS;
         }
 
         $title = Str::headline($slug);
+        $exportedTitle = var_export($title, true);
+        $phpClose = '?' . '>';
 
-        $base64Template = 'PD9waHAKdXNlIExpdmV3aXJlXEF0dHJpYnV0ZXNcTGF5b3V0Owp1c2UgTGl2ZXdpcmVcQXR0cmlidXRlc1xUaXRsZTsKdXNlIExpdmV3aXJlXFZvbHRcQ29tcG9uZW50OwoKbmV3ICNbTGF5b3V0KCdjb21wb25lbnRzLmxheW91dHMuY2xlYW4nKV0gI1tUaXRsZSgne3t0aXRsZX19JyldIGNsYXNzIGV4dGVuZHMgQ29tcG9uZW50IHsKfTsgPz4KCjxkaXYgY2xhc3M9ImJnLXdoaXRlIG1pbi1oLXNjcmVlbiBkYXJrOmJnLWdyYXktOTUwIHB4LTQgcHktOCB0ZXh0LWdyYXktOTAwIGRhcms6dGV4dC1ncmF5LTEwMCI+CiAgICA8ZGl2IGNsYXNzPSJteC1hdXRvIG1heC13LTR4bCBzcGFjZS15LTYiPgogICAgICAgIDxoMSBjbGFzcz0idGV4dC0zeGwgZm9udC1ib2xkIj57e3RpdGxlfX08L2gxPgogICAgICAgIDxwPkNvbnRlbmlkbyBkZSBsYSBw4WdpbmEgdmEgYXF17S4uLjwvcD4KICAgIDwvZGl2Pgo8L2Rpdj4=';
-        $template = str_replace('{{title}}', $title, base64_decode($base64Template));
+        $template = <<<BLADE
+        <?php
+
+        use Livewire\Attributes\Layout;
+        use Livewire\Attributes\Title;
+        use Livewire\Volt\Component;
+
+        new #[Layout('components.layouts.clean')] #[Title({$exportedTitle})] class extends Component {
+        }; {$phpClose}
+
+        <div class="bg-white min-h-screen dark:bg-gray-950 px-4 py-8 text-gray-900 dark:text-gray-100">
+            <div class="mx-auto max-w-4xl space-y-6">
+                <h1 class="text-3xl font-bold">{$title}</h1>
+                <p>Contenido de la página va aquí...</p>
+            </div>
+        </div>
+
+        BLADE;
 
         File::put($filePath, $template);
         $this->success("Página '{$slug}' creada correctamente.");
@@ -536,9 +701,13 @@ CSS;
 
         $prefix = $this->getCurrentOverridePrefix();
         $filePath = resource_path("views/themes/{$prefix}/pages/{$slug}.blade.php");
+        $jsonPath = resource_path("views/themes/{$prefix}/builder/pages/{$slug}.json");
 
         if (File::exists($filePath)) {
             File::delete($filePath);
+            if (File::exists($jsonPath)) {
+                File::delete($jsonPath);
+            }
             $this->success("Página '{$slug}' eliminada.");
         } else {
             $this->error("La página '{$slug}' no existe.");
@@ -547,50 +716,15 @@ CSS;
 
     public function exportTheme(): mixed
     {
-        if (empty($this->selectedTheme) || $this->selectedTheme === 'default') {
-            $this->error('Selecciona un tema válido para exportar.');
+        try {
+            $zipPath = app(ThemePackageService::class)->exportToZip($this->selectedTheme);
+
+            return response()->download($zipPath, "{$this->selectedTheme}-theme.zip")->deleteFileAfterSend(true);
+        } catch (RuntimeException $e) {
+            $this->error($e->getMessage());
 
             return null;
         }
-
-        $theme = $this->selectedTheme;
-        $exportDir = storage_path('app/private/theme-exports');
-        File::ensureDirectoryExists($exportDir);
-
-        $zipPath = "{$exportDir}/{$theme}-theme-".now()->format('Ymd_His').'.zip';
-
-        $zip = new ZipArchive;
-        if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
-            $this->error('No se pudo crear el archivo ZIP.');
-
-            return null;
-        }
-
-        // 1. Vistas del tema → views/
-        $viewsPath = resource_path("views/themes/{$theme}");
-        if (File::isDirectory($viewsPath)) {
-            foreach (File::allFiles($viewsPath) as $file) {
-                $zip->addFile($file->getRealPath(), 'views/'.$file->getRelativePathname());
-            }
-        }
-
-        // 2. CSS del tema → css/
-        $cssFile = resource_path("css/themes/{$theme}.css");
-        if (File::exists($cssFile)) {
-            $zip->addFile($cssFile, "css/{$theme}.css");
-        }
-
-        // 3. Assets públicos → public/
-        $assetsPath = public_path("themes/{$theme}");
-        if (File::isDirectory($assetsPath)) {
-            foreach (File::allFiles($assetsPath) as $file) {
-                $zip->addFile($file->getRealPath(), 'public/'.$file->getRelativePathname());
-            }
-        }
-
-        $zip->close();
-
-        return response()->download($zipPath, "{$theme}-theme.zip")->deleteFileAfterSend(true);
     }
 
     public function importTheme(): void
@@ -606,7 +740,7 @@ CSS;
             ['importFile' => 'archivo']
         );
 
-        $zipPath = $this->importFile->getRealPath();
+        $zipPath = $this->importFile?->getRealPath();
 
         if (! $zipPath || ! is_file($zipPath)) {
             $this->error('El archivo no se pudo subir. Verifica el límite de subida de PHP (public/.user.ini).');
@@ -614,68 +748,17 @@ CSS;
             return;
         }
 
-        $zip = new ZipArchive;
+        try {
+            $detectedTheme = app(ThemePackageService::class)->importFromZip($zipPath);
 
-        if ($zip->open($zipPath) !== true) {
-            $this->error('No se pudo abrir el archivo ZIP.');
-
-            return;
+            $this->importFile = null;
+            $this->loadThemes();
+            $this->selectedTheme = $detectedTheme;
+            $this->updatedSelectedTheme();
+            $this->success("Tema '{$detectedTheme}' importado correctamente.");
+        } catch (RuntimeException $e) {
+            $this->error($e->getMessage());
         }
-
-        // Detect theme name from the zip structure
-        $detectedTheme = null;
-        for ($i = 0; $i < $zip->numFiles; $i++) {
-            $name = $zip->getNameIndex($i);
-            if (str_starts_with($name, 'css/') && str_ends_with($name, '.css')) {
-                $detectedTheme = Str::before(basename($name), '.css');
-                break;
-            }
-        }
-
-        if (! $detectedTheme) {
-            $zip->close();
-            $this->error('No se pudo detectar el nombre del tema en el ZIP. Asegúrate de exportar desde este gestor.');
-
-            return;
-        }
-
-        $exclude = ['default', 'livewire', 'components', 'layouts', 'vendor', 'emails', 'auth', 'errors'];
-        if (in_array(strtolower($detectedTheme), $exclude)) {
-            $zip->close();
-            $this->error("El nombre de tema '{$detectedTheme}' está reservado y no puede importarse.");
-
-            return;
-        }
-
-        for ($i = 0; $i < $zip->numFiles; $i++) {
-            $entry = $zip->getNameIndex($i);
-            if (str_ends_with($entry, '/')) {
-                continue; // skip directories
-            }
-
-            $content = $zip->getFromIndex($i);
-
-            if (str_starts_with($entry, 'views/')) {
-                $dest = resource_path("views/themes/{$detectedTheme}/".substr($entry, strlen('views/')));
-            } elseif (str_starts_with($entry, 'css/')) {
-                $dest = resource_path("css/themes/{$detectedTheme}.css");
-            } elseif (str_starts_with($entry, 'public/')) {
-                $dest = public_path("themes/{$detectedTheme}/".substr($entry, strlen('public/')));
-            } else {
-                continue; // unknown structure, skip
-            }
-
-            File::ensureDirectoryExists(dirname($dest));
-            File::put($dest, $content);
-        }
-
-        $zip->close();
-
-        $this->importFile = null;
-        $this->loadThemes();
-        $this->selectedTheme = $detectedTheme;
-        $this->updatedSelectedTheme();
-        $this->success("Tema '{$detectedTheme}' importado correctamente.");
     }
 }
 ?>
@@ -683,12 +766,20 @@ CSS;
 <div class="mx-1">
     <x-header title="Gestor de Temas" subtitle="Administra las vistas personalizadas para cada tema" separator>
         <x-slot:actions>
-            <div class="flex items-center gap-2">
+            <a
+                href="{{ route('themes.builder', ['theme' => $selectedTheme ?: 'default', 'variant' => $selectedVariant]) }}"
+                class="btn btn-secondary btn-sm gap-1.5"
+            >
+                <x-icon name="o-sparkles" class="w-4 h-4" />
+                Studio
+            </a>
+
+            <div class="flex items-center gap-2 ml-2 border-l pl-3 border-base-300">
                 <x-input wire:model="newThemeName" placeholder="Nuevo tema..." class="input-sm" />
                 <x-button wire:click="createTheme" icon="o-plus" class="btn-primary btn-sm" tooltip="Crear tema" />
             </div>
             
-            <div class="flex items-center gap-2 ml-4 border-l pl-4 border-base-300">
+            <div class="flex items-center gap-2 ml-2 border-l pl-3 border-base-300">
                 <x-input wire:model="newVariantName" placeholder="Nueva variante..." class="input-sm" />
                 <x-button wire:click="createVariant" icon="o-plus" class="btn-primary btn-outline btn-sm" tooltip="Crear variante en tema actual" />
             </div>
@@ -716,8 +807,8 @@ CSS;
             </div>
             
             <div class="w-full md:w-1/3 pb-1">
-                <x-button wire:click="activateTheme" icon="o-check-circle" class="btn-success text-white w-full" spinner>
-                    Activar en .env
+                <x-button wire:click="activateTheme" icon="o-check-circle" class="btn-success w-full" spinner>
+                    Activar Tema
                 </x-button>
             </div>
         @endif
@@ -725,11 +816,18 @@ CSS;
 
     @if($selectedTheme)
         @if($selectedTheme === 'default')
-            <div class="text-center text-gray-500 py-10">
+            <div class="text-center text-gray-500 py-8">
                 <x-icon name="o-shield-check" class="w-12 h-12 mx-auto mb-4 text-success opacity-80" />
                 <h3 class="text-xl font-bold mb-2">Tema Base (Core)</h3>
                 <p>El tema <strong>default</strong> carga directamente las vistas originales del sistema.</p>
-                <p class="text-sm mt-2 opacity-75">No es posible crear overrides aquí. Si deseas hacer modificaciones personalizadas, crea un nuevo tema.</p>
+                <p class="text-sm mt-2 opacity-75">Para sobrescribir vistas Blade manualmente crea un tema nuevo, o edita zonas visuales y páginas estáticas desde Studio.</p>
+                <p class="text-xs mt-2 opacity-60">Los componentes de catálogo (card y vista única) se editan desde un tema activo: compilar sobre el tema base sobrescribiría las vistas del core.</p>
+                <div class="mt-4 flex flex-wrap justify-center gap-2">
+                    <a href="{{ route('themes.builder', ['theme' => 'default']) }}" class="btn btn-primary btn-sm">
+                        <x-icon name="o-sparkles" class="w-4 h-4" />
+                        Abrir Studio en Tema Base
+                    </a>
+                </div>
             </div>
         @else
             <div class="mb-4 flex flex-col gap-2 p-4 bg-base-100 border border-base-300 rounded-lg text-sm text-base-content/80 shadow-sm">
@@ -777,19 +875,164 @@ CSS;
                             accept=".zip"
                             class="file-input-sm flex-1"
                         />
-                        <x-button
-                            wire:click="importTheme"
-                            icon="o-arrow-up-tray"
-                            class="btn-warning btn-sm"
-                            spinner="importTheme"
-                            wire:confirm="¿Importar este tema? Si ya existe, sus archivos serán sobreescritos."
-                            tooltip="Importa un ZIP exportado desde este gestor"
-                        >
-                            Importar
-                        </x-button>
+                        <x-dropdown right>
+                            <x-slot:trigger>
+                                <x-button
+                                    icon="o-arrow-up-tray"
+                                    class="btn-warning btn-sm"
+                                    tooltip="Importa un ZIP exportado desde este gestor"
+                                    label="Importar"
+                                />
+                            </x-slot:trigger>
+                            <x-menu-item title="¿Importar tema? Sobreescribirá archivos existentes" icon="o-question-mark-circle" />
+                            <x-menu-separator />
+                            <x-menu-item
+                                title="Sí, importar y sobreescribir"
+                                icon="o-arrow-up-tray"
+                                wire:click="importTheme"
+                                spinner="importTheme"
+                            />
+                            <x-menu-item title="Cancelar" icon="o-x-mark" />
+                        </x-dropdown>
                     </div>
                 </div>
             </div>
+
+            <x-card title="Componentes de Catálogo (Card y Vista Única — Studio)" class="shadow-sm mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    @foreach($this->themeCatalogComponents as $catalogComp)
+                        <div class="p-4 rounded-xl border border-base-300 bg-base-100 flex flex-col justify-between gap-3">
+                            <div>
+                                <div class="flex items-center justify-between gap-2">
+                                    <h4 class="font-bold text-sm">{{ $catalogComp['label'] }}</h4>
+                                    @if($catalogComp['is_compiled'])
+                                        <span class="badge badge-success badge-sm">Personalizado (AOT)</span>
+                                    @elseif($catalogComp['has_native_file'])
+                                        <span class="badge badge-info badge-sm">Override Manual</span>
+                                    @else
+                                        <span class="badge badge-ghost badge-sm">Motor Base (Core)</span>
+                                    @endif
+                                </div>
+                                <p class="text-xs opacity-70 mt-1">{{ $catalogComp['description'] }}</p>
+                                @if($catalogComp['has_backup'])
+                                    <p class="text-[11px] text-warning mt-1">Con respaldo .bak.blade.php disponible para restaurar.</p>
+                                @endif
+                            </div>
+                            <div class="flex items-center justify-between pt-2 border-t border-base-200">
+                                <span class="text-[11px] font-mono opacity-60">{{ $catalogComp['target_view'] }}</span>
+                                <a href="{{ $catalogComp['builder_url'] }}" class="btn btn-primary btn-xs">
+                                    <x-icon name="o-paint-brush" class="w-3.5 h-3.5" />
+                                    Editar en Studio
+                                </a>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </x-card>
+
+            <x-card title="Zonas Visuales del Tema (Studio)" class="shadow-sm mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    @foreach($this->themeZones as $zone)
+                        <div class="p-4 rounded-xl border border-base-300 bg-base-100 flex flex-col justify-between gap-3">
+                            <div>
+                                <div class="flex items-center justify-between gap-2">
+                                    <h4 class="font-bold text-sm">{{ $zone['label'] }}</h4>
+                                    @if($zone['has_active'])
+                                        <span class="badge badge-success badge-sm">Activa (AOT)</span>
+                                    @elseif($zone['is_compiled'])
+                                        <span class="badge badge-warning badge-sm">Sin bloques activos</span>
+                                    @else
+                                        <span class="badge badge-ghost badge-sm">Sin personalizar</span>
+                                    @endif
+                                </div>
+                                <p class="text-xs opacity-70 mt-1">{{ $zone['description'] }}</p>
+                            </div>
+                            <div class="flex items-center justify-between pt-2 border-t border-base-200">
+                                <span class="text-[11px] font-mono opacity-60">{{ $zone['key'] }}</span>
+                                <a href="{{ $zone['builder_url'] }}" class="btn btn-primary btn-xs">
+                                    <x-icon name="o-paint-brush" class="w-3.5 h-3.5" />
+                                    Editar en Studio
+                                </a>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </x-card>
+
+            <x-card title="Páginas Estáticas (/page)" class="shadow-sm mb-6">
+                <div class="flex flex-col md:flex-row items-center justify-between mb-4 gap-4">
+                    <div class="text-sm opacity-70 w-full md:w-1/2 text-center md:text-left">
+                        Agrega páginas institucionales o informativas (ej: nosotros, contacto).<br>Aparecerán automáticamente en el menú.
+                    </div>
+                    <div class="w-full md:w-auto flex items-center gap-2 justify-end">
+                        <x-input wire:model="newPageSlug" placeholder="Nombre de página..." class="input-sm" />
+                        <x-button wire:click="createThemePage" icon="o-plus" class="btn-primary btn-sm" tooltip="Crear página" />
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto border border-base-300 rounded-lg">
+                    <table class="table table-zebra table-sm w-full">
+                        <thead>
+                            <tr>
+                                <th>Título</th>
+                                <th>URL (Slug)</th>
+                                <th>Origen</th>
+                                <th>Archivo Físico</th>
+                                <th class="text-right">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($this->themePages as $page)
+                                <tr>
+                                    <td class="font-bold">{{ $page['title'] }}</td>
+                                    <td class="font-mono text-sm">
+                                        <a href="{{ $page['url'] }}" target="_blank" class="text-primary hover:underline flex items-center gap-1">
+                                            /page/{{ $page['slug'] }}
+                                            <x-icon name="o-arrow-top-right-on-square" class="w-3 h-3" />
+                                        </a>
+                                    </td>
+                                    <td>
+                                        @if($page['is_managed'])
+                                            <span class="badge badge-primary badge-xs">Constructor Visual</span>
+                                        @else
+                                            <span class="badge badge-ghost badge-xs">Blade Nativa</span>
+                                        @endif
+                                    </td>
+                                    <td class="font-mono text-xs opacity-75">{{ $page['file'] }}</td>
+                                    <td class="text-right">
+                                        <div class="inline-flex items-center gap-1.5">
+                                            <a href="{{ $page['builder_url'] }}" class="btn btn-primary btn-xs btn-outline">
+                                                <x-icon name="o-sparkles" class="w-3.5 h-3.5" />
+                                                Constructor Visual
+                                            </a>
+                                            <x-dropdown right>
+                                                <x-slot:trigger>
+                                                    <x-button icon="o-trash" class="btn-error btn-xs btn-outline" tooltip="Eliminar página" />
+                                                </x-slot:trigger>
+                                                <x-menu-item title="¿Eliminar '{{ $page['title'] }}'?" icon="o-question-mark-circle" />
+                                                <x-menu-separator />
+                                                <x-menu-item
+                                                    title="Sí, borrar página física"
+                                                    icon="o-trash"
+                                                    wire:click="deleteThemePage('{{ $page['slug'] }}')"
+                                                    spinner="deleteThemePage"
+                                                />
+                                                <x-menu-item title="Cancelar" icon="o-x-mark" />
+                                            </x-dropdown>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="5" class="text-center py-4 text-gray-500">
+                                        No se han creado páginas para este tema aún.
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </x-card>
 
             <x-card title="Vistas del motor vs Overrides de Tema" class="shadow-sm">
                 {{-- Filtros: Estado y Categorías --}}
@@ -809,7 +1052,7 @@ CSS;
                         <button 
                             type="button"
                             wire:click="$set('statusFilter', 'overridden')" 
-                            class="btn btn-xs {{ $statusFilter === 'overridden' ? 'btn-success text-white' : 'btn-ghost' }}"
+                            class="btn btn-xs {{ $statusFilter === 'overridden' ? 'btn-success' : 'btn-ghost' }}"
                         >
                             <x-icon name="o-check-circle" class="w-3.5 h-3.5" /> Sobrescritas en {{ $selectedTheme }} <span class="badge badge-xs">{{ $this->statusCounts['overridden'] ?? 0 }}</span>
                         </button>
@@ -867,9 +1110,9 @@ CSS;
                         <button 
                             type="button"
                             wire:click="$set('selectedCategory', 'errors')" 
-                            class="btn btn-xs {{ $selectedCategory === 'errors' ? 'btn-error' : 'btn-ghost' }}"
+                            class="btn btn-xs {{ $selectedCategory === 'errors' ? 'btn-neutral' : 'btn-ghost' }}"
                         >
-                            <x-icon name="o-exclamation-triangle" class="w-3.5 h-3.5" /> Errores <span class="badge badge-xs">{{ $this->categoriesCount['errors'] ?? 0 }}</span>
+                            <x-icon name="o-shield-exclamation" class="w-3.5 h-3.5" /> Páginas HTTP <span class="badge badge-xs">{{ $this->categoriesCount['errors'] ?? 0 }}</span>
                         </button>
                         <button 
                             type="button"
@@ -928,8 +1171,15 @@ CSS;
                                     <td class="text-center align-middle">
                                         @if($view['overridden'])
                                             <div class="flex flex-col items-center gap-1">
-                                                <x-badge value="Activo en Tema" class="badge-success badge-sm text-white font-medium" />
-                                                <span class="text-[10px] text-success/80 font-mono">Prioridad alta</span>
+                                                <x-badge value="Activo en Tema" class="badge-success badge-sm font-medium" />
+                                                @if($view['source'] === 'studio')
+                                                    <span class="text-[10px] text-success/80 font-mono">Studio · bloques</span>
+                                                @else
+                                                    <span
+                                                        class="text-[10px] text-warning font-mono cursor-help"
+                                                        title="Blade escrito a mano: se edita en el archivo, no en Studio. Para contenido visual usá una página o zona del tema."
+                                                    >Blade manual</span>
+                                                @endif
                                             </div>
                                         @else
                                             <div class="flex flex-col items-center gap-1">
@@ -940,7 +1190,32 @@ CSS;
                                     </td>
                                     <td class="text-right">
                                         @if($view['overridden'])
-                                            <x-button wire:click="revertView('{{ $view['file'] }}')" wire:confirm="¿Estás seguro de eliminar el archivo y volver al fallback?" icon="o-arrow-uturn-left" class="btn-error btn-xs" tooltip="Revertir a base" />
+                                            <div class="inline-flex items-center gap-1">
+                                                @if($view['studio_url'])
+                                                    <a
+                                                        href="{{ $view['studio_url'] }}"
+                                                        class="btn btn-primary btn-outline btn-xs gap-1"
+                                                        title="Editar este contenido en Studio"
+                                                    >
+                                                        <x-icon name="o-sparkles" class="w-3.5 h-3.5" />
+                                                        Studio
+                                                    </a>
+                                                @endif
+                                                <x-dropdown right>
+                                                    <x-slot:trigger>
+                                                        <x-button icon="o-arrow-uturn-left" class="btn-error btn-xs" tooltip="Revertir a base" />
+                                                    </x-slot:trigger>
+                                                    <x-menu-item title="¿Eliminar override y volver al fallback?" icon="o-question-mark-circle" />
+                                                    <x-menu-separator />
+                                                    <x-menu-item
+                                                        title="Sí, revertir vista"
+                                                        icon="o-arrow-uturn-left"
+                                                        wire:click="revertView('{{ $view['file'] }}')"
+                                                        spinner="revertView"
+                                                    />
+                                                    <x-menu-item title="Cancelar" icon="o-x-mark" />
+                                                </x-dropdown>
+                                            </div>
                                         @else
                                             <x-button wire:click="overrideView('{{ $view['file'] }}')" icon="o-document-duplicate" class="btn-primary btn-outline btn-xs" tooltip="Crear override" />
                                         @endif
@@ -950,54 +1225,6 @@ CSS;
                                 <tr>
                                     <td colspan="3" class="text-center py-4 text-gray-500">
                                         No se encontraron vistas con esa búsqueda.
-                                    </td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-            </x-card>
-            
-            <x-card title="Páginas Estáticas (/page)" class="shadow-sm mt-6">
-                <div class="flex flex-col md:flex-row items-center justify-between mb-4 gap-4">
-                    <div class="text-sm opacity-70 w-full md:w-1/2 text-center md:text-left">
-                        Agrega páginas institucionales o informativas (ej: nosotros, contacto).<br>Aparecerán automáticamente en el menú.
-                    </div>
-                    <div class="w-full md:w-auto flex items-center gap-2 justify-end">
-                        <x-input wire:model="newPageSlug" placeholder="Nombre de página..." class="input-sm" />
-                        <x-button wire:click="createThemePage" icon="o-plus" class="btn-primary btn-sm" tooltip="Crear página" />
-                    </div>
-                </div>
-
-                <div class="overflow-x-auto border border-base-300 rounded-lg">
-                    <table class="table table-zebra table-sm w-full">
-                        <thead>
-                            <tr>
-                                <th>Título</th>
-                                <th>URL (Slug)</th>
-                                <th>Archivo Físico</th>
-                                <th class="text-right">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @forelse($this->themePages as $page)
-                                <tr>
-                                    <td class="font-bold">{{ $page['title'] }}</td>
-                                    <td class="font-mono text-sm">
-                                        <a href="{{ $page['url'] }}" target="_blank" class="text-primary hover:underline flex items-center gap-1">
-                                            /page/{{ $page['slug'] }}
-                                            <x-icon name="o-arrow-top-right-on-square" class="w-3 h-3" />
-                                        </a>
-                                    </td>
-                                    <td class="font-mono text-xs opacity-75">{{ $page['file'] }}</td>
-                                    <td class="text-right">
-                                        <x-button wire:click="deleteThemePage('{{ $page['slug'] }}')" wire:confirm="¿Estás seguro de eliminar la página '{{ $page['title'] }}'? Se borrará el archivo físico permanentemente." icon="o-trash" class="btn-error btn-xs btn-outline" tooltip="Eliminar página" />
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="4" class="text-center py-4 text-gray-500">
-                                        No se han creado páginas para este tema aún.
                                     </td>
                                 </tr>
                             @endforelse
